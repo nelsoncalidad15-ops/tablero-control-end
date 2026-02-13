@@ -1,0 +1,5 @@
+{
+  "name": "SheetDash AI",
+  "description": "Un dashboard profesional conectado a Google Sheets con análisis de inteligencia artificial mediante Gemini.",
+  "requestFramePermissions": []
+}

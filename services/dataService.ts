@@ -1,22 +1,66 @@
-import { AutoRecord, QualityRecord } from '../types';
+
+/// <reference types="vite/client" />
+import Papa from 'papaparse';
+import { AutoRecord, QualityRecord, SalesQualityRecord, SalesClaimsRecord, DetailedQualityRecord, PostventaKpiRecord, BillingRecord, PCGCRecord, CemOsRecord, InternalPostventaRecord, ActionPlanRecord, CourseGrade, RelatorioItem } from '../types';
 
 // --- Helper Functions ---
 
-const cleanHeader = (h: string) => h.toLowerCase().trim().replace(/[\uFEFF\r\n"]/g, '');
+// Clean header function that safely removes BOM and specific control chars
+const cleanHeader = (h: string) => {
+    if (!h) return '';
+    // Removes BOM, carriage returns, newlines, and double quotes.
+    // Also removes special characters that might interfere with matching.
+    return h.replace(/^\uFEFF/, '')
+            .replace(/[\r\n]+/g, ' ')
+            .replace(/["]/g, '')
+            .replace(/_/g, ' ')
+            .normalize("NFD").replace(/[\u0300-\u036f]/g, "") // Remove accents
+            .toLowerCase()
+            .trim();
+};
 
 const normalizeBranch = (val: string) => {
-    if (!val || val.trim() === '') return 'General';
-    let s = val.trim();
-    if (s.length > 2) {
-        return s.charAt(0).toUpperCase() + s.slice(1).toLowerCase();
-    }
+    if (!val || val.trim() === '') return 'GENERAL';
+    const s = val.trim().toUpperCase();
+    if (s.includes('JUJUY') || s === '3059') return 'JUJUY';
+    if (s.includes('SALTA') || s === '3087' || s === '3089') return 'SALTA';
+    if (s.includes('SANTA FE')) return 'SANTA FE';
+    if (s.includes('EXPRESS')) return 'EXPRESS';
+    if (s.includes('MOVIL')) return 'TALLER MOVIL';
     return s;
 };
 
 const normalizeMonth = (val: string) => {
     if (!val) return 'Unknown';
-    const s = val.trim().toLowerCase();
-    return s.charAt(0).toUpperCase() + s.slice(1);
+    // Extract only the month part if it's "Enero - 2025" or similar
+    const firstPart = val.split(/[-/ ]/)[0].trim().toLowerCase();
+    
+    // Handle short formats like "dic", "ene", "dic.", "ene."
+    const map: Record<string, string> = {
+        'ene': 'Enero', 'ene.': 'Enero', 'enero': 'Enero',
+        'feb': 'Febrero', 'feb.': 'Febrero', 'febrero': 'Febrero',
+        'mar': 'Marzo', 'mar.': 'Marzo', 'marzo': 'Marzo',
+        'abr': 'Abril', 'abr.': 'Abril', 'abril': 'Abril',
+        'may': 'Mayo', 'may.': 'Mayo', 'mayo': 'Mayo',
+        'jun': 'Junio', 'jun.': 'Junio', 'junio': 'Junio',
+        'jul': 'Julio', 'jul.': 'Julio', 'julio': 'Julio',
+        'ago': 'Agosto', 'ago.': 'Agosto', 'agosto': 'Agosto',
+        'sep': 'Septiembre', 'sep.': 'Septiembre', 'septiembre': 'Septiembre',
+        'set': 'Septiembre', 'set.': 'Septiembre',
+        'oct': 'Octubre', 'oct.': 'Octubre', 'octubre': 'Octubre',
+        'nov': 'Noviembre', 'nov.': 'Noviembre', 'noviembre': 'Noviembre',
+        'dic': 'Diciembre', 'dic.': 'Diciembre', 'diciembre': 'Diciembre'
+    };
+    if (map[firstPart]) return map[firstPart];
+    
+    // If it's a number like "01", "02"...
+    const monthNum = parseInt(firstPart);
+    if (!isNaN(monthNum) && monthNum >= 1 && monthNum <= 12) {
+        const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+        return monthNames[monthNum - 1];
+    }
+
+    return firstPart.charAt(0).toUpperCase() + firstPart.slice(1);
 };
 
 const parseNumber = (val: string): number => {
@@ -44,6 +88,31 @@ const parseNumber = (val: string): number => {
   return isNaN(num) ? 0 : num;
 };
 
+// Helper for scores that can be null (not 0)
+const parseScore = (val: string): number | null => {
+    if (!val || val.trim() === '' || val.trim() === '-') return null;
+    const num = parseNumber(val);
+    return num === 0 ? null : num; // Assuming 0 usually means no score in this context, unless specified
+};
+
+const cleanVendedor = (val: string) => {
+    if (!val) return '';
+    let s = val.trim();
+    
+    // Special case for CH VIRT
+    if (s.includes('CH VIRT - ')) {
+        s = s.replace('CH VIRT - ', 'CH VIRT, ');
+    } else {
+        // Remove "JJY - " or similar prefixes (2 to 5 uppercase letters + dash)
+        s = s.replace(/^[A-Z]{2,5}\s*-\s*/, '');
+    }
+    
+    // Remove numbers at the end
+    s = s.replace(/\d+$/, '');
+    
+    return s.trim();
+};
+
 // --- Robust CSV Parser ---
 // Handles newlines inside quotes, escaped quotes, and auto-detects delimiter
 const parseCSV = (text: string): string[][] => {
@@ -55,7 +124,13 @@ const parseCSV = (text: string): string[][] => {
   // Detect delimiter based on first line roughly
   const firstLineEnd = text.indexOf('\n');
   const firstLine = text.substring(0, firstLineEnd > -1 ? firstLineEnd : text.length);
-  const delimiter = (firstLine.match(/;/g) || []).length > (firstLine.match(/,/g) || []).length ? ';' : ',';
+  const commaCount = (firstLine.match(/,/g) || []).length;
+  const semicolonCount = (firstLine.match(/;/g) || []).length;
+  const tabCount = (firstLine.match(/\t/g) || []).length;
+  
+  let delimiter = ',';
+  if (semicolonCount > commaCount && semicolonCount > tabCount) delimiter = ';';
+  else if (tabCount > commaCount && tabCount > semicolonCount) delimiter = '\t';
 
   for (let i = 0; i < text.length; i++) {
     const char = text[i];
@@ -101,11 +176,35 @@ const parseCSV = (text: string): string[][] => {
 
 // --- Main Data Fetchers ---
 
-export const fetchSheetData = async (csvUrl: string): Promise<AutoRecord[]> => {
+const fetchFromProxy = async (sheetKey: string): Promise<string> => {
+    const apiBase = import.meta.env.VITE_API_URL || '';
+    // If it's a full URL, pass it as a query parameter to our proxy to avoid CORS
+    const url = sheetKey.startsWith('http') 
+        ? `${apiBase}/api/data/custom?url=${encodeURIComponent(sheetKey)}` 
+        : `${apiBase}/api/data/${sheetKey}`;
+    
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            let errorDetail = response.statusText;
+            try {
+                const errorJson = await response.json();
+                errorDetail = errorJson.details || errorJson.error || response.statusText;
+            } catch (e) {
+                // Not JSON, just use status text
+            }
+            throw new Error(errorDetail);
+        }
+        return await response.text();
+    } catch (error: any) {
+        console.error(`Error fetching from proxy for ${sheetKey}:`, error);
+        throw error;
+    }
+};
+
+export const fetchSheetData = async (sheetKey: string): Promise<AutoRecord[]> => {
   try {
-    const response = await fetch(csvUrl);
-    if (!response.ok) throw new Error(`Failed to fetch data: ${response.statusText}`);
-    const text = await response.text();
+    const text = await fetchFromProxy(sheetKey);
     return parseAutoCSV(text);
   } catch (error) {
     console.error("Error loading sheet data", error);
@@ -113,17 +212,105 @@ export const fetchSheetData = async (csvUrl: string): Promise<AutoRecord[]> => {
   }
 };
 
-export const fetchQualityData = async (csvUrl: string): Promise<QualityRecord[]> => {
+export const fetchQualityData = async (sheetKey: string): Promise<QualityRecord[]> => {
     try {
-      const response = await fetch(csvUrl);
-      if (!response.ok) throw new Error(`Failed to fetch data: ${response.statusText}`);
-      const text = await response.text();
+      const text = await fetchFromProxy(sheetKey);
       return parseQualityCSV(text);
     } catch (error) {
       console.error("Error loading quality data", error);
       throw error;
     }
 };
+
+export const fetchSalesQualityData = async (sheetKey: string): Promise<SalesQualityRecord[]> => {
+    try {
+      const text = await fetchFromProxy(sheetKey);
+      return parseSalesQualityCSV(text);
+    } catch (error) {
+      console.error("Error loading sales quality data", error);
+      throw error;
+    }
+};
+
+export const fetchSalesClaimsData = async (sheetKey: string): Promise<SalesClaimsRecord[]> => {
+    try {
+      const text = await fetchFromProxy(sheetKey);
+      return parseSalesClaimsCSV(text);
+    } catch (error) {
+      console.error("Error loading sales claims data", error);
+      throw error;
+    }
+};
+
+export const fetchDetailedQualityData = async (sheetKey: string): Promise<DetailedQualityRecord[]> => {
+    try {
+      const text = await fetchFromProxy(sheetKey);
+      return parseDetailedQualityCSV(text);
+    } catch (error) {
+      console.error("Error loading detailed quality data", error);
+      throw error;
+    }
+};
+
+export const fetchPostventaKpiData = async (sheetKey: string): Promise<PostventaKpiRecord[]> => {
+    try {
+      const text = await fetchFromProxy(sheetKey);
+      return parsePostventaKpiCSV(text);
+    } catch (error) {
+      console.error("Error loading postventa kpi data", error);
+      throw error;
+    }
+};
+
+export const fetchPostventaBillingData = async (sheetKey: string): Promise<BillingRecord[]> => {
+    try {
+      const text = await fetchFromProxy(sheetKey);
+      return parsePostventaBillingCSV(text);
+    } catch (error) {
+      console.error("Error loading postventa billing data", error);
+      throw error;
+    }
+};
+
+export const fetchPCGCData = async (sheetKey: string): Promise<PCGCRecord[]> => {
+    try {
+      const text = await fetchFromProxy(sheetKey);
+      return parsePCGCCSV(text);
+    } catch (error) {
+      console.error("Error loading PCGC data", error);
+      throw error;
+    }
+};
+
+export const fetchHRGradesData = async (sheetKey: string): Promise<CourseGrade[]> => {
+    if (!sheetKey) {
+        console.warn("fetchHRGradesData: No sheet key provided");
+        return [];
+    }
+    try {
+        const text = await fetchFromProxy(sheetKey);
+        return parseHRGradesCSV(text);
+    } catch (error) {
+        console.error("Error loading HR grades data:", error);
+        throw error; // Throw instead of returning [] to trigger error UI
+    }
+};
+
+export const fetchHRRelatorioData = async (sheetKey: string): Promise<RelatorioItem[]> => {
+    if (!sheetKey) {
+        console.warn("fetchHRRelatorioData: No sheet key provided");
+        return [];
+    }
+    try {
+        const text = await fetchFromProxy(sheetKey);
+        return parseHRRelatorioCSV(text);
+    } catch (error) {
+        console.error("Error loading HR relatorio data:", error);
+        throw error; // Throw instead of returning [] to trigger error UI
+    }
+};
+
+
 
 // --- Specific Parsers ---
 
@@ -144,21 +331,30 @@ const parseAutoCSV = (csvText: string): AutoRecord[] => {
     headers.forEach((header, index) => {
       const value = currentLine[index] || '';
 
-      if (header.includes('mes') || header === 'month') {
+      if (index === 10) {
+        record.ppt_diarios_k = parseNumber(value);
+      }
+      if (index === 12) {
+        record.servicios_diarios_m = parseNumber(value);
+      }
+
+      if (header.includes('mes') && !header.includes('nro')) {
         record.mes = value;
-      } else if (header.includes('anio') || header.includes('año')) {
-        record.anio = parseInt(value) || 2025;
-      } else if (header.includes('sucursal') || header.includes('taller') || header === 'suc') {
+      } else if (header.includes('anio') || header.includes('ano')) {
+        record.anio = parseInt(value) || 2026;
+      } else if (header.includes('sucursal') || header.includes('taller') || header === 'suc' || header === 'suc.') {
         record.sucursal = value;
       } else if (header.includes('ppt') && header.includes('diario')) {
         record.ppt_diarios = parseNumber(value);
-      } else if (header.includes('avance')) {
+      } else if (header.includes('avance ppt')) {
         record.avance_ppt = parseNumber(value);
-      } else if (header.includes('servis')) {
+      } else if (header.includes('avance servis') || header.includes('avance servicios')) {
+        record.servicios_totales = parseNumber(value);
+      } else if (header.includes('servis') && header.includes('diario')) {
         record.servicios_diarios = parseNumber(value);
-      } else if (header.includes('obj') || header.includes('meta')) {
+      } else if (header.includes('obj') && header.includes('mensual')) {
         record.objetivo_mensual = parseNumber(value);
-      } else if (header.includes('dias') && header.includes('lab')) {
+      } else if ((header.includes('dia') || header.includes('días')) && header.includes('lab')) {
         record.dias_laborables = parseNumber(value);
       }
       record[header] = value;
@@ -167,8 +363,16 @@ const parseAutoCSV = (csvText: string): AutoRecord[] => {
     if (!record.mes) record.mes = 'Unknown';
     else record.mes = normalizeMonth(record.mes);
 
-    if (!record.anio) record.anio = 2025;
+    if (!record.anio) record.anio = 2026;
     record.sucursal = normalizeBranch(record.sucursal);
+
+    // Initial Defaults
+    if (record.ppt_diarios === undefined) record.ppt_diarios = 0;
+    if (record.avance_ppt === undefined) record.avance_ppt = 0;
+    if (record.servicios_diarios === undefined) record.servicios_diarios = 0;
+    if (record.servicios_totales === undefined) record.servicios_totales = 0;
+    if (record.objetivo_mensual === undefined) record.objetivo_mensual = 0;
+    if (record.dias_laborables === undefined) record.dias_laborables = 0;
 
     records.push(record as AutoRecord);
   }
@@ -180,6 +384,10 @@ const parseQualityCSV = (csvText: string): QualityRecord[] => {
     if (rows.length < 2) return [];
   
     const headers = rows[0].map(cleanHeader);
+    const companyIdx = headers.indexOf('nombre de la compania');
+    const apellidoIdx = headers.indexOf('apellido');
+    const nombreIdx = headers.indexOf('nombre');
+
     const records: QualityRecord[] = [];
   
     for (let i = 1; i < rows.length; i++) {
@@ -192,49 +400,958 @@ const parseQualityCSV = (csvText: string): QualityRecord[] => {
         const value = currentLine[index] || '';
   
         // Strict mapping based on user feedback
-        if (header.includes('sucursal')) record.sucursal = value;
+        if (header.includes('sucursal') || header.includes('taller')) record.sucursal = value;
         else if (header.includes('mes')) record.mes = value;
+        else if (header.includes('anio') || header.includes('ano')) record.anio = parseInt(value) || 2026;
         else if (header === 'cliente') record.cliente = value;
         else if (header.includes('sector')) record.sector = value;
         else if (header.includes('motivos')) record.motivo = value;
         else if (header.includes('responsable de')) record.responsable = value;
-        // Prioritize "reclamo / observacion" (Col G) over other similar columns
+        else if (header.includes('asesor asignado') || header === 'asesor') record.asesor = value;
         else if (header.includes('observación') || header.includes('observacion')) {
-            // Avoid capturing resolution observation here if the header is distinct
             if (!header.includes('resolucion')) {
                 record.observacion = value;
             }
         }
         else if (header.includes('estado')) record.estado = value;
-        // Orden / Nro
         else if (header === 'orden' || header === 'nro' || header === 'or') record.orden = value;
 
-        // NEW FIELDS
-        else if (header.includes('resuelto')) record.resuelto = value; // "Reclamo Resuelto?"
-        else if (header.includes('resolucion') || header.includes('resolución')) record.observacion_resolucion = value; // "Observacion de resolucion"
+        else if (header.includes('resuelto')) record.resuelto = value;
+        else if (header.includes('resolucion') || header.includes('resolución')) record.observacion_resolucion = value;
+        else if (header.includes('categorizacion')) record.categorizacion = value;
+        else if (header.includes('causa raiz')) record.causa_raiz = value;
+        else if (header.includes('accion contencion')) record.accion_contencion = value;
+        else if (header.includes('accion correctiva')) record.accion_correctiva = value;
         
-        // Additional Fields for reference
         record[header] = value;
       });
   
-      // Fallback if observacion wasn't caught by the strict check (e.g. header name variation)
+      // Client name construction
+      if (!record.cliente) {
+          const company = companyIdx !== -1 ? currentLine[companyIdx] : '';
+          const ape = apellidoIdx !== -1 ? currentLine[apellidoIdx] : '';
+          const nom = nombreIdx !== -1 ? currentLine[nombreIdx] : '';
+          
+          if (company && company.trim() !== '') {
+              record.cliente = company.trim();
+          } else if (ape || nom) {
+              record.cliente = `${ape} ${nom}`.trim();
+          } else {
+              record.cliente = 'Cliente Desconocido';
+          }
+      }
+
       if (!record.observacion && record['reclamo / observación']) record.observacion = record['reclamo / observación'];
 
-      // Defaults
       if (!record.sucursal) record.sucursal = 'General';
       else record.sucursal = normalizeBranch(record.sucursal);
 
       if (!record.mes) record.mes = 'Unknown';
       else record.mes = normalizeMonth(record.mes); 
 
-      if (!record.anio) record.anio = 2025; 
+      if (!record.anio) record.anio = 2026; 
       if (!record.sector) record.sector = 'Sin Sector';
       if (!record.motivo) record.motivo = 'Sin Motivo';
       
-      // Clean orden for unique counting
       if (record.orden) record.orden = record.orden.toString().trim();
 
       records.push(record as QualityRecord);
     }
     return records;
   };
+
+const parseSalesQualityCSV = (csvText: string): SalesQualityRecord[] => {
+    const rows = parseCSV(csvText);
+    if (rows.length < 2) return [];
+  
+    const headers = rows[0].map(cleanHeader);
+    const records: SalesQualityRecord[] = [];
+  
+    for (let i = 1; i < rows.length; i++) {
+      const currentLine = rows[i];
+      if (currentLine.length < headers.length - 1) continue;
+  
+      const record: any = { id: `sq-row-${i}` };
+      
+      headers.forEach((header, index) => {
+        const value = currentLine[index] || '';
+
+        // TIPO DE VENTA
+        if (header.includes('tipo de venta') || header === 'canal' || header === 'origen') {
+            record.tipo_venta = value;
+        }
+
+        // CONTACT DATES
+        if (header.includes('fecha de entrega') || (header.includes('fecha') && header.includes('entrega'))) record.fecha_entrega = value;
+        else if (header.includes('fecha 1') || header.includes('1º llamado')) record.fecha_1_llamado = value;
+        else if (header.includes('fecha 2') || header.includes('2º llamado')) record.fecha_2_llamado = value;
+        else if (header.includes('fecha 3') || header.includes('3º llamado')) record.fecha_3_llamado = value;
+        else if (header.includes('contacto efectivo')) record.fecha_contacto_efectivo = value;
+        else if (header.includes('envío mensaje')) record.fecha_envio_wpp = value;
+        else if (header.includes('respuesta mensaje')) record.fecha_respuesta_wpp = value;
+
+        // STANDARD FIELDS
+        else if (header.includes('mes de entrega') || header === 'mes') record.mes = value;
+        else if (header.includes('anio') || header.includes('ano')) record.anio = parseInt(value) || 2026;
+        else if (header.includes('sucursal')) record.sucursal = value;
+        else if (header.includes('modelo')) record.modelo = value;
+        else if (header.includes('vendedor')) record.vendedor = value;
+        else if (header.includes('nombre de cliente') || header === 'cliente') record.cliente = value;
+        else if (header.includes('vin') || header === 'chasis') record.vin = value;
+        
+        // ESTADO (Col N)
+        else if (header === 'estado') record.estado = value; 
+        
+        // NPS - Recomendaría
+        else if (header.includes('recomiendes') || header.includes('recomendarías')) record.nps = parseScore(value);
+
+        // COMENTARIOS
+        else if (header.includes('comentarios') || header.includes('seguimiento')) {
+             if (!record.comentarios) record.comentarios = value;
+        }
+
+        // CEM Scores (Parse Score handles nulls)
+        else if (header.includes('asesoramiento') && header.includes('cem')) record.cem_asesoramiento = parseScore(value);
+        else if (header.includes('organizacion') && header.includes('cem')) record.cem_organizacion = parseScore(value);
+        else if (header.includes('trato') && header.includes('cem')) record.cem_trato = parseScore(value);
+        else if (header.includes('satisfaccion general') && header.includes('cem')) record.cem_general = parseScore(value);
+        
+        // Yes/No & Process
+        else if (header.includes('prueba de manejo')) record.prueba_manejo = value;
+        else if (header.includes('financiar') || header.includes('financiacion')) record.ofrecimiento_financiacion = value;
+        else if (header.includes('usado') && header.includes('parte de pago')) record.toma_usados = value;
+        else if (header.includes('contacto') && header.includes('despues de la entrega')) record.contacto_entrega = value;
+        
+        // Admin / Delivery
+        else if (header.includes('tramites') && header.includes('explicacion')) record.explicacion_tramites = parseScore(value); 
+        else if (header.includes('plazo de entrega')) record.plazo_entrega = parseScore(value);
+        else if (header.includes('estado del vehiculo') || (header.includes('danos') && header.includes('pintura'))) record.estado_vehiculo = parseScore(value);
+        else if (header.includes('explicacion') && header.includes('funcionamiento')) record.explicacion_entrega = parseScore(value);
+        else if (header.includes('seguro')) record.ofrecimiento_seguro = value;
+        else if (header.includes('app') && header.includes('vw')) record.app_mi_vw = value;
+
+        record[header] = value;
+      });
+
+      // Normalization
+      if (!record.mes) record.mes = 'Unknown';
+      else record.mes = normalizeMonth(record.mes);
+      
+      record.sucursal = normalizeBranch(record.sucursal);
+      record.anio = 2026; 
+      
+      if (!record.tipo_venta) record.tipo_venta = 'Otro';
+      
+      // Filter by VIN: Only records with a valid VIN are counted as real surveys
+      if (record.vin && record.vin.trim() !== "" && record.vin !== "0") {
+        records.push(record as SalesQualityRecord);
+      }
+    }
+    return records;
+};
+
+const parseSalesClaimsCSV = (csvText: string): SalesClaimsRecord[] => {
+    const rows = parseCSV(csvText);
+    if (rows.length < 2) return [];
+  
+    const headers = rows[0].map(cleanHeader);
+    const records: SalesClaimsRecord[] = [];
+  
+    for (let i = 1; i < rows.length; i++) {
+      const currentLine = rows[i];
+      if (currentLine.length < headers.length - 1) continue;
+  
+      const record: any = { id: `sc-row-${i}` };
+      
+      headers.forEach((header, index) => {
+        const value = currentLine[index] || '';
+
+        if (header === 'nro de r') record.nro_r = value;
+        else if (header === 'numero de vin' || header === 'vin') record.vin = value;
+        else if (header === 'receptor') record.receptor = value;
+        else if (header === 'fecha reclamo/ queja' || header === 'fecha reclamo') record.fecha_reclamo = value;
+        else if (header === 'fecha de finalizacion' || (header.includes('fecha') && header.includes('finalización'))) record.fecha_finalizacion = value;
+        else if (header === 'mes de entrega') record.mes = value;
+        else if (header === 'anio' || header === 'ano') record.anio = parseInt(value) || 2026;
+        else if (header === 'tipo de venta') record.tipo_venta = value;
+        else if (header === 'cliente') record.cliente = value;
+        else if (header === 'sucursal') record.sucursal = value;
+        else if (header === 'categorizacion del cliente' || header.includes('categorización')) record.categoria_cliente = value;
+        else if (header === 'reclamo / observacion' || header === 'reclamo / observación' || header === 'observacion') record.reclamo = value;
+        else if (header === 'sector resp.' || header === 'sector resp') record.sector = value;
+        else if (header === 'responsable del tratamiento') record.responsable = value;
+        else if (header === 'identificacion del problema') record.identificacion_problema = value;
+        else if (header === 'analisis de causa') record.analisis_causa = value;
+        else if (header === 'accion contencion') record.accion_contencion = value;
+        else if (header === 'accion preventiva') record.accion_preventiva = value;
+        else if (header === 'accion efectiva (1: si - 0: no)' || header.includes('acción efectiva')) record.accion_efectiva = value;
+        else if (header === 'evidencia de efectividad / comentarios del cliente' || header.includes('evidencia') || header.includes('comentarios del cliente')) record.evidencia = value;
+        else if (header === 'dias de demora') record.dias_demora = parseNumber(value);
+        else if (header === 'estado de analisis') record.estado_analisis = value;
+        else if (header === 'motivos de reclamo') record.motivo = value;
+        else if (header === 'estado de reclamo' || header === 'estado') record.estado = value;
+
+        record[header] = value;
+      });
+
+      if (!record.mes) record.mes = 'Unknown';
+      else record.mes = normalizeMonth(record.mes);
+      
+      record.sucursal = normalizeBranch(record.sucursal);
+
+      // Filter by VIN: Only records with a valid VIN are counted as real claims
+      if (record.vin && record.vin.trim() !== "" && record.vin !== "0") {
+        records.push(record as SalesClaimsRecord);
+      }
+    }
+    return records;
+};
+
+const parseDetailedQualityCSV = (csvText: string): DetailedQualityRecord[] => {
+    const rows = parseCSV(csvText);
+    if (rows.length < 2) return [];
+  
+    const headers = rows[0].map(cleanHeader);
+    const companyIdx = headers.indexOf('nombre de la compania');
+    const apellidoIdx = headers.indexOf('apellido');
+    const nombreIdx = headers.indexOf('nombre');
+    
+    const records: DetailedQualityRecord[] = [];
+  
+    const cleanAsesorName = (name: string) => {
+        if (!name) return 'Sin Asesor';
+        // Remove numbers and extra spaces
+        return name.replace(/\d+/g, '').replace(/\s+/g, ' ').trim();
+    };
+
+    for (let i = 1; i < rows.length; i++) {
+      const currentLine = rows[i];
+      if (currentLine.length < 5) continue; 
+
+      const record: any = { id: `dq-row-${i}` };
+      
+      headers.forEach((header, index) => {
+        const value = currentLine[index] || '';
+        // Store all raw values but don't let them overwrite our mapped fields easily
+        if (!record[header]) record[header] = value; 
+
+        // Map by exact cleaned header name
+        if (header.includes('mes')) record.mes = normalizeMonth(value);
+        else if (header.includes('codid') || header.includes('cod id')) record.cod_id = value.trim();
+        else if (header.includes('fecha de servicio') || header.includes('fecha servicio')) record.fecha_servicio = value;
+        else if (header.includes('vin') || header.includes('chasis')) record.vin = value;
+        else if (header.includes('modelo')) record.modelo = value;
+        else if (header.includes('or') || header.includes('orden')) record.orden = value;
+        else if (header.includes('asesor')) record.asesor = cleanAsesorName(value);
+        
+        // Scores - Matching the user's specific header structure
+        else if (header.includes('trato personal') && header.includes('(q1)')) record.q1_score = parseScore(value);
+        else if (header === 'comentario 1') record.q1_comment = value;
+        
+        else if (header.includes('organizacion') && header.includes('(q2)')) record.q2_score = parseScore(value);
+        else if (header === 'comentario 2') record.q2_comment = value;
+        
+        else if (header.includes('calidad de reparacion') && header.includes('(q3)')) record.q3_score = parseScore(value);
+        else if (header === 'comentario 3') record.q3_comment = value;
+        
+        else if (header.includes('lvs') && header.includes('(q4)')) record.q4_score = parseScore(value);
+        else if (header === 'comentario 4') record.q4_comment = value;
+        
+        else if (header === 'q6') record.q6_score = parseScore(value);
+        else if (header === 'q7') record.q7_score = parseScore(value);
+        else if (header === 'q8') record.q8_val = value;
+        
+        else if (header === 'comentario del cliente') record.comentario_cliente = value;
+        else if (header === 'estado cliente') record.estado_cliente = value;
+        else if (header === 'categorizacion') record.categorizacion = value;
+      });
+
+      // Client name construction using the FIRST occurrence of these headers
+      const company = companyIdx !== -1 ? currentLine[companyIdx] : '';
+      const ape = apellidoIdx !== -1 ? currentLine[apellidoIdx] : '';
+      const nom = nombreIdx !== -1 ? currentLine[nombreIdx] : '';
+      
+      if (company && company.trim() !== '') {
+          record.cliente = company.trim();
+      } else if (ape || nom) {
+          record.cliente = `${ape} ${nom}`.trim();
+      } else {
+          record.cliente = 'Cliente Desconocido';
+      }
+
+      // Ensure mandatory fields have defaults
+      if (!record.mes) record.mes = 'Unknown';
+      if (!record.asesor) record.asesor = 'Sin Asesor';
+      if (!record.orden) record.orden = '—';
+
+      records.push(record as DetailedQualityRecord);
+    }
+    // Filter out records without a valid CodID or VIN
+    return records.filter(r => (r.cod_id && r.cod_id.trim() !== "" && r.cod_id !== "0") || (r.vin && r.vin.trim() !== "" && r.vin !== "0"));
+};
+
+const parsePostventaKpiCSV = (csvText: string): PostventaKpiRecord[] => {
+    const rows = parseCSV(csvText);
+    if (rows.length < 2) return [];
+
+    const headers = rows[0].map(cleanHeader);
+    const records: PostventaKpiRecord[] = [];
+
+    for (let i = 1; i < rows.length; i++) {
+        const currentLine = rows[i];
+        if (currentLine.length < 2) continue;
+
+        const record: any = { id: `pkpi-row-${i}` };
+        
+        headers.forEach((header, index) => {
+            const value = currentLine[index] || '';
+
+            if (header.includes('sucursal') || header.includes('unidad')) record.sucursal = normalizeBranch(value);
+            else if (header.includes('mes')) record.mes = normalizeMonth(value);
+            else if (header.includes('anio') || header.includes('ano')) record.anio = parseInt(value) || 2026;
+            else if (header.includes('lvs')) record.lvs = parseNumber(value);
+            else if (header.includes('email validos')) record.email_validos = parseNumber(value);
+            else if (header.includes('tasa de repuesta') || header.includes('tasa de respuesta')) record.tasa_respuesta = parseNumber(value);
+            else if (header.includes('dac')) record.dac = parseNumber(value);
+            else if (header.includes('contrato mantenimiento')) record.contrato_mantenimiento = parseNumber(value);
+            else if (header.includes('reporte tecnico')) record.reporte_tecnico = parseNumber(value);
+            else if (header.includes('reporte garantia')) record.reporte_garantia = parseNumber(value);
+            else if (header.includes('ampliacion de trabajo')) record.ampliacion_trabajo = parseNumber(value);
+            else if (header.includes('ppt diario')) record.ppt_diario = parseNumber(value);
+            else if (header.includes('conversion ppt vs serv')) record.conversion_ppt_serv = parseNumber(value);
+            else if (header.includes('oudi servicios')) record.oudi_servicios = parseNumber(value);
+            else if (header.includes('costos controlables')) record.costos_controlables = parseNumber(value);
+            else if (header.includes('costo sueldos')) record.costo_sueldos = parseNumber(value);
+            else if (header.includes('stock muerto')) record.stock_muerto = parseNumber(value);
+            else if (header.includes('meses de stock')) record.meses_stock = parseNumber(value);
+            else if (header.includes('cotizacion seguros')) record.cotizacion_seguros = parseNumber(value);
+            else if (header.includes('uodi repuestos')) record.uodi_repuestos = parseNumber(value);
+            else if (header.includes('uodi posventa')) record.uodi_posventa = parseNumber(value);
+            else if (header.includes('incentivo calidad')) record.incentivo_calidad = parseNumber(value);
+            else if (header.includes('plan incentivo posventa')) record.plan_incentivo_posventa = parseNumber(value);
+            else if (header.includes('plan incentivo repuestos')) record.plan_incentivo_repuestos = parseNumber(value);
+            else if (header.includes('uops total')) record.uops_total = parseNumber(value);
+            
+            record[header] = value;
+        });
+
+        if (record.mes && record.mes !== 'Unknown') {
+            records.push(record as PostventaKpiRecord);
+        }
+    }
+    return records;
+};
+
+const parsePostventaBillingCSV = (csvText: string): BillingRecord[] => {
+    const rows = parseCSV(csvText);
+    if (rows.length < 2) return [];
+
+    const headers = rows[0].map(cleanHeader);
+    const records: BillingRecord[] = [];
+
+    for (let i = 1; i < rows.length; i++) {
+        const currentLine = rows[i];
+        if (currentLine.length < 2) continue;
+
+        const record: any = { id: `billing-row-${i}` };
+        
+        headers.forEach((header, index) => {
+            const value = currentLine[index] || '';
+
+            if (header.includes('nro mes')) record.nro_mes = parseInt(value) || 0;
+            else if (header.includes('mes')) record.mes = normalizeMonth(value);
+            else if (header.includes('anio') || header.includes('ano')) record.anio = parseInt(value) || 2026;
+            else if (header.includes('sucursal') || header.includes('unidad')) record.sucursal = normalizeBranch(value);
+            else if (header.includes('area')) record.area = value;
+            else if (header.includes('objetivo mensual')) record.objetivo_mensual = parseNumber(value);
+            else if (header.includes('avance a fecha') || header.includes('avance fecha')) record.avance_fecha = parseNumber(value);
+            else if (header.includes('cumplimiento a la fecha') || header.includes('cumplimiento fecha')) record.cumplimiento_fecha_pct = parseNumber(value);
+            else if (header.includes('cumplimiento a cierre mes') || header.includes('cumplimiento cierre')) record.cumplimiento_cierre_pct = parseNumber(value);
+            else if (header.includes('objetivo diario')) record.objetivo_diario = parseNumber(value);
+            else if (header.includes('prom. diario') || header.includes('promedio diario')) record.promedio_diario = parseNumber(value);
+            else if (header.includes('desvio a fecha') || header.includes('desvio fecha')) record.desvio_fecha = parseNumber(value);
+            else if (header.includes('dif. dias de operación')) record.dif_dias_operacion = parseInt(value) || 0;
+            
+            record[header] = value;
+        });
+
+        if (record.mes && record.mes !== 'Unknown') {
+            records.push(record as BillingRecord);
+        }
+    }
+    return records;
+};
+
+const parsePCGCCSV = (csvText: string): PCGCRecord[] => {
+    const rows = parseCSV(csvText);
+    if (rows.length < 1) return [];
+
+    // Find the header row (the one containing "Requerimiento" or "Modulo")
+    let headerIndex = -1;
+    for (let i = 0; i < Math.min(rows.length, 10); i++) {
+        const row = rows[i].map(cleanHeader);
+        if (row.some(h => h.includes('requerimiento') || h.includes('modulo'))) {
+            headerIndex = i;
+            break;
+        }
+    }
+
+    if (headerIndex === -1) {
+        // Fallback to first row if not found, but maybe it's just empty
+        if (rows.length < 2) return [];
+        headerIndex = 0;
+    }
+
+    const headers = rows[headerIndex].map(cleanHeader);
+    const records: PCGCRecord[] = [];
+
+    for (let i = headerIndex + 1; i < rows.length; i++) {
+        const currentLine = rows[i];
+        if (currentLine.length < 3) continue; // Minimum columns to be valid
+
+        const record: any = { id: `pcgc-row-${i}` };
+        
+        headers.forEach((header, index) => {
+            const value = currentLine[index] || '';
+
+            if (header.includes('modulo')) record.modulo = value;
+            else if (header.includes('seccion')) record.seccion = value;
+            else if (header.includes('sub-seccion') || header.includes('subseccion')) record.subseccion = value;
+            else if (header.includes('sector')) record.sector = value;
+            else if (header.includes('requerimiento')) record.requerimiento = value;
+            else if (header.includes('observaciones')) record.observaciones = value;
+            else if (header.includes('metodo')) record.metodo = value;
+            else if (header.includes('criticidad')) record.criticidad = value;
+            
+            record[header] = value;
+        });
+
+        if (record.requerimiento && record.requerimiento.trim() !== "" && record.requerimiento.toLowerCase() !== 'requerimiento') {
+            records.push(record as PCGCRecord);
+        }
+    }
+    return records;
+};
+
+const parseCemOsCSV = (csvText: string): CemOsRecord[] => {
+    const rows = parseCSV(csvText);
+    if (rows.length < 2) return [];
+  
+    const rawHeaders = rows[0];
+    const headers = rawHeaders.map(cleanHeader);
+    const records: CemOsRecord[] = [];
+    
+    const getIdx = (name: string) => {
+        const cleaned = cleanHeader(name);
+        // Try exact match first
+        let idx = headers.indexOf(cleaned);
+        if (idx !== -1) return idx;
+        
+        // Try partial match
+        idx = headers.findIndex(h => h.includes(cleaned) || cleaned.includes(h));
+        if (idx !== -1) return idx;
+
+        // Try matching without spaces
+        const noSpaces = cleaned.replace(/\s+/g, '');
+        return headers.findIndex(h => h.replace(/\s+/g, '').includes(noSpaces));
+    };
+    
+    const idxMes = getIdx('mes');
+    const idxZona = getIdx('Zona');
+    const idxCodigo = getIdx('Código');
+    const idxCanal = getIdx('Canal de Ventas');
+    const idxChasis = getIdx('Chasis');
+    const idxEntregaFinal = getIdx('Entrega a cliente final');
+    const idxEntregaReportada = getIdx('Entrega a cliente reportada');
+    const idxVendedor = getIdx('Vendedor');
+    const idxNroCliente = getIdx('Número de cliente');
+    const idxNombre = getIdx('Cliente: Nombre');
+    const idxApellido = getIdx('Cliente: Apellido');
+    const idxDni = getIdx('Cliente: Número de identificación');
+    const idxCalle = getIdx('Cliente: Calle');
+    const idxCiudad = getIdx('Cliente: Ciudad');
+    const idxCp = getIdx('Cliente: Código postal');
+    const idxEstado = getIdx('Cliente: Estado');
+    const idxCelular = getIdx('Customer: MobilePhone');
+    const idxTelCasa = getIdx('Cliente: Teléfono (Casa)');
+    const idxTelOficina = getIdx('Cliente: Teléfono (Oficina)');
+    const idxEmail = getIdx('Cliente: E-mail');
+    const idxFechaDominio = getIdx('Fecha Dominio');
+    const idxDominio = getIdx('Dominio');
+    const idxMailInterna = getIdx('MAIL Encuesta interna');
+    const idxCem = getIdx('CEM') !== -1 ? getIdx('CEM') : getIdx('OS');
+    const idxInterna = getIdx('Encuesta Interna');
+    const idxTemprana = getIdx('Encuesta TEMPRANA');
+    const idxEstadoInterna = getIdx('Estado encuesta interna');
+    const idxFechaLinkLlega = getIdx('Fecha en que le llega el link');
+    const idxFechaLinkCaduca = getIdx('Fecha en que caduca el link');
+    const idxEstadoUnidad = getIdx('Estado de la unidad');
+    const idxContactado = getIdx('CONTACTADO?');
+    const idxGestionado = getIdx('¿GESTIONADO?');
+    const idxComentarioInterna = getIdx('COMENTARIO/ RECLAMO interna');
+    const idxComentarioCem = getIdx('COMENTARIO/ RECLAMO CEM');
+
+    for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (row.length < 5) continue;
+        
+        const record: CemOsRecord = {
+            id: `cem-os-${i}`,
+            mes: normalizeMonth(idxMes !== -1 ? row[idxMes] : ''),
+            zona: idxZona !== -1 ? row[idxZona]?.trim() : '',
+            codigo: idxCodigo !== -1 ? row[idxCodigo]?.trim() : '',
+            canal_ventas: idxCanal !== -1 ? row[idxCanal]?.trim() : '',
+            chasis: idxChasis !== -1 ? row[idxChasis] : '',
+            entrega_final: idxEntregaFinal !== -1 ? row[idxEntregaFinal] : '',
+            entrega_reportada: idxEntregaReportada !== -1 ? row[idxEntregaReportada] : '',
+            vendedor: cleanVendedor(idxVendedor !== -1 ? row[idxVendedor] : ''),
+            nro_cliente: idxNroCliente !== -1 ? row[idxNroCliente] : '',
+            cliente_nombre: idxNombre !== -1 ? row[idxNombre] : '',
+            cliente_apellido: idxApellido !== -1 ? row[idxApellido] : '',
+            cliente_dni: idxDni !== -1 ? row[idxDni] : '',
+            cliente_calle: idxCalle !== -1 ? row[idxCalle] : '',
+            cliente_ciudad: idxCiudad !== -1 ? row[idxCiudad] : '',
+            cliente_cp: idxCp !== -1 ? row[idxCp] : '',
+            cliente_estado: idxEstado !== -1 ? row[idxEstado] : '',
+            cliente_celular: idxCelular !== -1 ? row[idxCelular] : '',
+            cliente_tel_casa: idxTelCasa !== -1 ? row[idxTelCasa] : '',
+            cliente_tel_oficina: idxTelOficina !== -1 ? row[idxTelOficina] : '',
+            cliente_email: idxEmail !== -1 ? row[idxEmail] : '',
+            fecha_dominio: idxFechaDominio !== -1 ? row[idxFechaDominio] : '',
+            dominio: idxDominio !== -1 ? row[idxDominio] : '',
+            mail_encuesta_interna: idxMailInterna !== -1 ? row[idxMailInterna] : '',
+            cem_score: idxCem !== -1 ? parseScore(row[idxCem]) : null,
+            encuesta_interna_score: idxInterna !== -1 ? parseScore(row[idxInterna]) : null,
+            encuesta_temprana_score: idxTemprana !== -1 ? parseScore(row[idxTemprana]) : null,
+            estado_encuesta_interna: idxEstadoInterna !== -1 ? row[idxEstadoInterna] : '',
+            fecha_link_llega: idxFechaLinkLlega !== -1 ? row[idxFechaLinkLlega] : '',
+            fecha_link_caduca: idxFechaLinkCaduca !== -1 ? row[idxFechaLinkCaduca] : '',
+            estado_unidad: idxEstadoUnidad !== -1 ? row[idxEstadoUnidad] : '',
+            contactado: idxContactado !== -1 ? row[idxContactado] : '',
+            gestionado: idxGestionado !== -1 ? row[idxGestionado] : '',
+            comentario_interna: idxComentarioInterna !== -1 ? row[idxComentarioInterna] : '',
+            comentario_cem: idxComentarioCem !== -1 ? row[idxComentarioCem] : '',
+        };
+        
+        records.push(record);
+    }
+    return records;
+};
+
+export const fetchCemOsData = async (sheetKey: string): Promise<CemOsRecord[]> => {
+    try {
+      const csvText = await fetchFromProxy(sheetKey);
+      return parseCemOsCSV(csvText);
+    } catch (error) {
+      console.error("Error fetching CEM OS data:", error);
+      return [];
+    }
+};
+
+export const fetchActionPlanData = async (sheetKey: string): Promise<ActionPlanRecord[]> => {
+    try {
+      const csvText = await fetchFromProxy(sheetKey);
+      return parseActionPlanCSV(csvText);
+    } catch (error) {
+      console.error("Error fetching Action Plan data:", error);
+      return [];
+    }
+};
+
+const parseActionPlanCSV = (csvText: string): ActionPlanRecord[] => {
+    const rows = parseCSV(csvText);
+    if (rows.length === 0) return [];
+  
+    // Find header row dynamically
+    let headerIndex = -1;
+    let headers: string[] = [];
+    for (let i = 0; i < Math.min(rows.length, 20); i++) {
+        const row = rows[i];
+        if (row.some(cell => cell?.toLowerCase().includes('nº')) && 
+            row.some(cell => cell?.toLowerCase().includes('mes')) &&
+            row.some(cell => cell?.toLowerCase().includes('kpi'))) {
+            headerIndex = i;
+            headers = row.map(h => h.toLowerCase().trim());
+            break;
+        }
+    }
+
+    const getIdx = (name: string) => headers.findIndex(h => h.includes(name.toLowerCase()));
+    
+    const idxNro = getIdx('nº');
+    const idxMes = getIdx('mes');
+    const idxFechaAlta = getIdx('fecha alta') !== -1 ? getIdx('fecha alta') : getIdx('alta');
+    const idxProvincia = getIdx('provincia') !== -1 ? getIdx('provincia') : getIdx('sucursal');
+    const idxCaracter = getIdx('carácter');
+    const idxSector = getIdx('sector');
+    const idxOrigen = getIdx('origen');
+    const idxNorma = getIdx('norma');
+    const idxRequisito = getIdx('requisito');
+    const idxNombreKpi = getIdx('nombre kpi') !== -1 ? getIdx('nombre kpi') : getIdx('kpi');
+    const idxObjCuant = getIdx('objetivo kpi cuantitativo');
+    const idxObjCual = getIdx('objetivo kpi cualitativo');
+    const idxSitCuant = getIdx('situación actual cuantitativo');
+    const idxSitCual = getIdx('situación actual cualitativo');
+    const idxEnviarDesvio = getIdx('enviar desvío');
+    const idxEstado = getIdx('estado');
+    const idxCausaRaiz = getIdx('causa raíz');
+    const idxAccionInm = getIdx('acción inmediata');
+    const idxAccionCorr = getIdx('acción correctiva');
+    const idxResponsable = getIdx('responsable');
+    const idxIndEficacia = getIdx('indicador de eficiencia');
+    const idxObjInd = getIdx('objetivo indicador');
+    const idxFechaIniEst = getIdx('fecha inicio est');
+    const idxDurEst = getIdx('duración est');
+    const idxIniReal = getIdx('inicio real');
+    const idxFinReal = getIdx('finalización real');
+    const idxDurReal = getIdx('duración real');
+    const idxEstadoFinal = getIdx('estado final');
+    const idxVerifEficacia = getIdx('verificación eficacia');
+    const idxFechaVerif = getIdx('fecha verificación');
+
+    // Fallback to index 7 if not found
+    const startDataIndex = headerIndex !== -1 ? headerIndex + 1 : 7;
+    const records: ActionPlanRecord[] = [];
+    
+    for (let i = startDataIndex; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || row.length < 5) continue;
+        
+        const nombreKpi = idxNombreKpi !== -1 ? row[idxNombreKpi]?.trim() : (row[9]?.trim() || '');
+        // A row is considered a plan if it has a KPI name or at least some basic info
+        const isPlan = nombreKpi !== '' || !!(row[0]?.trim() && row[1]?.trim());
+        
+        if (!isPlan) continue;
+
+        const causaRaiz = idxCausaRaiz !== -1 ? row[idxCausaRaiz]?.trim() : (row[16]?.trim() || '');
+        const accionInmediata = idxAccionInm !== -1 ? row[idxAccionInm]?.trim() : (row[17]?.trim() || '');
+        const accionCorrectiva = idxAccionCorr !== -1 ? row[idxAccionCorr]?.trim() : (row[18]?.trim() || '');
+        
+        // Incomplete logic: missing root cause or actions
+        const isIncomplete = !!(isPlan && (causaRaiz === '' || accionInmediata === '' || accionCorrectiva === ''));
+
+        const record: ActionPlanRecord = {
+            id: `plan-${i}`,
+            nro: idxNro !== -1 ? row[idxNro]?.trim() : (row[0]?.trim() || ''),
+            mes: normalizeMonth(idxMes !== -1 ? row[idxMes]?.trim() : (row[1]?.trim() || '')),
+            fecha_alta: idxFechaAlta !== -1 ? row[idxFechaAlta]?.trim() : (row[2]?.trim() || ''),
+            provincia: idxProvincia !== -1 ? row[idxProvincia]?.trim() : (row[3]?.trim() || ''),
+            caracter: idxCaracter !== -1 ? row[idxCaracter]?.trim() : (row[4]?.trim() || ''),
+            sector: idxSector !== -1 ? row[idxSector]?.trim() : (row[5]?.trim() || ''),
+            origen: idxOrigen !== -1 ? row[idxOrigen]?.trim() : (row[6]?.trim() || ''),
+            norma: idxNorma !== -1 ? row[idxNorma]?.trim() : (row[7]?.trim() || ''),
+            requisito: idxRequisito !== -1 ? row[idxRequisito]?.trim() : (row[8]?.trim() || ''),
+            nombre_kpi: nombreKpi,
+            objetivo_kpi_cuantitativo: idxObjCuant !== -1 ? row[idxObjCuant]?.trim() : (row[10]?.trim() || ''),
+            objetivo_kpi_cualitativo: idxObjCual !== -1 ? row[idxObjCual]?.trim() : (row[11]?.trim() || ''),
+            situacion_actual_cuantitativo: idxSitCuant !== -1 ? row[idxSitCuant]?.trim() : (row[12]?.trim() || ''),
+            situacion_actual_cualitativo: idxSitCual !== -1 ? row[idxSitCual]?.trim() : (row[13]?.trim() || ''),
+            enviar_desvio: idxEnviarDesvio !== -1 ? row[idxEnviarDesvio]?.trim() : (row[14]?.trim() || ''),
+            estado: idxEstado !== -1 ? row[idxEstado]?.trim() : (row[15]?.trim() || ''),
+            causa_raiz: causaRaiz,
+            accion_inmediata: accionInmediata,
+            accion_correctiva: accionCorrectiva,
+            responsable: idxResponsable !== -1 ? row[idxResponsable]?.trim() : (row[19]?.trim() || ''),
+            indicador_eficiencia: idxIndEficacia !== -1 ? row[idxIndEficacia]?.trim() : (row[20]?.trim() || ''),
+            objetivo_indicador: idxObjInd !== -1 ? row[idxObjInd]?.trim() : (row[21]?.trim() || ''),
+            fecha_inicio_est: idxFechaIniEst !== -1 ? row[idxFechaIniEst]?.trim() : (row[22]?.trim() || ''),
+            duracion_est: idxDurEst !== -1 ? row[idxDurEst]?.trim() : (row[23]?.trim() || ''),
+            inicio_real: idxIniReal !== -1 ? row[idxIniReal]?.trim() : (row[24]?.trim() || ''),
+            finalizacion_real: idxFinReal !== -1 ? row[idxFinReal]?.trim() : (row[25]?.trim() || ''),
+            duracion_real: idxDurReal !== -1 ? row[idxDurReal]?.trim() : (row[26]?.trim() || ''),
+            estado_final: idxEstadoFinal !== -1 ? row[idxEstadoFinal]?.trim() : (row[27]?.trim() || ''),
+            verificacion_eficacia: idxVerifEficacia !== -1 ? row[idxVerifEficacia]?.trim() : (row[28]?.trim() || ''),
+            // Monthly tracking AD-AO (indices 29-40)
+            seguimiento: {
+                'ene': row[29]?.trim() || '',
+                'feb': row[30]?.trim() || '',
+                'mar': row[31]?.trim() || '',
+                'abr': row[32]?.trim() || '',
+                'may': row[33]?.trim() || '',
+                'jun': row[34]?.trim() || '',
+                'jul': row[35]?.trim() || '',
+                'ago': row[36]?.trim() || '',
+                'sep': row[37]?.trim() || '',
+                'oct': row[38]?.trim() || '',
+                'nov': row[39]?.trim() || '',
+                'dic': row[40]?.trim() || ''
+            },
+            fecha_verificacion: idxFechaVerif !== -1 ? row[idxFechaVerif]?.trim() : (row[41]?.trim() || ''),
+            requiere_modificar_riesgos: row[42]?.trim() || '',
+            puede_ocurrir_otra_area: row[43]?.trim() || '',
+            isIncomplete,
+            isPlan
+        };
+        
+        records.push(record);
+    }
+    console.log(`Parsed ${records.length} action plan records. Header found at index ${headerIndex}`);
+    return records;
+};
+
+export const fetchInternalPostventaData = async (sheetKey: string): Promise<InternalPostventaRecord[]> => {
+    try {
+      const csvText = await fetchFromProxy(sheetKey);
+      return parseInternalPostventaCSV(csvText);
+    } catch (error) {
+      console.error("Error fetching Internal Postventa data:", error);
+      return [];
+    }
+};
+
+const parseInternalPostventaCSV = (csvText: string): InternalPostventaRecord[] => {
+    const rows = parseCSV(csvText);
+    if (rows.length < 2) return [];
+  
+    const headers = rows[0].map(cleanHeader);
+    const records: InternalPostventaRecord[] = [];
+  
+    for (let i = 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (row.length < 5) continue;
+        
+        const record: any = { id: `ip-row-${i}` };
+        
+        headers.forEach((header, index) => {
+            const value = row[index] || '';
+            
+            if (header === 'or sucur') record.sucursal = normalizeBranch(value);
+            else if (header === 'tecnicos') record.tecnicos = value;
+            else if (header === 'op nombre') record.asesor = value;
+            else if (header === 'or operario') record.operario = value;
+            else if (header === 'or codigo') record.codigo = value;
+            else if (header === 'or fecini') record.fecha_inicio = value;
+            else if (header === 'or fecfin') {
+                record.fecha_fin = value;
+                // Use fecfin as fallback for month if created_at is not available
+                if (!record.mes && value && value.includes('-')) {
+                    const match = value.match(/^\d{4}-(\d{2})-\d{2}/);
+                    if (match) {
+                        const monthNum = parseInt(match[1]);
+                        const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+                        record.mes = monthNames[monthNum - 1];
+                    }
+                }
+            }
+            else if (header === 'or nombre') record.cliente_nombre = value;
+            else if (header === 'ser nombre') record.servicio = value;
+            else if (header === 'fv dominio') record.dominio = value;
+            else if (header === 'cli telefo') record.telefono = value;
+            else if (header === 'cli email') record.email = value;
+            else if (header === 'au nombre') record.auto = value;
+            else if (header === 'mar nombre') record.marca = value;
+            else if (header === 'fv chasis') record.chasis = value;
+            else if (header === 'created at') {
+                record.created_at = value;
+                // Extract month from "2026-01-03T..."
+                const match = value.match(/^\d{4}-(\d{2})-\d{2}/);
+                if (match) {
+                    const monthNum = parseInt(match[1]);
+                    const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+                    record.mes = monthNames[monthNum - 1];
+                }
+            }
+            else if (header === 'estadonombre') record.estado = value;
+            else if (header === 'nombre sucursal') {
+                record.nombre_sucursal = value;
+                record.sucursal = normalizeBranch(value);
+            }
+            
+            // Scores
+            else if (header === 'servicio prestado') record.servicio_prestado = parseScore(value);
+            else if (header === 'trato personal') record.trato_personal = parseScore(value);
+            else if (header === 'organizacion') record.organizacion = parseScore(value);
+            else if (header === 'trabajo del taller') record.trabajo_taller = parseScore(value);
+            else if (header === 'lavado') record.lavado = parseScore(value);
+            
+            // Observations
+            else if (header === 'observacion servicio prestado') record.obs_servicio_prestado = value;
+            else if (header === 'observacion trato personal') record.obs_trato_personal = value;
+            else if (header === 'observacion organizacion') record.obs_organizacion = value;
+            else if (header === 'observacion trabajo del taller') record.obs_trabajo_taller = value;
+            else if (header === 'observacion lavado') record.obs_lavado = value;
+            
+            else if (header === 'tipo contacto') record.tipo_contacto = value;
+            else if (header === 'observacion tipo contacto') record.obs_tipo_contacto = value;
+            else if (header === 'observaciones') record.observaciones = value;
+            else if (header === 'observacion observaciones') record.obs_observaciones = value;
+            
+            record[header] = value;
+        });
+
+        if (!record.anio) record.anio = 2026;
+        if (!record.sucursal && record.nombre_sucursal) record.sucursal = normalizeBranch(record.nombre_sucursal);
+
+        records.push(record as InternalPostventaRecord);
+    }
+    return records;
+};
+
+const parseHRGradesCSV = (csvText: string): CourseGrade[] => {
+    const results = Papa.parse(csvText, { skipEmptyLines: true });
+    const rows = results.data as string[][];
+    
+    if (rows.length < 2) return [];
+
+    // Find header row
+    let headerIndex = -1;
+    for (let i = 0; i < Math.min(rows.length, 10); i++) {
+        const rowStr = rows[i].join(',').toLowerCase();
+        if (rowStr.includes('colaborador') || rowStr.includes('unidad') || rowStr.includes('icf')) {
+            headerIndex = i;
+            break;
+        }
+    }
+
+    if (headerIndex === -1) headerIndex = 0;
+
+    const headers = rows[headerIndex].map(h => h.trim().toLowerCase());
+    console.log("parseHRGradesCSV: Headers found:", headers);
+    
+    // The course names are in the row ABOVE the headers if headerIndex > 0
+    const courseNamesRow = headerIndex > 0 ? rows[headerIndex - 1] : rows[headerIndex];
+    
+    // Find key column indices
+    const colIndices = {
+        unidad: headers.findIndex(h => h.includes('unidad')),
+        colaborador: headers.findIndex(h => h.includes('colaborador') || h.includes('nombre')),
+        area: headers.findIndex(h => h.includes('area')),
+        funcion: headers.findIndex(h => h.includes('funcion') || h.includes('puesto')),
+        icf: headers.findIndex(h => h.includes('icf'))
+    };
+
+    console.log("parseHRGradesCSV: Column indices:", colIndices);
+
+    // Fallbacks if not found
+    if (colIndices.unidad === -1) colIndices.unidad = 0;
+    if (colIndices.colaborador === -1) colIndices.colaborador = 1;
+    if (colIndices.area === -1) colIndices.area = 2;
+    if (colIndices.funcion === -1) colIndices.funcion = 3;
+    if (colIndices.icf === -1) colIndices.icf = 5;
+
+    const records: CourseGrade[] = [];
+    let lastUnidad = '';
+    let lastArea = '';
+
+    for (let i = headerIndex + 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || row.length <= Math.max(...Object.values(colIndices))) continue;
+        
+        const name = row[colIndices.colaborador]?.trim();
+        if (!name || name.toLowerCase().includes('colaborador') || name.toLowerCase().includes('nombre')) continue;
+
+        // Fill down logic
+        if (row[colIndices.unidad] && row[colIndices.unidad].trim()) lastUnidad = row[colIndices.unidad].trim();
+        if (row[colIndices.area] && row[colIndices.area].trim()) lastArea = row[colIndices.area].trim();
+
+        const record: CourseGrade = {
+            id: `hr-grade-${i}`,
+            unidad: lastUnidad.includes('3059') ? 'JUJUY' : lastUnidad.includes('3087') ? 'SALTA' : lastUnidad,
+            colaborador: name,
+            area: lastArea.trim(),
+            funcion: row[colIndices.funcion]?.trim() || '',
+            icf: parseNumber(row[colIndices.icf]),
+            courses: {}
+        };
+
+        // Courses usually start after the fixed columns (e.g. after index 5 or 6)
+        // We'll assume courses are any columns that aren't the fixed ones and have a name in courseNamesRow
+        const fixedIndices = Object.values(colIndices);
+        for (let j = 0; j < courseNamesRow.length; j++) {
+            if (fixedIndices.includes(j)) continue;
+            
+            const courseName = courseNamesRow[j];
+            if (courseName && courseName.trim() && !courseName.toLowerCase().includes('promedio')) {
+                const rawValue = row[j]?.trim() || '';
+                
+                // New logic:
+                // '0' -> Pendiente (0)
+                // Empty -> No le corresponde (-1)
+                // Number > 0 -> Grade
+                if (rawValue === '0') {
+                    record.courses[courseName.trim()] = 0;
+                } else if (rawValue === '') {
+                    record.courses[courseName.trim()] = -1;
+                } else {
+                    const num = parseNumber(rawValue);
+                    if (isNaN(num) || (num === 0 && !/^\d+$/.test(rawValue))) {
+                        // It's text, check if it's a "not applicable" indicator
+                        const lower = rawValue.toLowerCase();
+                        if (lower === '-' || lower === 'n/a' || lower.includes('no corr') || lower.includes('no le corr')) {
+                            record.courses[courseName.trim()] = -1; // Not applicable
+                        } else {
+                            // Other text might mean pending or some other status, default to 0 for now
+                            record.courses[courseName.trim()] = 0;
+                        }
+                    } else {
+                        record.courses[courseName.trim()] = num;
+                    }
+                }
+            }
+        }
+
+        records.push(record);
+    }
+
+    return records;
+};
+
+const parseHRRelatorioCSV = (csvText: string): RelatorioItem[] => {
+    const results = Papa.parse(csvText, { skipEmptyLines: true });
+    const rows = results.data as string[][];
+    
+    if (rows.length < 2) return [];
+
+    // Find header row
+    let headerIndex = -1;
+    for (let i = 0; i < Math.min(rows.length, 10); i++) {
+        const rowStr = rows[i].join(',').toLowerCase();
+        if (rowStr.includes('curso') || rowStr.includes('nombre') || rowStr.includes('unidad')) {
+            headerIndex = i;
+            break;
+        }
+    }
+
+    if (headerIndex === -1) headerIndex = 0;
+
+    const headers = rows[headerIndex].map(h => h.trim().toLowerCase());
+    console.log("parseHRRelatorioCSV: Headers found:", headers);
+    
+    // Find key column indices
+    const colIndices = {
+        curso: headers.findIndex(h => h.includes('curso')),
+        nombre: headers.findIndex(h => h.includes('nombre') || h.includes('colaborador')),
+        unidad: headers.findIndex(h => h.includes('unidad')),
+        fechaRegistro: headers.findIndex(h => h.includes('registro')),
+        referenciaMeses: headers.findIndex(h => h.includes('referencia') || h.includes('mes')),
+        clase: headers.findIndex(h => h.includes('clase'))
+    };
+
+    console.log("parseHRRelatorioCSV: Column indices:", colIndices);
+
+    const records: RelatorioItem[] = [];
+
+    for (let i = headerIndex + 1; i < rows.length; i++) {
+        const row = rows[i];
+        if (!row || row.length <= Math.max(...Object.values(colIndices))) continue;
+
+        const clase = colIndices.clase !== -1 ? row[colIndices.clase] || '' : '';
+        const segments = clase.split('|').map((s: string) => s.trim());
+        const claseFecha = segments.length >= 2 ? segments[segments.length - 2] : undefined;
+        const claseHora = segments.length >= 1 ? segments[segments.length - 1] : undefined;
+
+        records.push({
+            id: `hr-rel-${i}`,
+            curso: colIndices.curso !== -1 ? row[colIndices.curso] || '' : '',
+            nombre: colIndices.nombre !== -1 ? (row[colIndices.nombre] || '').trim() : '',
+            unidad: colIndices.unidad !== -1 ? row[colIndices.unidad] || '' : '',
+            fechaRegistro: colIndices.fechaRegistro !== -1 ? row[colIndices.fechaRegistro] || '' : '',
+            referenciaMeses: colIndices.referenciaMeses !== -1 ? row[colIndices.referenciaMeses] || '' : '',
+            clase,
+            claseFecha,
+            claseHora
+        });
+    }
+
+    return records;
+};

@@ -2,11 +2,11 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { 
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend 
 } from 'recharts';
-import { Icons } from './Icon';
-import AIPanel from './AIPanel';
-import GaugeChart from './GaugeChart';
-import { fetchSheetData } from '../services/dataService';
+import { DashboardFrame, LuxuryKPICard, SkeletonLoader, StatusBadge, InsightCard } from './DashboardUI';
 import { AutoRecord, LoadingState, AreaConfig } from '../types';
+import { fetchSheetData } from '../services/dataService';
+import GaugeChart from './GaugeChart';
+import { Icons } from './Icon';
 import { MOCK_DATA, MONTHS, YEARS } from '../constants';
 
 interface DashboardProps {
@@ -23,7 +23,7 @@ const Dashboard: React.FC<DashboardProps> = ({ area, sheetUrl, apiKey, onBack, o
   const [isAIpanelOpen, setIsAIpanelOpen] = useState(false);
 
   // Filters
-  const [selectedYear, setSelectedYear] = useState<number>(2025);
+  const [selectedYear, setSelectedYear] = useState<number>(2026);
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
   const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
   const [availableBranches, setAvailableBranches] = useState<string[]>([]);
@@ -116,178 +116,193 @@ const Dashboard: React.FC<DashboardProps> = ({ area, sheetUrl, apiKey, onBack, o
   };
   const getDefaultColor = (idx: number) => Object.values(BRANCH_COLORS)[idx % 5];
 
-  return (
-    <div className="flex flex-col min-h-screen bg-[#F5F5F5]">
-        
-      {/* Header */}
-      <header className="bg-black text-white p-4 flex items-center justify-between shadow-md z-20 relative">
-        <div className="flex items-center gap-4">
-            <button onClick={onBack} className="hover:bg-gray-800 p-2 rounded-full transition-colors" title="Volver al Portal">
-                <Icons.ArrowLeft className="w-5 h-5 text-gray-300" />
-            </button>
-            <div className="flex items-center gap-2">
-                <div className="w-10 h-10 bg-white rounded-full flex items-center justify-center text-black font-bold text-xs border-2 border-slate-300">
-                    VW
-                </div>
-                <span className="text-2xl font-bold tracking-tight">Autosol</span>
-            </div>
-            <div className="hidden md:block h-8 w-px bg-gray-700 mx-2"></div>
-            <h1 className="text-xl font-medium hidden md:block flex items-center gap-2">
-                Tablero de Control - <span className={`${area.color.replace('bg-', 'text-')} font-bold`}>{area.name}</span>
-            </h1>
-        </div>
+  if (loadingState === LoadingState.LOADING) return <SkeletonLoader />;
 
-        <div className="flex items-center gap-4">
-            <div className="flex bg-gray-800 rounded p-1">
-                {YEARS.map(year => (
-                    <button
-                        key={year}
-                        onClick={() => setSelectedYear(year)}
-                        className={`px-4 py-1 text-sm font-medium rounded transition-colors ${selectedYear === year ? 'bg-white text-black' : 'text-gray-400 hover:text-white'}`}
-                    >
-                        {year}
-                    </button>
-                ))}
-            </div>
-            <button onClick={onOpenSettings} className="text-gray-400 hover:text-white">
-                <Icons.Settings className="w-6 h-6" />
-            </button>
-            <button onClick={() => setIsAIpanelOpen(true)} className="text-indigo-400 hover:text-indigo-300">
-                <Icons.Brain className="w-6 h-6" />
-            </button>
+  if (loadingState === LoadingState.ERROR) return (
+    <div className="bg-rose-50 border border-rose-100 text-rose-700 p-8 rounded-[2.5rem] flex items-center gap-6 max-w-2xl mx-auto mt-12">
+        <div className="p-4 bg-rose-100 rounded-2xl">
+          <Icons.AlertTriangle className="w-8 h-8" />
         </div>
-      </header>
+        <div>
+            <h3 className="font-black uppercase tracking-tight text-lg">Error de Conexión</h3>
+            <p className="text-sm font-bold opacity-70">No se pudieron cargar los datos del tablero.</p>
+        </div>
+    </div>
+  );
 
-      {/* Month Selector */}
-      <div className="bg-white border-b border-gray-200 py-3 px-4 overflow-x-auto whitespace-nowrap shadow-sm sticky top-0 z-10">
-        <div className="flex gap-2 max-w-7xl mx-auto">
+  const filters = (
+    <div className="space-y-6">
+      <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 p-6">
+        <h3 className="font-black text-[10px] text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+          <Icons.Calendar className="w-3 h-3 text-blue-500" />
+          Año
+        </h3>
+        <div className="flex flex-wrap gap-2">
+          {YEARS.map(year => (
             <button
-                onClick={() => setSelectedMonth(null)}
-                className={`px-4 py-2 text-sm font-medium rounded border transition-colors ${!selectedMonth ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}
+              key={year}
+              onClick={() => setSelectedYear(year)}
+              className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
+                selectedYear === year
+                ? 'bg-slate-950 text-white shadow-lg shadow-slate-900/20'
+                : 'bg-white text-slate-400 border border-slate-100 hover:border-slate-300'
+              }`}
             >
-                TODOS
+              {year}
             </button>
-            {MONTHS.map(month => (
-                <button
-                    key={month}
-                    onClick={() => setSelectedMonth(month)}
-                    className={`px-4 py-2 text-sm font-medium rounded border transition-colors ${selectedMonth === month ? 'bg-gray-800 text-white border-gray-800' : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'}`}
-                >
-                    {month}
-                </button>
-            ))}
+          ))}
         </div>
       </div>
 
-      <main className="flex-1 p-4 md:p-6 max-w-[1600px] w-full mx-auto grid grid-cols-1 md:grid-cols-12 gap-6">
-        {/* Sidebar Filters */}
-        <div className="md:col-span-2 space-y-4">
-            <div className="bg-white p-4 rounded shadow-sm border border-gray-200">
-                <h3 className="font-bold text-gray-700 mb-3 uppercase text-sm tracking-wider border-b pb-2">Sucursal</h3>
-                <div className="space-y-2">
-                    {availableBranches.map(branch => (
-                        <label key={branch} className="flex items-center gap-2 cursor-pointer hover:bg-gray-50 p-1 rounded">
-                            <input 
-                                type="checkbox" 
-                                checked={selectedBranches.includes(branch)}
-                                onChange={() => toggleBranch(branch)}
-                                className="w-4 h-4 text-blue-600 rounded border-gray-300 focus:ring-blue-500" 
-                            />
-                            <span className="text-sm text-gray-700">{branch}</span>
-                        </label>
-                    ))}
-                    {availableBranches.length === 0 && <p className="text-xs text-gray-400">Cargando...</p>}
-                </div>
-            </div>
-             <div className="hidden md:block bg-indigo-50 p-4 rounded shadow-sm border border-indigo-100">
-                <div className="flex items-center gap-2 mb-2 text-indigo-800">
-                    <Icons.Sparkles className="w-4 h-4" />
-                    <h3 className="font-bold text-sm">IA Insight ({area.name})</h3>
-                </div>
-                <p className="text-xs text-indigo-700 leading-relaxed">
-                   Visualizando datos de: <strong>{sheetUrl ? 'Hoja conectada' : 'Datos Demo'}</strong>.
-                </p>
-                <button onClick={() => setIsAIpanelOpen(true)} className="mt-3 w-full py-1 bg-indigo-600 text-white text-xs rounded hover:bg-indigo-700">
-                    Abrir Asistente
-                </button>
-            </div>
+      <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 p-6">
+        <h3 className="font-black text-[10px] text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
+          <Icons.MapPin className="w-3 h-3 text-emerald-500" />
+          Sucursales
+        </h3>
+        <div className="space-y-2">
+          {availableBranches.map(branch => (
+            <label key={branch} className="flex items-center gap-3 group cursor-pointer p-2 rounded-xl hover:bg-slate-50 transition-colors">
+              <div className="relative flex items-center">
+                <input 
+                  type="checkbox"
+                  checked={selectedBranches.includes(branch)}
+                  onChange={() => toggleBranch(branch)}
+                  className="peer appearance-none w-5 h-5 border-2 border-slate-100 rounded-lg checked:bg-slate-950 checked:border-slate-950 transition-all"
+                />
+                <Icons.Check className="absolute w-3 h-3 text-white opacity-0 peer-checked:opacity-100 left-1 transition-opacity" />
+              </div>
+              <span className="text-[10px] font-black text-slate-500 group-hover:text-slate-950 transition-colors uppercase tracking-tight">{branch}</span>
+            </label>
+          ))}
         </div>
-
-        {/* Dashboard Content */}
-        <div className="md:col-span-10 space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="bg-white p-4 rounded shadow-sm border border-gray-200 flex flex-col">
-                    <div className="flex justify-between items-center mb-2 border-b pb-1"><span className="font-bold text-gray-700 text-sm">Días lab</span></div>
-                    <div className="flex-1 overflow-y-auto max-h-[140px]">
-                        <table className="w-full text-sm">
-                            <tbody>
-                                {metrics.diasLabList.map((d, i) => (
-                                    <tr key={i} className="border-b border-gray-50 last:border-0">
-                                        <td className="py-1 text-gray-600">{d.sucursal}</td>
-                                        <td className="py-1 text-right font-bold text-gray-800">{d.dias}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                            <tfoot>
-                                <tr className="font-bold text-gray-900 border-t">
-                                    <td className="pt-2">Total</td>
-                                    <td className="pt-2 text-right">{metrics.diasLabTotal}</td>
-                                </tr>
-                            </tfoot>
-                        </table>
-                    </div>
-                </div>
-                <div className="bg-white p-6 rounded shadow-sm border border-gray-200 flex flex-col items-center justify-center text-center">
-                    <span className="text-4xl font-bold text-gray-900 tracking-tight">{metrics.pptDiarios.toLocaleString('es-AR', { maximumFractionDigits: 2 })}</span>
-                    <span className="text-xs font-bold text-gray-500 uppercase mt-2 tracking-wide">Métrica Diario</span>
-                </div>
-                <div className="bg-white p-6 rounded shadow-sm border border-gray-200 flex flex-col items-center justify-center text-center">
-                    <span className="text-4xl font-bold text-gray-900 tracking-tight">{metrics.objMensual.toLocaleString('es-AR', { maximumFractionDigits: 0 })}</span>
-                    <span className="text-xs font-bold text-gray-500 uppercase mt-2 tracking-wide">Objetivo Mes</span>
-                </div>
-                <div className="bg-white p-2 rounded shadow-sm border border-gray-200">
-                    <GaugeChart value={metrics.percent} label="Cumplimiento" />
-                </div>
-            </div>
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 h-80">
-                 {/* Reusing Charts - Note: These column keys are specific to the autosol dataset. 
-                     If other sheets have different columns, they will map to 0 unless headers match. */}
-                 {['Avance PPT', 'PPT Diario', 'Servicios'].map((metric, idx) => {
-                     const dataKeySuffix = metric === 'Avance PPT' ? 'AvancePPT' : metric === 'PPT Diario' ? 'PPTDiario' : 'Servicios';
-                     return (
-                        <div key={idx} className="bg-white p-4 rounded shadow-sm border border-gray-200 flex flex-col">
-                            <h4 className="text-sm font-bold text-gray-700 mb-4 uppercase text-center border-b pb-2">{metric}</h4>
-                            <div className="flex-1 w-full min-h-0">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <LineChart data={chartData}>
-                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
-                                        <XAxis dataKey="MesAbrev" tick={{fontSize: 10}} axisLine={false} tickLine={false} interval={0} angle={-45} textAnchor="end" height={50}/>
-                                        <YAxis tick={{fontSize: 10}} axisLine={false} tickLine={false} />
-                                        <Tooltip contentStyle={{fontSize: '12px'}} />
-                                        {selectedBranches.map((b, i) => (
-                                            <Line key={b} type="linear" dataKey={`${b}_${dataKeySuffix}`} name={b} stroke={BRANCH_COLORS[b] || getDefaultColor(i)} strokeWidth={2} dot={{r: 3}} />
-                                        ))}
-                                    </LineChart>
-                                </ResponsiveContainer>
-                            </div>
-                        </div>
-                     );
-                 })}
-            </div>
-        </div>
-      </main>
-
-      {isAIpanelOpen && (
-        <div className="fixed inset-0 z-50 flex justify-end">
-            <div className="absolute inset-0 bg-black/20" onClick={() => setIsAIpanelOpen(false)}></div>
-            <div className="relative w-full max-w-md bg-white h-full shadow-2xl p-4 animate-in slide-in-from-right duration-300">
-                <button onClick={() => setIsAIpanelOpen(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-600"><Icons.Close className="w-6 h-6" /></button>
-                <div className="h-full pt-8"><AIPanel data={filteredData} apiKey={apiKey} /></div>
-            </div>
-        </div>
-      )}
+      </div>
     </div>
+  );
+
+  return (
+    <DashboardFrame
+      title={`Tablero ${area.name}`}
+      subtitle="Intelligence Control Panel"
+      lastUpdated={new Date().toLocaleTimeString()}
+      filters={filters}
+      onExport={() => alert('Exportando reporte...')}
+      onBack={onBack}
+    >
+      <div className="space-y-12 pb-20">
+        {/* Month Selector */}
+        <div className="bg-white rounded-[2.5rem] p-4 overflow-x-auto no-scrollbar border border-slate-100 shadow-sm">
+          <div className="flex items-center gap-3 min-w-max">
+            <button
+              onClick={() => setSelectedMonth(null)}
+              className={`px-8 py-4 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] transition-all ${
+                !selectedMonth ? 'bg-slate-950 text-white shadow-xl shadow-slate-900/20' : 'text-slate-400 hover:bg-slate-50 hover:text-slate-900'
+              }`}
+            >
+              TODOS
+            </button>
+            {MONTHS.map(month => (
+              <button
+                key={month}
+                onClick={() => setSelectedMonth(month)}
+                className={`px-8 py-4 rounded-2xl text-[11px] font-black uppercase tracking-[0.2em] transition-all ${
+                  selectedMonth === month ? 'bg-blue-600 text-white shadow-xl shadow-blue-200' : 'text-slate-400 hover:bg-slate-50 hover:text-slate-900'
+                }`}
+              >
+                {month}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* AI Insights Section */}
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+          <InsightCard 
+            title="Análisis Predictivo"
+            content={`Basado en el avance actual del ${metrics.percent.toFixed(1)}%, se proyecta un cumplimiento sólido para el cierre del periodo. Las sucursales con mayor tracción son ${selectedBranches.join(', ')}.`}
+            icon={Icons.Brain}
+          />
+          <div className="bg-white rounded-[2.5rem] border border-slate-100 p-8 flex flex-col justify-center">
+            <div className="flex items-center justify-between mb-6">
+              <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em]">Estado del Tablero</h4>
+              <Icons.Activity className="w-4 h-4 text-blue-600" />
+            </div>
+            <div className="flex flex-wrap gap-3">
+              <StatusBadge status={metrics.percent >= 95 ? 'success' : metrics.percent >= 85 ? 'warning' : 'error'} label={`Cumplimiento: ${metrics.percent.toFixed(1)}%`} />
+              <StatusBadge status="info" label={`Días Lab: ${metrics.diasLabTotal}`} />
+            </div>
+          </div>
+        </div>
+
+        {/* KPIs */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-8">
+          <LuxuryKPICard title="Métrica Diario" value={metrics.pptDiarios.toLocaleString('es-AR', { maximumFractionDigits: 2 })} color="bg-slate-950" icon={Icons.Activity} />
+          <LuxuryKPICard title="Objetivo Mes" value={metrics.objMensual.toLocaleString('es-AR', { maximumFractionDigits: 0 })} color="bg-blue-600" icon={Icons.Target} />
+          <LuxuryKPICard title="Avance Total" value={metrics.totalAvance.toLocaleString('es-AR', { maximumFractionDigits: 0 })} color="bg-emerald-600" icon={Icons.TrendingUp} />
+          <div className="bg-white rounded-[3rem] shadow-sm border border-slate-100 p-8 flex flex-col items-center justify-center text-center group">
+            <div className="w-full h-40">
+              <GaugeChart value={metrics.percent} label="Cumplimiento" />
+            </div>
+            <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.3em] mt-4">% Cumplimiento Global</p>
+          </div>
+        </div>
+
+        {/* Charts Section */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+          {['Avance PPT', 'PPT Diario', 'Servicios'].map((metric, idx) => {
+            const dataKeySuffix = metric === 'Avance PPT' ? 'AvancePPT' : metric === 'PPT Diario' ? 'PPTDiario' : 'Servicios';
+            return (
+              <div key={idx} className="bg-white p-8 rounded-[3rem] shadow-sm border border-slate-100 flex flex-col">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] mb-8 text-center">{metric}</h4>
+                <div className="h-64 w-full">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={chartData}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f0f0f0" />
+                      <XAxis dataKey="MesAbrev" tick={{fontSize: 10, fontWeight: 'black', fill: '#94a3b8'}} axisLine={false} tickLine={false} interval={0} />
+                      <YAxis tick={{fontSize: 10, fontWeight: 'black', fill: '#94a3b8'}} axisLine={false} tickLine={false} />
+                      <Tooltip contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 20px 40px -10px rgb(0 0 0 / 0.1)' }} />
+                      {selectedBranches.map((b, i) => (
+                        <Line key={b} type="monotone" dataKey={`${b}_${dataKeySuffix}`} name={b} stroke={BRANCH_COLORS[b] || getDefaultColor(i)} strokeWidth={3} dot={{r: 4, strokeWidth: 2, fill: '#fff'}} activeDot={{r: 6}} />
+                      ))}
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {/* Days Lab Table */}
+        <div className="bg-white rounded-[3rem] shadow-sm border border-slate-100 overflow-hidden max-w-2xl mx-auto">
+          <div className="p-8 border-b border-slate-50 bg-slate-50/30">
+            <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight italic">Días Laborables</h3>
+          </div>
+          <div className="p-8">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="text-[10px] font-black text-slate-400 uppercase tracking-widest border-b border-slate-100">
+                  <th className="pb-4 text-left">Sucursal</th>
+                  <th className="pb-4 text-right">Días</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50">
+                {metrics.diasLabList.map((d, i) => (
+                  <tr key={i} className="group hover:bg-slate-50/50 transition-colors">
+                    <td className="py-4 font-black text-slate-700 uppercase text-xs tracking-tight">{d.sucursal}</td>
+                    <td className="py-4 text-right font-bold text-slate-900 font-mono">{d.dias}</td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr className="font-black text-slate-900 border-t-2 border-slate-100">
+                  <td className="pt-4 uppercase text-xs tracking-tight italic">Total General</td>
+                  <td className="pt-4 text-right font-mono text-lg">{metrics.diasLabTotal}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+        </div>
+      </div>
+    </DashboardFrame>
   );
 };
 

@@ -1,15 +1,36 @@
-import { AutoRecord, AreaConfig, AreaType } from './types';
 
-// Mock data reflecting the structure if CSV fails
+import { AutoRecord, AreaConfig, AreaType, ReportTemplate } from './types';
+
+// Mock data based on the user's provided Excel snippet
 export const MOCK_DATA: AutoRecord[] = [
-  { id: '1', mes: 'Enero', anio: 2025, sucursal: 'Jujuy', ppt_diarios: 24, avance_ppt: 527, servicios_diarios: 13.7, objetivo_mensual: 5000, dias_laborables: 22 },
-  { id: '2', mes: 'Enero', anio: 2025, sucursal: 'Salta', ppt_diarios: 27, avance_ppt: 603, servicios_diarios: 17.9, objetivo_mensual: 6500, dias_laborables: 22 },
-  { id: '3', mes: 'Febrero', anio: 2025, sucursal: 'Jujuy', ppt_diarios: 25, avance_ppt: 469, servicios_diarios: 15.3, objetivo_mensual: 5000, dias_laborables: 20 },
-  { id: '4', mes: 'Febrero', anio: 2025, sucursal: 'Salta', ppt_diarios: 30, avance_ppt: 563, servicios_diarios: 18.3, objetivo_mensual: 6500, dias_laborables: 20 },
+  { id: '1', mes: 'Enero', anio: 2026, sucursal: 'Santa Fe', ppt_diarios: 27.41, avance_ppt: 603, servicios_diarios: 17.86, servicios_totales: 393, objetivo_mensual: 480, dias_laborables: 22 },
+  { id: '2', mes: 'Enero', anio: 2026, sucursal: 'Jujuy', ppt_diarios: 23.95, avance_ppt: 527, servicios_diarios: 13.73, servicios_totales: 302, objetivo_mensual: 400, dias_laborables: 22 },
+  { id: '3', mes: 'Enero', anio: 2026, sucursal: 'Express', ppt_diarios: 8.09, avance_ppt: 178, servicios_diarios: 4.82, servicios_totales: 106, objetivo_mensual: 140, dias_laborables: 22 },
+  { id: '4', mes: 'Enero', anio: 2026, sucursal: 'Taller Movil', ppt_diarios: 6.4, avance_ppt: 64, servicios_diarios: 5.4, servicios_totales: 54, objetivo_mensual: 60, dias_laborables: 10 },
+  
+  { id: '5', mes: 'Febrero', anio: 2026, sucursal: 'Santa Fe', ppt_diarios: 29.63, avance_ppt: 563, servicios_diarios: 17.84, servicios_totales: 339, objetivo_mensual: 480, dias_laborables: 19 },
+  { id: '6', mes: 'Febrero', anio: 2026, sucursal: 'Jujuy', ppt_diarios: 24.68, avance_ppt: 469, servicios_diarios: 15.26, servicios_totales: 290, objetivo_mensual: 400, dias_laborables: 19 },
+  { id: '7', mes: 'Febrero', anio: 2026, sucursal: 'Express', ppt_diarios: 7.26, avance_ppt: 138, servicios_diarios: 4.47, servicios_totales: 85, objetivo_mensual: 140, dias_laborables: 19 },
+  { id: '8', mes: 'Febrero', anio: 2026, sucursal: 'Taller Movil', ppt_diarios: 4.15, avance_ppt: 54, servicios_diarios: 3.77, servicios_totales: 49, objetivo_mensual: 60, dias_laborables: 13 },
 ];
 
-export const DEFAULT_SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTxUrEIVysJ9HgBXHOJnZ_MGPL2Huqw1b4h1zQB-SugNLB2TzTmx7CnQrPIAKKnHA/pub?gid=1177925024&single=true&output=csv";
-export const QUALITY_SHEET_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSdwJV5wBpgzMypIn6wyrj12zwFTMc4vVf_OGvLmD1C7XOmXaZQ6bEiTHOPNIiJ7HnXi1xyLiqHjCUN/pub?gid=2126173420&single=true&output=csv";
+export const DEFAULT_SHEET_KEY = "postventa";
+export const QUALITY_SHEET_KEY = "quality";
+export const SALES_QUALITY_SHEET_KEY = "sales_quality";
+export const SALES_CLAIMS_SHEET_KEY = "sales_claims";
+export const INTERNAL_POSTVENTA_SHEET_KEY = "internal_postventa";
+export const DETAILED_QUALITY_SHEET_KEY = "detailed_quality";
+export const DETAILED_QUALITY_SALTA_SHEET_KEY = "detailed_quality_salta";
+export const POSTVENTA_KPI_SHEET_KEY = "postventa_kpi";
+export const POSTVENTA_BILLING_SHEET_KEY = "postventa_billing";
+export const PCGC_SHEET_KEY = "pcgc";
+export const CEM_OS_SHEET_KEY = "cem_os";
+export const CEM_OS_SALTA_SHEET_KEY = "cem_os_salta";
+export const ACTION_PLAN_SHEET_KEY = "action_plan";
+export const ACTION_PLAN_SALES_SHEET_KEY = "action_plan_sales";
+export const HR_GRADES_SHEET_KEY = "hr_grades";
+export const HR_RELATORIO_SHEET_KEY = "hr_relatorio";
+
 export const GEMINI_MODEL = "gemini-3-flash-preview";
 
 export const MONTHS = [
@@ -31,8 +52,8 @@ export const AREAS: AreaConfig[] = [
     id: 'rrhh', 
     name: 'RRHH', 
     icon: 'Users', 
-    color: 'bg-purple-600', 
-    description: 'Control de personal, asistencia y nómina.' 
+    color: 'bg-[#001E50]', 
+    description: 'Gestión de talento, capacitación y desempeño.' 
   },
   { 
     id: 'calidad', 
@@ -50,12 +71,64 @@ export const AREAS: AreaConfig[] = [
   }
 ];
 
-export const DEFAULT_CONFIG = {
-  sheetUrls: {
-    postventa: DEFAULT_SHEET_URL,
-    rrhh: '',
-    calidad: QUALITY_SHEET_URL,
-    ventas: ''
-  } as Record<AreaType, string>,
-  geminiApiKey: ''
+export const DEFAULT_REPORT_TEMPLATE: ReportTemplate = {
+  ventas: {
+    enabled: true,
+    modules: [
+      { id: 'kpis', label: 'Indicadores Principales (CEM)', enabled: true, size: 'full' },
+      { id: 'process', label: 'Adherencia a Procesos', enabled: true, size: 'half' },
+      { id: 'delivery', label: 'Experiencia de Entrega', enabled: true, size: 'half' },
+      { id: 'claims', label: 'Gestión de Reclamos', enabled: true, size: 'full' },
+    ]
+  },
+  postventa: {
+    enabled: true,
+    modules: [
+      { id: 'kpis', label: 'Indicadores LVS', enabled: true, size: 'full' },
+      { id: 'resolution', label: 'Resolución de Casos', enabled: true, size: 'half' },
+      { id: 'claims', label: 'Motivos de Reclamo', enabled: true, size: 'half' },
+    ]
+  },
+  globalComments: ''
 };
+
+export const DEFAULT_CONFIG = {
+  isPasswordProtected: false,
+  globalPassword: 'autosol2026',
+  sheetUrls: {
+    postventa: DEFAULT_SHEET_KEY,
+    rrhh: HR_GRADES_SHEET_KEY,
+    calidad: QUALITY_SHEET_KEY,
+    ventas: '',
+    detailed_quality: DETAILED_QUALITY_SHEET_KEY,
+    detailed_quality_salta: DETAILED_QUALITY_SALTA_SHEET_KEY,
+    postventa_kpis: POSTVENTA_KPI_SHEET_KEY,
+    postventa_billing: POSTVENTA_BILLING_SHEET_KEY,
+    pcgc: PCGC_SHEET_KEY,
+    cem_os: CEM_OS_SHEET_KEY,
+    cem_os_salta: CEM_OS_SALTA_SHEET_KEY,
+    sales_quality: SALES_QUALITY_SHEET_KEY,
+    sales_claims: SALES_CLAIMS_SHEET_KEY,
+    internal_postventa: INTERNAL_POSTVENTA_SHEET_KEY,
+    action_plan: ACTION_PLAN_SHEET_KEY,
+    action_plan_sales: ACTION_PLAN_SALES_SHEET_KEY,
+    hr_relatorio: HR_RELATORIO_SHEET_KEY
+  } as Record<AreaType, string> & { 
+    detailed_quality: string; 
+    detailed_quality_salta: string; 
+    postventa_kpis: string; 
+    postventa_billing: string; 
+    pcgc: string; 
+    cem_os: string;
+    cem_os_salta: string;
+    sales_quality: string;
+    sales_claims: string;
+    internal_postventa: string;
+    action_plan: string;
+    action_plan_sales: string;
+    hr_relatorio: string;
+  },
+  geminiApiKey: '',
+  reportTemplate: DEFAULT_REPORT_TEMPLATE
+};
+

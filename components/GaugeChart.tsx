@@ -1,52 +1,78 @@
+
 import React from 'react';
-import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 
 interface GaugeChartProps {
-  value: number; // 0 to 100
+  value: number;
   label: string;
+  min?: number;
+  max?: number;
+  color?: string;
 }
 
-const GaugeChart: React.FC<GaugeChartProps> = ({ value, label }) => {
-  // Normalize value
-  const normalizedValue = Math.min(Math.max(value, 0), 100);
+const GaugeChart: React.FC<GaugeChartProps> = ({ value, label, min = 0, max = 100, color = "white" }) => {
+  const clampedValue = Math.min(Math.max(value, min), max);
+  const percentage = ((clampedValue - min) / (max - min)) * 100;
   
-  const data = [
-    { name: 'Value', value: normalizedValue },
-    { name: 'Remaining', value: 100 - normalizedValue },
-  ];
+  // SVG arc calculations
+  const radius = 80;
+  const strokeWidth = 12;
+  const normalizedRadius = radius - strokeWidth / 2;
+  const circumference = normalizedRadius * Math.PI; // Half circle
+  const strokeDashoffset = circumference - (percentage / 100) * circumference;
 
-  const COLORS = ['#3B82F6', '#E5E7EB']; // Blue and Gray
+  // Needle rotation
+  const rotation = (percentage / 100) * 180 - 90;
 
   return (
-    <div className="flex flex-col items-center justify-center h-full relative">
-      <h4 className="text-sm font-semibold text-slate-600 absolute top-2">{label}</h4>
-      <div className="w-full h-[140px] mt-4">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              data={data}
-              cx="50%"
-              cy="100%" // Half circle from bottom
-              startAngle={180}
-              endAngle={0}
-              innerRadius={60}
-              outerRadius={80}
-              paddingAngle={0}
-              dataKey="value"
-              stroke="none"
-            >
-              <Cell key="cell-0" fill={COLORS[0]} />
-              <Cell key="cell-1" fill={COLORS[1]} />
-            </Pie>
-          </PieChart>
-        </ResponsiveContainer>
-      </div>
-      <div className="absolute bottom-4 flex flex-col items-center">
-        <span className="text-3xl font-bold text-slate-700">{Math.round(normalizedValue)}%</span>
-      </div>
-      <div className="flex justify-between w-full px-8 text-xs text-slate-400 -mt-2">
-          <span>0%</span>
-          <span>100%</span>
+    <div className="flex flex-col items-center justify-center w-full h-full">
+      <div className="relative w-full aspect-[2/1] flex items-center justify-center overflow-hidden">
+        <svg viewBox="0 0 180 100" className="w-full h-full drop-shadow-2xl">
+          <defs>
+            <filter id="glow">
+              <feGaussianBlur stdDeviation="2" result="coloredBlur"/>
+              <feMerge>
+                <feMergeNode in="coloredBlur"/>
+                <feMergeNode in="SourceGraphic"/>
+              </feMerge>
+            </filter>
+          </defs>
+          
+          {/* Background Track */}
+          <path
+            d="M 20 90 A 70 70 0 0 1 160 90"
+            fill="none"
+            stroke="rgba(255,255,255,0.1)"
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+          />
+          
+          {/* Progress Track */}
+          <path
+            d="M 20 90 A 70 70 0 0 1 160 90"
+            fill="none"
+            stroke={color}
+            strokeWidth={strokeWidth}
+            strokeLinecap="round"
+            strokeDasharray={circumference}
+            strokeDashoffset={strokeDashoffset}
+            className="transition-all duration-1000 ease-out"
+            filter="url(#glow)"
+          />
+
+          {/* Needle */}
+          <g transform={`translate(90, 90) rotate(${rotation})`}>
+            <path
+              d="M -2 0 L 0 -75 L 2 0 Z"
+              fill={color}
+              className="transition-transform duration-1000 ease-out"
+            />
+            <circle r="5" fill={color} />
+          </g>
+
+          {/* Labels */}
+          <text x="20" y="95" fill="rgba(255,255,255,0.6)" fontSize="8" fontWeight="bold" textAnchor="middle">{min}%</text>
+          <text x="160" y="95" fill="rgba(255,255,255,0.6)" fontSize="8" fontWeight="bold" textAnchor="middle">{max}%</text>
+        </svg>
       </div>
     </div>
   );

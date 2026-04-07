@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+﻿import React, { useState } from 'react';
 import { Routes, Route, useNavigate, useLocation, Navigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import Portal from './components/Portal';
@@ -17,7 +17,6 @@ import ExecutiveSummary from './components/ExecutiveSummary';
 import ProfessionalReport from './components/ProfessionalReport';
 import FullReportPrintView from './components/FullReportPrintView';
 import ReportConfigModal from './components/ReportConfigModal';
-import SettingsModal from './components/SettingsModal';
 import { Icons } from './components/Icon';
 import { AppConfig, AreaConfig, AreaType } from './types';
 import { DEFAULT_CONFIG, SALES_QUALITY_SHEET_KEY, SALES_CLAIMS_SHEET_KEY, AREAS } from './constants';
@@ -26,58 +25,12 @@ function App() {
   const navigate = useNavigate();
   const location = useLocation();
   
-  const [config, setConfig] = useState<AppConfig>(() => {
-    try {
-      const saved = localStorage.getItem('autosolPortalConfig');
-      if (saved) {
-        const parsed = JSON.parse(saved);
-        if (parsed && typeof parsed === 'object') {
-          return {
-            ...DEFAULT_CONFIG,
-            ...parsed,
-            sheetUrls: {
-              ...DEFAULT_CONFIG.sheetUrls,
-              ...(parsed.sheetUrls || {})
-            }
-          };
-        }
-      }
-    } catch (e) {
-      console.error("Failed to parse saved config", e);
-    }
-    return DEFAULT_CONFIG;
-  });
-
-  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
-  const [isGloballyAuthenticated, setIsGloballyAuthenticated] = useState(() => {
-    try {
-      const savedConfig = localStorage.getItem('autosolPortalConfig');
-      if (savedConfig) {
-        const parsed = JSON.parse(savedConfig);
-        if (parsed && typeof parsed === 'object' && !parsed.isPasswordProtected) {
-          return true;
-        }
-      }
-      return localStorage.getItem('autosol_global_auth') === 'true';
-    } catch (e) {
-      console.error("Error checking global auth", e);
-      return true;
-    }
-  });
-  const [globalPasswordInput, setGlobalPasswordInput] = useState('');
-  const [showGlobalAuthError, setShowGlobalAuthError] = useState(false);
+  const [config, setConfig] = useState<AppConfig>(DEFAULT_CONFIG);
   const [printReportLocation, setPrintReportLocation] = useState<'JUJUY' | 'SALTA' | null>(null);
   const [reportConfig, setReportConfig] = useState<{ location: 'JUJUY' | 'SALTA', month: string | null, template: any } | null>(null);
 
-  useEffect(() => {
-    const handleOpenSettings = () => setIsSettingsOpen(true);
-    window.addEventListener('open-settings', handleOpenSettings);
-    return () => window.removeEventListener('open-settings', handleOpenSettings);
-  }, []);
-
   const handleSaveConfig = (newConfig: AppConfig) => {
     setConfig(newConfig);
-    localStorage.setItem('autosolPortalConfig', JSON.stringify(newConfig));
   };
 
   const handleSelectArea = (area: AreaConfig) => {
@@ -127,7 +80,7 @@ function App() {
             <div className="w-12 h-12 bg-slate-950 rounded-2xl flex items-center justify-center text-white font-black text-xl tracking-tighter italic shadow-2xl shadow-slate-900/20">VW</div>
             <div>
               <h1 className="text-2xl font-black text-slate-950 uppercase tracking-tighter italic leading-none">{title}</h1>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] mt-2">Autosol Intelligence System • v2.5</p>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] mt-2">Autosol Intelligence System â€¢ v2.5</p>
             </div>
           </div>
         </div>
@@ -140,14 +93,6 @@ function App() {
               <span className="text-[10px] font-black text-emerald-700 uppercase tracking-widest">Online & Secure</span>
             </div>
           </div>
-          <div className="h-10 w-px bg-slate-200/60"></div>
-          <button 
-            onClick={() => setIsSettingsOpen(true)}
-            className="group flex items-center gap-4 px-6 py-3 rounded-2xl bg-slate-950 text-white hover:bg-blue-600 transition-all shadow-xl shadow-slate-900/10"
-          >
-            <Icons.Settings className="w-5 h-5 group-hover:rotate-90 transition-transform duration-500" />
-            <span className="text-[10px] font-black uppercase tracking-widest">Configuración</span>
-          </button>
         </div>
       </div>
     </header>
@@ -178,15 +123,15 @@ function App() {
             <h2 className="text-6xl lg:text-7xl font-black text-white mb-6 uppercase italic tracking-tighter leading-[0.9]">
                 CENTRO DE <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">CALIDAD</span>
             </h2>
-            <p className="text-slate-400 font-medium text-base md:text-lg max-w-2xl mx-auto">Seleccione el módulo de análisis para visualizar el rendimiento y la satisfacción del cliente en tiempo real.</p>
+            <p className="text-slate-400 font-medium text-base md:text-lg max-w-2xl mx-auto">Seleccione el mÃ³dulo de anÃ¡lisis para visualizar el rendimiento y la satisfacciÃ³n del cliente en tiempo real.</p>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
             {[
-              { id: 'ventas', path: '/calidad/ventas', name: 'Ventas', icon: Icons.BarChart, color: 'from-orange-500 to-amber-500', desc: 'Satisfacción en salón y procesos comerciales' },
-              { id: 'postventa', path: '/calidad/postventa_selection', name: 'Postventa', icon: Icons.Wrench, color: 'from-blue-500 to-indigo-500', desc: 'Gestión de reclamos, taller y servicios' },
-              { id: 'pcgc', path: '/calidad/pcgc', name: 'PCGC', icon: Icons.ClipboardList, color: 'from-indigo-500 to-purple-500', desc: 'Programa de Calidad de Gestión y Auditoría' },
-              { id: 'plan_accion', path: '/calidad/plan_accion', name: 'Plan de Acción', icon: Icons.ClipboardCheck, color: 'from-emerald-500 to-teal-500', desc: 'Control y verificación de desvíos' },
+              { id: 'ventas', path: '/calidad/ventas', name: 'Ventas', icon: Icons.BarChart, color: 'from-orange-500 to-amber-500', desc: 'SatisfacciÃ³n en salÃ³n y procesos comerciales' },
+              { id: 'postventa', path: '/calidad/postventa_selection', name: 'Postventa', icon: Icons.Wrench, color: 'from-blue-500 to-indigo-500', desc: 'GestiÃ³n de reclamos, taller y servicios' },
+              { id: 'pcgc', path: '/calidad/pcgc', name: 'PCGC', icon: Icons.ClipboardList, color: 'from-indigo-500 to-purple-500', desc: 'Programa de Calidad de GestiÃ³n y AuditorÃ­a' },
+              { id: 'plan_accion', path: '/calidad/plan_accion', name: 'Plan de AcciÃ³n', icon: Icons.ClipboardCheck, color: 'from-emerald-500 to-teal-500', desc: 'Control y verificaciÃ³n de desvÃ­os' },
             ].map((item) => (
               <motion.button 
                 key={item.id}
@@ -249,15 +194,15 @@ function App() {
           className="relative z-10 bg-white/5 backdrop-blur-3xl border border-white/10 rounded-[4rem] shadow-2xl p-12 md:p-20 w-full text-center"
         >
           <div className="mb-20">
-            <h2 className="text-6xl lg:text-8xl font-black text-white mb-6 uppercase italic tracking-tighter leading-[0.9]">Área de <br/> <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-purple-400">Postventa</span></h2>
+            <h2 className="text-6xl lg:text-8xl font-black text-white mb-6 uppercase italic tracking-tighter leading-[0.9]">Ãrea de <br/> <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-purple-400">Postventa</span></h2>
             <p className="text-indigo-400 font-black uppercase text-[12px] md:text-[14px] tracking-[0.6em] opacity-80">Operations & Service Management</p>
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
             {([
-              { id: 'operativo', path: '/postventa/operativo', name: 'Control Operativo', icon: Icons.Wrench, color: 'blue', desc: 'Gestión de taller' },
-              { id: 'gestion_kpis', path: '/postventa/kpis', name: 'Gestión KPIs', icon: Icons.BarChart, color: 'indigo', desc: 'Indicadores clave' },
-              { id: 'facturacion', path: '/postventa/facturacion', name: 'Facturación', icon: Icons.Banknote, color: 'amber', desc: 'Avance de ventas' }
+              { id: 'operativo', path: '/postventa/operativo', name: 'Control Operativo', icon: Icons.Wrench, color: 'blue', desc: 'GestiÃ³n de taller' },
+              { id: 'gestion_kpis', path: '/postventa/kpis', name: 'GestiÃ³n KPIs', icon: Icons.BarChart, color: 'indigo', desc: 'Indicadores clave' },
+              { id: 'facturacion', path: '/postventa/facturacion', name: 'FacturaciÃ³n', icon: Icons.Banknote, color: 'amber', desc: 'Avance de ventas' }
             ] as const).map((item) => {
               const colorClasses = {
                 blue: "bg-blue-500/20 text-blue-400 shadow-blue-500/40 border-blue-500/30",
@@ -322,9 +267,9 @@ function App() {
           
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
             {([
-              { id: 'claims', path: '/calidad/postventa/claims', name: 'Gestión de Reclamos', icon: Icons.AlertCircle, color: 'blue', desc: 'Seguimiento de quejas' },
-              { id: 'refuerzo', path: '/calidad/refuerzo', name: 'Refuerzo', icon: Icons.Activity, color: 'indigo', desc: 'Análisis detallado' },
-              { id: 'internal', path: '/calidad/postventa/internal_surveys', name: 'Encuesta Interna', icon: Icons.ClipboardCheck, color: 'blue', desc: 'Satisfacción post-servicio' }
+              { id: 'claims', path: '/calidad/postventa/claims', name: 'GestiÃ³n de Reclamos', icon: Icons.AlertCircle, color: 'blue', desc: 'Seguimiento de quejas' },
+              { id: 'refuerzo', path: '/calidad/refuerzo', name: 'Refuerzo', icon: Icons.Activity, color: 'indigo', desc: 'AnÃ¡lisis detallado' },
+              { id: 'internal', path: '/calidad/postventa/internal_surveys', name: 'Encuesta Interna', icon: Icons.ClipboardCheck, color: 'blue', desc: 'SatisfacciÃ³n post-servicio' }
             ] as const).map((item) => {
               const colorClasses = {
                 blue: "bg-blue-500/20 text-blue-400 shadow-blue-500/40 border-blue-500/30",
@@ -352,7 +297,7 @@ function App() {
 
           <button onClick={() => navigate('/calidad')} className="mt-20 text-white/40 font-black uppercase text-[12px] tracking-[0.6em] hover:text-white transition-colors flex items-center gap-6 mx-auto group">
             <Icons.ArrowLeft className="w-6 h-6 group-hover:-translate-x-3 transition-transform" />
-            Volver a Selección de Calidad
+            Volver a SelecciÃ³n de Calidad
           </button>
         </motion.div>
       </div>
@@ -388,9 +333,9 @@ function App() {
           
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
             {([
-              { id: 'surveys', path: '/calidad/ventas/surveys', name: 'Encuestas Internas', icon: Icons.ClipboardCheck, color: 'blue', desc: 'Satisfacción en salón' },
-              { id: 'claims', path: '/calidad/ventas/claims', name: 'Gestión de Reclamos', icon: Icons.AlertCircle, color: 'orange', desc: 'Seguimiento de quejas' },
-              { id: 'cem_os', path: '/calidad/ventas/cem_os', name: 'CEM OS', icon: Icons.BarChart, color: 'indigo', desc: 'Análisis de satisfacción general' }
+              { id: 'surveys', path: '/calidad/ventas/surveys', name: 'Encuestas Internas', icon: Icons.ClipboardCheck, color: 'blue', desc: 'SatisfacciÃ³n en salÃ³n' },
+              { id: 'claims', path: '/calidad/ventas/claims', name: 'GestiÃ³n de Reclamos', icon: Icons.AlertCircle, color: 'orange', desc: 'Seguimiento de quejas' },
+              { id: 'cem_os', path: '/calidad/ventas/cem_os', name: 'CEM OS', icon: Icons.BarChart, color: 'indigo', desc: 'AnÃ¡lisis de satisfacciÃ³n general' }
             ] as const).map((item) => {
               const colorClasses = {
                 blue: "bg-blue-500/20 text-blue-400 shadow-blue-500/40 border-blue-500/30",
@@ -419,7 +364,7 @@ function App() {
 
           <button onClick={() => navigate('/calidad')} className="mt-20 text-white/40 font-black uppercase text-[12px] tracking-[0.6em] hover:text-white transition-colors flex items-center gap-6 mx-auto group">
             <Icons.ArrowLeft className="w-6 h-6 group-hover:-translate-x-3 transition-transform" />
-            Volver a Selección de Calidad
+            Volver a SelecciÃ³n de Calidad
           </button>
         </motion.div>
       </div>
@@ -489,7 +434,7 @@ function App() {
         dashboardContent = <ExecutiveSummary config={config} onBack={handleBack} />;
     } else if (effectiveType === 'postventa') {
       if (subType === 'operativo') {
-        dashboardContent = <PostventaDashboard sheetUrl={config.sheetUrls.postventa} onBack={handleBack} onOpenSettings={() => setIsSettingsOpen(true)} />;
+        dashboardContent = <PostventaDashboard sheetUrl={config.sheetUrls.postventa} onBack={handleBack} />;
       } else if (subType === 'kpis') {
         dashboardContent = <PostventaKpiDashboard sheetUrl={config.sheetUrls.postventa_kpis || ''} onBack={handleBack} />;
       } else if (subType === 'facturacion') {
@@ -503,14 +448,13 @@ function App() {
           sheetUrl={config.sheetUrls[areaId] || ''}
           apiKey={config.geminiApiKey}
           onBack={handleBack}
-          onOpenSettings={() => setIsSettingsOpen(true)}
         />
       );
     } else {
       dashboardContent = (
         <div className="flex flex-col items-center justify-center min-h-[60vh] text-slate-400">
           <Icons.AlertTriangle className="w-12 h-12 mb-4 opacity-20" />
-          <p className="text-sm font-black uppercase tracking-widest">Área no encontrada</p>
+          <p className="text-sm font-black uppercase tracking-widest">Ãrea no encontrada</p>
           <button onClick={handleBackToPortal} className="mt-6 text-blue-600 font-black uppercase text-[10px] tracking-widest">Volver al Portal</button>
         </div>
       );
@@ -527,68 +471,12 @@ function App() {
     );
   };
 
-  const handleGlobalLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    const targetPassword = config.globalPassword || 'autosol2026';
-    if (globalPasswordInput === targetPassword) {
-        setIsGloballyAuthenticated(true);
-        localStorage.setItem('autosol_global_auth', 'true');
-        setShowGlobalAuthError(false);
-    } else {
-        setShowGlobalAuthError(true);
-    }
-  };
-
-  if (config.isPasswordProtected && !isGloballyAuthenticated) {
-    return (
-        <div className="min-h-screen bg-slate-950 flex items-center justify-center p-6 font-sans">
-            <motion.div 
-                initial={{ scale: 0.9, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                className="w-full max-w-md bg-white/5 backdrop-blur-3xl border border-white/10 rounded-[3rem] p-12 shadow-2xl text-center"
-            >
-                <div className="w-20 h-20 bg-white rounded-[1.5rem] flex items-center justify-center shadow-2xl shadow-white/10 mx-auto mb-10">
-                    <span className="text-slate-950 font-black text-2xl tracking-tighter italic">VW</span>
-                </div>
-                <h2 className="text-3xl font-black text-white uppercase italic tracking-tighter mb-4">Acceso Restringido</h2>
-                <p className="text-slate-400 text-sm font-bold uppercase tracking-widest mb-10 opacity-60">Autosol Intelligence System</p>
-                
-                <form onSubmit={handleGlobalLogin} className="space-y-6">
-                    <div className="relative">
-                        <input 
-                            type="password"
-                            value={globalPasswordInput}
-                            onChange={(e) => setGlobalPasswordInput(e.target.value)}
-                            placeholder="CONTRASEÑA"
-                            className="w-full bg-white/5 border border-white/10 rounded-2xl p-5 text-white text-center font-black tracking-[0.5em] outline-none focus:ring-4 focus:ring-blue-500/20 focus:border-blue-500 transition-all placeholder:text-white/20"
-                        />
-                        {showGlobalAuthError && (
-                            <motion.p 
-                                initial={{ opacity: 0, y: -10 }}
-                                animate={{ opacity: 1, y: 0 }}
-                                className="text-rose-500 text-[10px] font-black uppercase tracking-widest mt-4"
-                            >
-                                Contraseña Incorrecta
-                            </motion.p>
-                        )}
-                    </div>
-                    <button 
-                        type="submit"
-                        className="w-full bg-blue-600 hover:bg-blue-500 text-white font-black uppercase tracking-[0.3em] py-5 rounded-2xl shadow-xl shadow-blue-500/20 transition-all"
-                    >
-                        Entrar al Sistema
-                    </button>
-                </form>
-            </motion.div>
-        </div>
-    );
-  }
 
   return (
     <>
       <AnimatePresence mode="wait">
         <Routes location={location} key={location.pathname}>
-          <Route path="/" element={<PageWrapper><Portal onSelectArea={handleSelectArea} onOpenSettings={() => setIsSettingsOpen(true)} /></PageWrapper>} />
+          <Route path="/" element={<PageWrapper><Portal onSelectArea={handleSelectArea} /></PageWrapper>} />
           
           <Route path="/calidad" element={<QualitySelection />} />
           <Route path="/calidad/postventa_selection" element={<PostventaQualitySelection />} />
@@ -616,13 +504,6 @@ function App() {
           <Route path="*" element={<Navigate to="/" />} />
         </Routes>
       </AnimatePresence>
-      
-      <SettingsModal 
-        isOpen={isSettingsOpen} 
-        onClose={() => setIsSettingsOpen(false)} 
-        config={config} 
-        onSave={handleSaveConfig} 
-      />
       
       <ReportConfigModal 
         isOpen={!!printReportLocation}
@@ -656,3 +537,4 @@ function App() {
 }
 
 export default App;
+

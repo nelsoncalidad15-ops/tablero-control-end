@@ -16,10 +16,9 @@ import ChatBot from './ChatBot';
 interface PostventaDashboardProps {
   sheetUrl: string;
   onBack: () => void;
-  onOpenSettings: () => void;
 }
 
-const PostventaDashboard: React.FC<PostventaDashboardProps> = ({ sheetUrl, onBack, onOpenSettings }) => {
+const PostventaDashboard: React.FC<PostventaDashboardProps> = ({ sheetUrl, onBack }) => {
   const [data, setData] = useState<AutoRecord[]>([]);
   const [loadingState, setLoadingState] = useState<LoadingState>(LoadingState.IDLE);
 

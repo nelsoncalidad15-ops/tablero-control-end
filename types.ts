@@ -383,8 +383,6 @@ export interface RelatorioItem {
 }
 
 export interface AppConfig {
-  isPasswordProtected: boolean;
-  globalPassword?: string;
   sheetUrls: Record<AreaType, string> & { 
     detailed_quality?: string; 
     detailed_quality_salta?: string;

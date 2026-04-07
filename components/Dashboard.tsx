@@ -14,10 +14,9 @@ interface DashboardProps {
   sheetUrl: string;
   apiKey: string;
   onBack: () => void;
-  onOpenSettings: () => void;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ area, sheetUrl, apiKey, onBack, onOpenSettings }) => {
+const Dashboard: React.FC<DashboardProps> = ({ area, sheetUrl, apiKey, onBack }) => {
   const [data, setData] = useState<AutoRecord[]>([]);
   const [loadingState, setLoadingState] = useState<LoadingState>(LoadingState.IDLE);
   const [isAIpanelOpen, setIsAIpanelOpen] = useState(false);

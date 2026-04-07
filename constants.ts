@@ -93,8 +93,6 @@ export const DEFAULT_REPORT_TEMPLATE: ReportTemplate = {
 };
 
 export const DEFAULT_CONFIG = {
-  isPasswordProtected: false,
-  globalPassword: 'autosol2026',
   sheetUrls: {
     postventa: DEFAULT_SHEET_KEY,
     rrhh: HR_GRADES_SHEET_KEY,
@@ -131,4 +129,3 @@ export const DEFAULT_CONFIG = {
   geminiApiKey: '',
   reportTemplate: DEFAULT_REPORT_TEMPLATE
 };
-

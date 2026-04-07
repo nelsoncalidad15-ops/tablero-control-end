@@ -123,15 +123,15 @@ function App() {
             <h2 className="text-6xl lg:text-7xl font-black text-white mb-6 uppercase italic tracking-tighter leading-[0.9]">
                 CENTRO DE <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">CALIDAD</span>
             </h2>
-            <p className="text-slate-400 font-medium text-base md:text-lg max-w-2xl mx-auto">Seleccione el mÃ³dulo de anÃ¡lisis para visualizar el rendimiento y la satisfacciÃ³n del cliente en tiempo real.</p>
+            <p className="text-slate-400 font-medium text-base md:text-lg max-w-2xl mx-auto">Seleccione el módulo de análisis para visualizar el rendimiento y la satisfacción del cliente en tiempo real.</p>
           </div>
           
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
             {[
-              { id: 'ventas', path: '/calidad/ventas', name: 'Ventas', icon: Icons.BarChart, color: 'from-orange-500 to-amber-500', desc: 'SatisfacciÃ³n en salÃ³n y procesos comerciales' },
-              { id: 'postventa', path: '/calidad/postventa_selection', name: 'Postventa', icon: Icons.Wrench, color: 'from-blue-500 to-indigo-500', desc: 'GestiÃ³n de reclamos, taller y servicios' },
-              { id: 'pcgc', path: '/calidad/pcgc', name: 'PCGC', icon: Icons.ClipboardList, color: 'from-indigo-500 to-purple-500', desc: 'Programa de Calidad de GestiÃ³n y AuditorÃ­a' },
-              { id: 'plan_accion', path: '/calidad/plan_accion', name: 'Plan de AcciÃ³n', icon: Icons.ClipboardCheck, color: 'from-emerald-500 to-teal-500', desc: 'Control y verificaciÃ³n de desvÃ­os' },
+              { id: 'ventas', path: '/calidad/ventas', name: 'Ventas', icon: Icons.BarChart, color: 'from-orange-500 to-amber-500', desc: 'Satisfacción en salón y procesos comerciales' },
+              { id: 'postventa', path: '/calidad/postventa_selection', name: 'Postventa', icon: Icons.Wrench, color: 'from-blue-500 to-indigo-500', desc: 'Gestión de reclamos, taller y servicios' },
+              { id: 'pcgc', path: '/calidad/pcgc', name: 'PCGC', icon: Icons.ClipboardList, color: 'from-indigo-500 to-purple-500', desc: 'Programa de Calidad de Gestión y Auditoría' },
+              { id: 'plan_accion', path: '/calidad/plan_accion', name: 'Plan de Acción', icon: Icons.ClipboardCheck, color: 'from-emerald-500 to-teal-500', desc: 'Control y verificación de desvíos' },
             ].map((item) => (
               <motion.button 
                 key={item.id}
@@ -194,15 +194,15 @@ function App() {
           className="relative z-10 bg-white/5 backdrop-blur-3xl border border-white/10 rounded-[4rem] shadow-2xl p-12 md:p-20 w-full text-center"
         >
           <div className="mb-20">
-            <h2 className="text-6xl lg:text-8xl font-black text-white mb-6 uppercase italic tracking-tighter leading-[0.9]">Ãrea de <br/> <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-purple-400">Postventa</span></h2>
+            <h2 className="text-6xl lg:text-8xl font-black text-white mb-6 uppercase italic tracking-tighter leading-[0.9]">Área de <br/> <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-purple-400">Postventa</span></h2>
             <p className="text-indigo-400 font-black uppercase text-[12px] md:text-[14px] tracking-[0.6em] opacity-80">Operations & Service Management</p>
           </div>
           
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
             {([
-              { id: 'operativo', path: '/postventa/operativo', name: 'Control Operativo', icon: Icons.Wrench, color: 'blue', desc: 'GestiÃ³n de taller' },
-              { id: 'gestion_kpis', path: '/postventa/kpis', name: 'GestiÃ³n KPIs', icon: Icons.BarChart, color: 'indigo', desc: 'Indicadores clave' },
-              { id: 'facturacion', path: '/postventa/facturacion', name: 'FacturaciÃ³n', icon: Icons.Banknote, color: 'amber', desc: 'Avance de ventas' }
+              { id: 'operativo', path: '/postventa/operativo', name: 'Control Operativo', icon: Icons.Wrench, color: 'blue', desc: 'Gestión de taller' },
+              { id: 'gestion_kpis', path: '/postventa/kpis', name: 'Gestión KPIs', icon: Icons.BarChart, color: 'indigo', desc: 'Indicadores clave' },
+              { id: 'facturacion', path: '/postventa/facturacion', name: 'Facturación', icon: Icons.Banknote, color: 'amber', desc: 'Avance de ventas' }
             ] as const).map((item) => {
               const colorClasses = {
                 blue: "bg-blue-500/20 text-blue-400 shadow-blue-500/40 border-blue-500/30",
@@ -267,9 +267,9 @@ function App() {
           
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
             {([
-              { id: 'claims', path: '/calidad/postventa/claims', name: 'GestiÃ³n de Reclamos', icon: Icons.AlertCircle, color: 'blue', desc: 'Seguimiento de quejas' },
-              { id: 'refuerzo', path: '/calidad/refuerzo', name: 'Refuerzo', icon: Icons.Activity, color: 'indigo', desc: 'AnÃ¡lisis detallado' },
-              { id: 'internal', path: '/calidad/postventa/internal_surveys', name: 'Encuesta Interna', icon: Icons.ClipboardCheck, color: 'blue', desc: 'SatisfacciÃ³n post-servicio' }
+              { id: 'claims', path: '/calidad/postventa/claims', name: 'Gestión de Reclamos', icon: Icons.AlertCircle, color: 'blue', desc: 'Seguimiento de quejas' },
+              { id: 'refuerzo', path: '/calidad/refuerzo', name: 'Refuerzo', icon: Icons.Activity, color: 'indigo', desc: 'Análisis detallado' },
+              { id: 'internal', path: '/calidad/postventa/internal_surveys', name: 'Encuesta Interna', icon: Icons.ClipboardCheck, color: 'blue', desc: 'Satisfacción post-servicio' }
             ] as const).map((item) => {
               const colorClasses = {
                 blue: "bg-blue-500/20 text-blue-400 shadow-blue-500/40 border-blue-500/30",
@@ -297,7 +297,7 @@ function App() {
 
           <button onClick={() => navigate('/calidad')} className="mt-20 text-white/40 font-black uppercase text-[12px] tracking-[0.6em] hover:text-white transition-colors flex items-center gap-6 mx-auto group">
             <Icons.ArrowLeft className="w-6 h-6 group-hover:-translate-x-3 transition-transform" />
-            Volver a SelecciÃ³n de Calidad
+            Volver a Selección de Calidad
           </button>
         </motion.div>
       </div>
@@ -333,9 +333,9 @@ function App() {
           
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
             {([
-              { id: 'surveys', path: '/calidad/ventas/surveys', name: 'Encuestas Internas', icon: Icons.ClipboardCheck, color: 'blue', desc: 'SatisfacciÃ³n en salÃ³n' },
-              { id: 'claims', path: '/calidad/ventas/claims', name: 'GestiÃ³n de Reclamos', icon: Icons.AlertCircle, color: 'orange', desc: 'Seguimiento de quejas' },
-              { id: 'cem_os', path: '/calidad/ventas/cem_os', name: 'CEM OS', icon: Icons.BarChart, color: 'indigo', desc: 'AnÃ¡lisis de satisfacciÃ³n general' }
+              { id: 'surveys', path: '/calidad/ventas/surveys', name: 'Encuestas Internas', icon: Icons.ClipboardCheck, color: 'blue', desc: 'Satisfacción en salón' },
+              { id: 'claims', path: '/calidad/ventas/claims', name: 'Gestión de Reclamos', icon: Icons.AlertCircle, color: 'orange', desc: 'Seguimiento de quejas' },
+              { id: 'cem_os', path: '/calidad/ventas/cem_os', name: 'CEM OS', icon: Icons.BarChart, color: 'indigo', desc: 'Análisis de satisfacción general' }
             ] as const).map((item) => {
               const colorClasses = {
                 blue: "bg-blue-500/20 text-blue-400 shadow-blue-500/40 border-blue-500/30",
@@ -364,7 +364,7 @@ function App() {
 
           <button onClick={() => navigate('/calidad')} className="mt-20 text-white/40 font-black uppercase text-[12px] tracking-[0.6em] hover:text-white transition-colors flex items-center gap-6 mx-auto group">
             <Icons.ArrowLeft className="w-6 h-6 group-hover:-translate-x-3 transition-transform" />
-            Volver a SelecciÃ³n de Calidad
+            Volver a Selección de Calidad
           </button>
         </motion.div>
       </div>
@@ -454,7 +454,7 @@ function App() {
       dashboardContent = (
         <div className="flex flex-col items-center justify-center min-h-[60vh] text-slate-400">
           <Icons.AlertTriangle className="w-12 h-12 mb-4 opacity-20" />
-          <p className="text-sm font-black uppercase tracking-widest">Ãrea no encontrada</p>
+          <p className="text-sm font-black uppercase tracking-widest">Área no encontrada</p>
           <button onClick={handleBackToPortal} className="mt-6 text-blue-600 font-black uppercase text-[10px] tracking-widest">Volver al Portal</button>
         </div>
       );

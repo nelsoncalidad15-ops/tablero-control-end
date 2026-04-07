@@ -60,20 +60,20 @@ const Portal: React.FC<PortalProps> = ({ onSelectArea }) => {
                 </h1>
                 
                 <p className="text-slate-400 text-xs md:text-base leading-relaxed max-w-2xl font-medium opacity-80 px-4">
-                    Monitoreo estratÃ©gico y anÃ¡lisis de performance en tiempo real.
+                    Monitoreo estratégico y análisis de performance en tiempo real.
                 </p>
             </motion.div>
 
             {/* Grid of Cards */}
             <div className="grid grid-cols-1 sm:grid-cols-1 lg:grid-cols-3 gap-2 md:gap-3 w-full max-w-5xl flex-1 items-center content-center">
-                {/* Sala de SituaciÃ³n Card */}
+                {/* Sala de Situación Card */}
                 <motion.button 
                     initial={{ y: 20, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     transition={{ duration: 0.5, delay: 0.2 }}
                     whileHover={{ y: -5, scale: 1.01 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => onSelectArea({ id: 'executive' as any, name: 'Sala de SituaciÃ³n', icon: 'Activity', color: 'blue', description: 'Resumen Ejecutivo Unificado' })}
+                    onClick={() => onSelectArea({ id: 'executive' as any, name: 'Sala de Situación', icon: 'Activity', color: 'blue', description: 'Resumen Ejecutivo Unificado' })}
                     className="group relative bg-blue-600/10 backdrop-blur-3xl border border-blue-500/30 rounded-[2.5rem] p-4 text-left hover:bg-blue-600/20 hover:border-blue-500/50 transition-all duration-500 overflow-hidden shadow-xl shadow-blue-500/10"
                 >
                     <div className="flex flex-col items-center text-center">
@@ -81,7 +81,7 @@ const Portal: React.FC<PortalProps> = ({ onSelectArea }) => {
                             <Icons.Activity className="w-6 h-6" />
                         </div>
                         <h3 className="text-lg md:text-xl font-black text-white mb-1 md:mb-2 tracking-tight uppercase group-hover:text-blue-400 transition-colors">
-                            Sala de SituaciÃ³n
+                            Sala de Situación
                         </h3>
                         <p className="text-slate-400 text-[9px] md:text-[10px] leading-relaxed font-bold uppercase tracking-[0.25em] opacity-60 group-hover:opacity-100 transition-opacity max-w-[200px]">
                             Resumen Ejecutivo Unificado
@@ -136,7 +136,7 @@ const Portal: React.FC<PortalProps> = ({ onSelectArea }) => {
                         className="bg-rose-500/10 border border-rose-500/20 rounded-3xl p-3 flex flex-col items-center justify-center gap-1 text-rose-400 hover:text-rose-300 transition-all backdrop-blur-3xl"
                     >
                         <Icons.LogOut className="w-5 h-5" />
-                        <span className="text-[8px] font-black uppercase tracking-widest">Cerrar SesiÃ³n</span>
+                        <span className="text-[8px] font-black uppercase tracking-widest">Cerrar Sesión</span>
                     </motion.button>
                 </div>
             </div>

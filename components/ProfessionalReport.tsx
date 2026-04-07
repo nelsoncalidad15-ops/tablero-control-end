@@ -48,7 +48,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
     const loadAllData = async () => {
       setLoading(LoadingState.LOADING);
       try {
-        const [dqJ, dqS, sq, q, sc, coJ, coS, ip] = await Promise.all([
+        const results = await Promise.allSettled([
           fetchDetailedQualityData(config.sheetUrls.detailed_quality || ''),
           fetchDetailedQualityData(config.sheetUrls.detailed_quality_salta || ''),
           fetchSalesQualityData(config.sheetUrls.sales_quality || ''),
@@ -58,6 +58,22 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
           fetchCemOsData(config.sheetUrls.cem_os_salta || ''),
           fetchInternalPostventaData(config.sheetUrls.internal_postventa || '')
         ]);
+
+        const pick = <T,>(index: number): T[] => {
+          const result = results[index];
+          if (result.status === 'fulfilled') return result.value as T[];
+          console.warn('[Report] Fuente no disponible:', result.reason);
+          return [];
+        };
+
+        const dqJ = pick<DetailedQualityRecord>(0);
+        const dqS = pick<DetailedQualityRecord>(1);
+        const sq = pick<SalesQualityRecord>(2);
+        const q = pick<QualityRecord>(3);
+        const sc = pick<SalesClaimsRecord>(4);
+        const coJ = pick<CemOsRecord>(5);
+        const coS = pick<CemOsRecord>(6);
+        const ip = pick<InternalPostventaRecord>(7);
 
         setData({
           detailedQuality: [

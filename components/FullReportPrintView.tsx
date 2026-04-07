@@ -54,8 +54,21 @@ const FullReportPrintView: React.FC<FullReportPrintViewProps> = ({ location, con
                     fetchDetailedQualityData(sheetUrls.postventaDetailed)
                 ]);
 
-                // Filter by location
-                const locNormal = location.charAt(0).toUpperCase() + location.slice(1).toLowerCase();
+                const normalizeBranchValue = (value: unknown) =>
+                    String(value || '')
+                        .trim()
+                        .toUpperCase()
+                        .normalize('NFD')
+                        .replace(/[\u0300-\u036f]/g, '');
+
+                const matchesLocation = (value: unknown) => {
+                    const normalized = normalizeBranchValue(value);
+                    if (!normalized) return false;
+                    if (location === 'JUJUY') {
+                        return normalized.includes('JUJUY') || normalized === '3059';
+                    }
+                    return normalized.includes('SALTA') || normalized === '3087' || normalized === '3089';
+                };
                 
                 // Apply filters
                 const filterByMonth = (records: any[]) => {
@@ -64,9 +77,9 @@ const FullReportPrintView: React.FC<FullReportPrintViewProps> = ({ location, con
                 };
 
                 setData({
-                    salesQuality: filterByMonth(sq.filter(d => d.sucursal === locNormal)),
-                    salesClaims: filterByMonth(sc.filter(d => d.sucursal === locNormal)),
-                    postventaSummary: filterByMonth(ps.filter(d => d.sucursal === locNormal)),
+                    salesQuality: filterByMonth(sq.filter(d => matchesLocation(d.sucursal))),
+                    salesClaims: filterByMonth(sc.filter(d => matchesLocation(d.sucursal))),
+                    postventaSummary: filterByMonth(ps.filter(d => matchesLocation(d.sucursal))),
                     postventaDetailed: filterByMonth(pd) // Detailed sheets are already per location
                 });
                 setLoading(false);

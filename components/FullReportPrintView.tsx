@@ -205,8 +205,8 @@ const FullReportPrintView: React.FC<FullReportPrintViewProps> = ({ location, con
                 
                 <div className="space-y-4 mb-16">
                     <p className="text-white/60 font-bold uppercase tracking-[0.4em] text-sm">Visualiza los gráficos actualizados en:</p>
-                    <a href="https://nelsoncalidad15-ops.github.io/Autosol/" className="text-2xl font-black text-[#00B0F0] hover:underline tracking-tight">
-                        nelsoncalidad15-ops.github.io/Autosol/
+                    <a href="https://nelsoncalidad15-ops.github.io/tablero-control-end/" className="text-2xl font-black text-[#00B0F0] hover:underline tracking-tight">
+                        nelsoncalidad15-ops.github.io/tablero-control-end/
                     </a>
                 </div>
 

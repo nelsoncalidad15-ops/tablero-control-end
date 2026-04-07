@@ -1073,7 +1073,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                     <h4 className="text-[11px] font-black text-blue-400 uppercase tracking-[0.4em] mb-4">Visualización Interactiva</h4>
                     <div className="flex items-center justify-center gap-6 text-white font-black text-lg uppercase tracking-widest">
                         <Icons.ExternalLink className="w-6 h-6 text-blue-400" />
-                        https://nelsoncalidad15-ops.github.io/Autosol/
+                        https://nelsoncalidad15-ops.github.io/tablero-control-end/
                     </div>
                 </div>
 

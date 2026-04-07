@@ -2,6 +2,7 @@
 /// <reference types="vite/client" />
 import Papa from 'papaparse';
 import { AutoRecord, QualityRecord, SalesQualityRecord, SalesClaimsRecord, DetailedQualityRecord, PostventaKpiRecord, BillingRecord, PCGCRecord, CemOsRecord, InternalPostventaRecord, ActionPlanRecord, CourseGrade, RelatorioItem } from '../types';
+import { buildApiUrl } from './apiConfig';
 
 // --- Helper Functions ---
 
@@ -177,14 +178,26 @@ const parseCSV = (text: string): string[][] => {
 // --- Main Data Fetchers ---
 
 const fetchFromProxy = async (sheetKey: string): Promise<string> => {
-    const apiBase = import.meta.env.VITE_API_URL || '';
     // If it's a full URL, pass it as a query parameter to our proxy to avoid CORS
     const url = sheetKey.startsWith('http') 
-        ? `${apiBase}/api/data/custom?url=${encodeURIComponent(sheetKey)}` 
-        : `${apiBase}/api/data/${sheetKey}`;
+        ? buildApiUrl(`/api/data/custom?url=${encodeURIComponent(sheetKey)}`) 
+        : buildApiUrl(`/api/data/${sheetKey}`);
     
+    console.log(`[DataService] Fetching from: ${url}`);
+
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s timeout
+
     try {
-        const response = await fetch(url);
+        const response = await fetch(url, { 
+            signal: controller.signal,
+            headers: {
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        });
+        clearTimeout(timeoutId);
+
         if (!response.ok) {
             let errorDetail = response.statusText;
             try {
@@ -197,7 +210,14 @@ const fetchFromProxy = async (sheetKey: string): Promise<string> => {
         }
         return await response.text();
     } catch (error: any) {
+        clearTimeout(timeoutId);
         console.error(`Error fetching from proxy for ${sheetKey}:`, error);
+        if (error.name === 'AbortError') {
+            throw new Error("La petición al servidor excedió el tiempo límite (20s). Verifique que el servidor en AI Studio esté activo.");
+        }
+        if (error instanceof TypeError && url.startsWith('/api/')) {
+            throw new Error("No se pudo contactar al backend. Configure VITE_API_URL con la URL real de su servidor API.");
+        }
         throw error;
     }
 };
@@ -1095,7 +1115,7 @@ export const fetchInternalPostventaData = async (sheetKey: string): Promise<Inte
       return parseInternalPostventaCSV(csvText);
     } catch (error) {
       console.error("Error fetching Internal Postventa data:", error);
-      return [];
+      throw error; // Throw instead of returning []
     }
 };
 

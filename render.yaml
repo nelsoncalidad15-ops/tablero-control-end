@@ -1,0 +1,44 @@
+services:
+  - type: web
+    name: tablero-control-end-api
+    runtime: node
+    plan: free
+    rootDir: .
+    buildCommand: npm install && npm run build
+    startCommand: npm run start:backend
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: ALLOWED_ORIGINS
+        value: https://nelsoncalidad15-ops.github.io,http://localhost:3000
+      - key: GOOGLE_SERVICE_ACCOUNT_EMAIL
+        sync: false
+      - key: GOOGLE_PRIVATE_KEY
+        sync: false
+      - key: LINK_AVANCE_PPT
+        sync: false
+      - key: LINK_RECLAMOS_PV
+        sync: false
+      - key: LINK_ENCUESTAS_V
+        sync: false
+      - key: LINK_RECLAMOS_V
+        sync: false
+      - key: LINK_OS_JUJUY
+        sync: false
+      - key: LINK_OS_SALTA
+        sync: false
+      - key: LINK_REFUERZO_JJY
+        sync: false
+      - key: LINK_REFUERZO_SLA
+        sync: false
+      - key: LINK_PLAN_ACCION
+        sync: false
+      - key: LINK_KPI_PV
+        sync: false
+      - key: LINK_FACTURACION
+        sync: false
+      - key: LINK_RRHH_NOTAS
+        sync: false
+      - key: LINK_RRHH_RELAT
+        sync: false

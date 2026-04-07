@@ -40,7 +40,7 @@ Este proyecto está configurado para desplegarse automáticamente en **GitHub Pa
 ### Instalación Local
 ```bash
 # 1. Clonar el repositorio
-git clone https://github.com/nelsoncalidad15-ops/Autosol.git
+git clone https://github.com/nelsoncalidad15-ops/tablero-control-end.git
 
 # 2. Instalar dependencias
 npm install
@@ -57,7 +57,7 @@ El proyecto incluye scripts automatizados para el despliegue:
 npm run deploy
 ```
 
-El dashboard estará visible en: `https://nelsoncalidad15-ops.github.io/Autosol/`
+El dashboard estará visible en: `https://nelsoncalidad15-ops.github.io/tablero-control-end/`
 
 ---
 

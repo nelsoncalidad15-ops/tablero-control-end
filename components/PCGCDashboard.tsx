@@ -15,6 +15,7 @@ const PCGCDashboard: React.FC<PCGCDashboardProps> = ({ sheetUrl, onBack }) => {
     const [data, setData] = useState<PCGCRecord[]>([]);
     const [loading, setLoading] = useState<LoadingState>(LoadingState.IDLE);
     const [errorMessage, setErrorMessage] = useState<string | null>(null);
+    const [retryCount, setRetryCount] = useState(0);
     const [completedIds, setCompletedIds] = useState<Set<string>>(() => {
         try {
             const saved = localStorage.getItem('pcgc_completed_ids');
@@ -55,10 +56,12 @@ const PCGCDashboard: React.FC<PCGCDashboardProps> = ({ sheetUrl, onBack }) => {
         const loadData = async () => {
             setLoading(LoadingState.LOADING);
             setErrorMessage(null);
+            console.log(`PCGCDashboard: Loading data (attempt ${retryCount + 1})...`);
             try {
                 const result = await fetchPCGCData(sheetUrl);
                 setData(result);
                 setLoading(LoadingState.SUCCESS);
+                console.log("PCGCDashboard: Data loaded successfully");
             } catch (error: any) {
                 console.error("Error loading PCGC data", error);
                 setLoading(LoadingState.ERROR);
@@ -73,7 +76,7 @@ const PCGCDashboard: React.FC<PCGCDashboardProps> = ({ sheetUrl, onBack }) => {
             }
         };
         loadData();
-    }, [sheetUrl]);
+    }, [sheetUrl, retryCount]);
 
     const options = useMemo(() => {
         return {
@@ -164,7 +167,7 @@ const PCGCDashboard: React.FC<PCGCDashboardProps> = ({ sheetUrl, onBack }) => {
                         </p>
                         <div className="flex justify-center gap-4">
                             <button 
-                                onClick={() => window.location.reload()}
+                                onClick={() => setRetryCount(prev => prev + 1)}
                                 className="px-8 py-3 bg-[#001E50] text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-[#003380] transition-all"
                             >
                                 Reintentar

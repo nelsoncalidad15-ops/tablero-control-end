@@ -19,6 +19,7 @@ const ActionPlanDashboard: React.FC<ActionPlanDashboardProps> = ({ sheetUrl, sal
   const [selectedPlan, setSelectedPlan] = useState<ActionPlanRecord | null>(null);
   const [filter, setFilter] = useState<'all' | 'incomplete' | 'complete' | 'pending_verification'>('all');
   const [searchTerm, setSearchTerm] = useState('');
+  const [retryCount, setRetryCount] = useState(0);
 
   const currentUrl = activeTab === 'postventa' ? sheetUrl : salesSheetUrl;
 
@@ -30,16 +31,18 @@ const ActionPlanDashboard: React.FC<ActionPlanDashboardProps> = ({ sheetUrl, sal
       }
       try {
         setLoading(LoadingState.LOADING);
+        console.log(`ActionPlanDashboard: Loading data (attempt ${retryCount + 1})...`);
         const records = await fetchActionPlanData(currentUrl);
         setData(records.filter(r => r.isPlan));
         setLoading(LoadingState.SUCCESS);
+        console.log("ActionPlanDashboard: Data loaded successfully");
       } catch (error) {
         console.error("Error loading action plan data:", error);
         setLoading(LoadingState.ERROR);
       }
     };
     loadData();
-  }, [currentUrl]);
+  }, [currentUrl, retryCount]);
 
   const filteredData = useMemo(() => {
     if (!data) return [];
@@ -80,7 +83,7 @@ const ActionPlanDashboard: React.FC<ActionPlanDashboardProps> = ({ sheetUrl, sal
             Hubo un problema al intentar obtener la información del Google Sheet. Verifique que la URL sea correcta y esté publicada como CSV.
           </p>
           <button 
-            onClick={() => window.location.reload()}
+            onClick={() => setRetryCount(prev => prev + 1)}
             className="px-10 py-4 bg-slate-950 text-white rounded-2xl font-black uppercase tracking-widest text-[10px] shadow-2xl shadow-slate-900/40 hover:scale-105 transition-all"
           >
             Reintentar

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { AppConfig, AreaType } from '../types';
 import { AREAS } from '../constants';
 import { Icons } from './Icon';
+import { buildApiUrl, resolveApiBase } from '../services/apiConfig';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -76,7 +77,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, config, 
     e.preventDefault();
     // HARDCODED PASSWORD for simplicity. 
     // In a real full-stack app, this would validate against a server.
-    if (passwordInput === 'autosol2025') {
+    if (passwordInput === 'autosol2026') {
         setIsAuthenticated(true);
         setErrorMsg('');
     } else {
@@ -468,17 +469,45 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ isOpen, onClose, config, 
                         </div>
 
                         {/* Gemini API Section */}
-                        <div className="pt-8 border-t border-slate-100 mt-8">
-                            <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-[0.2em]">
-                                Gemini AI Intelligence Key
-                            </label>
-                            <input
-                                type="password"
-                                value={localConfig.geminiApiKey}
-                                onChange={(e) => setLocalConfig(prev => ({ ...prev, geminiApiKey: e.target.value }))}
-                                placeholder="Pegar API Key aquí..."
-                                className="w-full bg-slate-50 border-slate-200 rounded-xl shadow-sm p-3 border font-mono text-xs"
-                            />
+                        <div className="pt-8 border-t border-slate-100 mt-8 space-y-6">
+                            <div>
+                                <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-[0.2em]">
+                                    Backend API URL (VITE_API_URL)
+                                </label>
+                                <div className="flex gap-2">
+                                    <input
+                                        type="text"
+                                        value={resolveApiBase()}
+                                        disabled
+                                        className="flex-1 bg-slate-100 border-slate-200 rounded-xl shadow-sm p-3 border font-mono text-[10px] text-slate-500"
+                                    />
+                                    <button 
+                                        onClick={() => {
+                                            const debugUrl = buildApiUrl('/api/health');
+                                            window.open(debugUrl, '_blank');
+                                        }}
+                                        className="px-4 bg-slate-950 text-white rounded-xl text-[9px] font-black uppercase tracking-widest hover:bg-blue-600 transition-all"
+                                    >
+                                        Verificar
+                                    </button>
+                                </div>
+                                <p className="text-[9px] text-slate-400 mt-1 italic">
+                                    Esta URL se toma desde `VITE_API_URL`. Si queda vacÃ­a, la app usarÃ¡ el mismo origen donde fue publicada.
+                                </p>
+                            </div>
+
+                            <div>
+                                <label className="block text-[10px] font-black text-slate-400 mb-2 uppercase tracking-[0.2em]">
+                                    Gemini AI Intelligence Key
+                                </label>
+                                <input
+                                    type="password"
+                                    value={localConfig.geminiApiKey}
+                                    onChange={(e) => setLocalConfig(prev => ({ ...prev, geminiApiKey: e.target.value }))}
+                                    placeholder="Pegar API Key aquí..."
+                                    className="w-full bg-slate-50 border-slate-200 rounded-xl shadow-sm p-3 border font-mono text-xs"
+                                />
+                            </div>
                         </div>
                     </>
                 ) : activeTab === 'structure' ? (

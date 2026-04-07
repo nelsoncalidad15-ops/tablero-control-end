@@ -54,11 +54,21 @@ const RRHHDashboard: React.FC<RRHHDashboardProps> = ({ gradesUrl, relatorioUrl, 
   const [showPendingOnly, setShowPendingOnly] = useState(false);
 
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
 
   useEffect(() => {
     const loadData = async () => {
       setLoadingState(LoadingState.LOADING);
       setErrorMessage(null);
+      console.log(`RRHHDashboard: Loading data (attempt ${retryCount + 1})...`);
+      
+      if (!gradesUrl || !relatorioUrl) {
+        console.warn("RRHHDashboard: Missing URLs", { gradesUrl, relatorioUrl });
+        setLoadingState(LoadingState.ERROR);
+        setErrorMessage("Faltan configurar las URLs de RRHH en los ajustes.");
+        return;
+      }
+
       try {
         const [gradesData, relatorioData] = await Promise.all([
           fetchHRGradesData(gradesUrl),
@@ -68,6 +78,7 @@ const RRHHDashboard: React.FC<RRHHDashboardProps> = ({ gradesUrl, relatorioUrl, 
         setGrades(gradesData);
         setRelatorio(relatorioData);
         setLoadingState(LoadingState.SUCCESS);
+        console.log("RRHHDashboard: Data loaded successfully");
       } catch (error: any) {
         console.error("RRHHDashboard: Error loading HR data:", error);
         setLoadingState(LoadingState.ERROR);
@@ -82,14 +93,10 @@ const RRHHDashboard: React.FC<RRHHDashboardProps> = ({ gradesUrl, relatorioUrl, 
       }
     };
     loadData();
-  }, [gradesUrl, relatorioUrl]);
+  }, [gradesUrl, relatorioUrl, retryCount]);
 
   const handleRetry = () => {
-    setLoadingState(LoadingState.IDLE);
-    // The useEffect will trigger again because we are resetting the state
-    // but wait, we need to force it. Let's just call loadData again or 
-    // rely on the dependency array if we change something.
-    // Actually, setting it to IDLE then back to LOADING in the effect is better.
+    setRetryCount(prev => prev + 1);
   };
 
   const filteredGrades = useMemo(() => {
@@ -276,7 +283,7 @@ const RRHHDashboard: React.FC<RRHHDashboardProps> = ({ gradesUrl, relatorioUrl, 
               </p>
               <div className="flex gap-4">
                 <button 
-                  onClick={() => window.location.reload()}
+                  onClick={handleRetry}
                   className="px-8 py-3 bg-[#001E50] text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-[#003380] transition-all"
                 >
                   Reintentar

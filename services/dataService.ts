@@ -31,6 +31,8 @@ const normalizeBranch = (val: string) => {
     return s;
 };
 
+const SPANISH_MONTHS = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+
 const normalizeMonth = (val: string) => {
     if (!val) return 'Unknown';
     // Extract only the month part if it's "Enero - 2025" or similar
@@ -57,11 +59,47 @@ const normalizeMonth = (val: string) => {
     // If it's a number like "01", "02"...
     const monthNum = parseInt(firstPart);
     if (!isNaN(monthNum) && monthNum >= 1 && monthNum <= 12) {
-        const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-        return monthNames[monthNum - 1];
+        return SPANISH_MONTHS[monthNum - 1];
     }
 
     return firstPart.charAt(0).toUpperCase() + firstPart.slice(1);
+};
+
+const isKnownMonth = (val: string) => SPANISH_MONTHS.includes(normalizeMonth(val));
+
+const extractMonthFromDateString = (val: string) => {
+    if (!val) return 'Unknown';
+
+    const clean = val.trim();
+    if (!clean) return 'Unknown';
+
+    const directMonth = normalizeMonth(clean);
+    if (SPANISH_MONTHS.includes(directMonth)) return directMonth;
+
+    const yearMonthDayMatch = clean.match(/^\d{4}[-/](\d{1,2})[-/]\d{1,2}/);
+    if (yearMonthDayMatch) {
+        const monthNum = parseInt(yearMonthDayMatch[1], 10);
+        if (monthNum >= 1 && monthNum <= 12) return SPANISH_MONTHS[monthNum - 1];
+    }
+
+    const dayMonthYearMatch = clean.match(/^\d{1,2}[-/](\d{1,2})[-/]\d{2,4}/);
+    if (dayMonthYearMatch) {
+        const monthNum = parseInt(dayMonthYearMatch[1], 10);
+        if (monthNum >= 1 && monthNum <= 12) return SPANISH_MONTHS[monthNum - 1];
+    }
+
+    return 'Unknown';
+};
+
+const pickFirstValidMonth = (...values: Array<string | undefined>) => {
+    for (const value of values) {
+        if (!value) continue;
+        const normalized = normalizeMonth(value);
+        if (SPANISH_MONTHS.includes(normalized)) return normalized;
+        const extracted = extractMonthFromDateString(value);
+        if (SPANISH_MONTHS.includes(extracted)) return extracted;
+    }
+    return 'Unknown';
 };
 
 const parseNumber = (val: string): number => {
@@ -496,6 +534,10 @@ const parseSalesQualityCSV = (csvText: string): SalesQualityRecord[] => {
       headers.forEach((header, index) => {
         const value = currentLine[index] || '';
 
+        if (!record.mes && index === 0 && isKnownMonth(value)) {
+            record.mes = value;
+        }
+
         // TIPO DE VENTA
         if (header.includes('tipo de venta') || header === 'canal' || header === 'origen') {
             record.tipo_venta = value;
@@ -554,7 +596,16 @@ const parseSalesQualityCSV = (csvText: string): SalesQualityRecord[] => {
       });
 
       // Normalization
-      if (!record.mes) record.mes = 'Unknown';
+      if (!record.mes || normalizeMonth(record.mes) === 'Unknown') {
+        record.mes = pickFirstValidMonth(
+          record.mes,
+          record.fecha_entrega,
+          record.fecha_contacto_efectivo,
+          record.fecha_1_llamado
+        );
+      }
+
+      if (!record.mes || record.mes === 'Unknown') record.mes = 'Unknown';
       else record.mes = normalizeMonth(record.mes);
       
       record.sucursal = normalizeBranch(record.sucursal);
@@ -586,6 +637,10 @@ const parseSalesClaimsCSV = (csvText: string): SalesClaimsRecord[] => {
       headers.forEach((header, index) => {
         const value = currentLine[index] || '';
 
+        if (!record.mes && index === 0 && isKnownMonth(value)) {
+            record.mes = value;
+        }
+
         if (header === 'nro de r') record.nro_r = value;
         else if (header === 'numero de vin' || header === 'vin') record.vin = value;
         else if (header === 'receptor') record.receptor = value;
@@ -614,7 +669,11 @@ const parseSalesClaimsCSV = (csvText: string): SalesClaimsRecord[] => {
         record[header] = value;
       });
 
-      if (!record.mes) record.mes = 'Unknown';
+      if (!record.mes || normalizeMonth(record.mes) === 'Unknown') {
+        record.mes = pickFirstValidMonth(record.mes, record.fecha_reclamo, record.fecha_finalizacion);
+      }
+
+      if (!record.mes || record.mes === 'Unknown') record.mes = 'Unknown';
       else record.mes = normalizeMonth(record.mes);
       
       record.sucursal = normalizeBranch(record.sucursal);

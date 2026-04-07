@@ -480,6 +480,7 @@ const SurveyView = ({
 // 2. CLAIMS DASHBOARD (New View)
 const ClaimsView = ({ 
     filteredData, 
+    annualFilteredData,
     loadingState, 
     selectedMonths, setSelectedMonths, 
     selectedBranches, toggleBranch, availableBranches,
@@ -577,8 +578,8 @@ const ClaimsView = ({
         const counts: Record<string, number> = {};
         MONTHS.forEach(m => counts[m] = 0);
         
-        // We use filteredData (all claims for the year) to show the full year
-        filteredData.forEach((d: SalesClaimsRecord) => {
+        // Keep the annual view visible even when a month filter is active.
+        annualFilteredData.forEach((d: SalesClaimsRecord) => {
             if (d.mes && counts[d.mes] !== undefined) {
                 counts[d.mes]++;
             }
@@ -589,7 +590,7 @@ const ClaimsView = ({
             value: counts[name],
             isHighlighted: selectedMonths.includes(name)
         }));
-    }, [filteredData, selectedMonths]);
+    }, [annualFilteredData, selectedMonths]);
 
     const columns = [
         {
@@ -931,6 +932,17 @@ const SalesQualityDashboard: React.FC<SalesQualityDashboardProps> = ({ onBack, i
     });
   }, [claimsData, selectedMonths, claimsBranches, selectedSaleTypes]);
 
+  const annualClaimsChartData = useMemo(() => {
+    return claimsData.filter((item: SalesClaimsRecord) => {
+        const matchBranch = claimsBranches.length === 0 || claimsBranches.includes(item.sucursal);
+
+        const itemType = normalizeSaleType(item.tipo_venta);
+        const matchSaleType = selectedSaleTypes.length === 0 || selectedSaleTypes.includes(itemType);
+
+        return matchBranch && matchSaleType;
+    });
+  }, [claimsData, claimsBranches, selectedSaleTypes]);
+
   const totalUnidades = useMemo(() => {
     const uniqueVins = new Set();
     let activeData: any[] = [];
@@ -1156,7 +1168,7 @@ const SalesQualityDashboard: React.FC<SalesQualityDashboardProps> = ({ onBack, i
         <div className="space-y-6 pb-20">
 
             {/* Horizontal Filters Bar */}
-            <div className="sticky top-[80px] z-30 flex flex-col gap-4">
+            <div className="flex flex-col gap-4">
                 <div className="bg-white/50 backdrop-blur-xl p-4 rounded-[2rem] border border-white shadow-sm">
                     <MonthSelector 
                         selectedMonths={selectedMonths}
@@ -1188,6 +1200,7 @@ const SalesQualityDashboard: React.FC<SalesQualityDashboardProps> = ({ onBack, i
             ) : activeTab === 'claims' ? (
                 <ClaimsView 
                     filteredData={filteredClaimsData}
+                    annualFilteredData={annualClaimsChartData}
                     loadingState={loadingState}
                     selectedMonths={selectedMonths}
                     setSelectedMonths={setSelectedMonths}

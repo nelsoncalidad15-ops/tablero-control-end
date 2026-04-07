@@ -340,7 +340,7 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
             </div>
 
             {/* Professional Horizontal Filters Bar - NOW AT THE TOP */}
-            <div className="bg-white/80 backdrop-blur-xl px-10 py-8 rounded-[2.5rem] border border-white shadow-xl shadow-slate-200/50 flex flex-wrap items-center gap-10 sticky top-[80px] z-50">
+            <div className="bg-white/80 backdrop-blur-xl px-10 py-8 rounded-[2.5rem] border border-white shadow-xl shadow-slate-200/50 flex flex-wrap items-center gap-10">
                 <div className="flex flex-col gap-2.5">
                     <span className="text-[9px] font-black text-blue-500 uppercase tracking-[0.3em] flex items-center gap-2">
                         <Icons.Calendar className="w-3 h-3" /> Periodo

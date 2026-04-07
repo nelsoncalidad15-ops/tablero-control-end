@@ -134,6 +134,11 @@ async function startServer() {
     if (!url) return url;
     if (url.includes('output=csv') || url.includes('/export') || url.includes('format=csv')) return url;
 
+    // If it's only a Spreadsheet ID, convert it to a CSV export URL.
+    if (isSpreadsheetId(url)) {
+      return `https://docs.google.com/spreadsheets/d/${url}/export?format=csv&gid=0`;
+    }
+
     if (url.includes('docs.google.com/spreadsheets')) {
       if (url.includes('/pub')) {
         const baseUrl = url.split('?')[0];

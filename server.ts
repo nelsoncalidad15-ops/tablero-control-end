@@ -6,6 +6,8 @@ import fs from "fs";
 import { fileURLToPath } from "url";
 import { google } from "googleapis";
 
+const DETAILED_QUALITY_SALTA_PUBLIC_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRI_ojcN_sH7fk2qQM3KfZs1Sy4xE7AXRgXVbgYAagleUwiXZhPD5WjQROkh0PbzsHD_XDbGtB-5fX_/pub?gid=1644111701&single=true&output=csv";
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -52,6 +54,12 @@ async function startServer() {
 
   const sheets = google.sheets({ version: "v4", auth });
 
+  const resolvedDetailedQualitySaltaUrl =
+    process.env.LINK_REFUERZO_SLA_PUBLIC ||
+    (process.env.LINK_REFUERZO_SLA?.includes("gid=1644111701") ? process.env.LINK_REFUERZO_SLA : undefined) ||
+    (process.env.SHEET_URL_DETAILED_QUALITY_SALTA?.includes("gid=1644111701") ? process.env.SHEET_URL_DETAILED_QUALITY_SALTA : undefined) ||
+    DETAILED_QUALITY_SALTA_PUBLIC_URL;
+
   const sheetUrls: Record<string, string | undefined> = {
     // Quality & Sales Quality
     sales_quality: process.env.LINK_ENCUESTAS_V || process.env.SHEET_URL_SALES_QUALITY,
@@ -61,7 +69,7 @@ async function startServer() {
     
     // Detailed Quality (Refuerzo)
     detailed_quality: process.env.LINK_REFUERZO_JJY || process.env.SHEET_URL_DETAILED_QUALITY,
-    detailed_quality_salta: process.env.LINK_REFUERZO_SLA || process.env.SHEET_URL_DETAILED_QUALITY_SALTA,
+    detailed_quality_salta: resolvedDetailedQualitySaltaUrl,
     
     // Postventa
     postventa: process.env.LINK_AVANCE_PPT || process.env.SHEET_URL_POSTVENTA,
@@ -170,8 +178,8 @@ async function startServer() {
     if (!isSpreadsheetId(url) && !isAllowedSheetUrl(url)) {
       console.error(`[Proxy] Invalid URL for ${sheetName}: ${url}`);
       return res.status(400).json({ 
-        error: `El link configurado para "${sheetName}" no es válido.`,
-        details: `Se recibió "${url}" pero se esperaba un link de Google Sheets.`
+        error: `El link configurado para "${sheetName}" no es vÃ¡lido.`,
+        details: `Se recibiÃ³ "${url}" pero se esperaba un link de Google Sheets.`
       });
     }
 
@@ -235,6 +243,9 @@ async function startServer() {
       clearTimeout(timeoutId);
 
       if (!response.ok) {
+        if (response.status === 400) {
+          throw new Error("Google Sheets respondió 400. Verifique publicación CSV o credenciales GOOGLE_* en Render.");
+        }
         throw new Error(`Google Sheets respondió con error ${response.status}`);
       }
       const data = await response.text();
@@ -244,7 +255,7 @@ async function startServer() {
       console.error(`[Proxy] Error fetching sheet ${sheetName}:`, error.message || error);
       res.status(500).json({ 
         error: "Error al obtener datos de la fuente.",
-        details: error.name === 'AbortError' ? "La petición excedió el tiempo límite (15s)" : (error instanceof Error ? error.message : String(error))
+        details: error.name === 'AbortError' ? "La peticiÃ³n excediÃ³ el tiempo lÃ­mite (15s)" : (error instanceof Error ? error.message : String(error))
       });
     }
   });
@@ -255,7 +266,9 @@ async function startServer() {
       status: "ok", 
       environment: process.env.NODE_ENV || "development",
       time: new Date().toISOString(),
-      nodeVersion: process.version
+      nodeVersion: process.version,
+      googleAuthConfigured: !!(process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && process.env.GOOGLE_PRIVATE_KEY),
+      configuredSheetsCount: Object.values(sheetUrls).filter(Boolean).length
     });
   });
 
@@ -315,3 +328,4 @@ async function startServer() {
 startServer().catch(err => {
   console.error("Failed to start server:", err);
 });
+

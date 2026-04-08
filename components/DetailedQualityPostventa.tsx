@@ -74,7 +74,8 @@ const DetailedQualityPostventa: React.FC<DetailedQualityPostventaProps> = ({ she
       const matchAsesor = !selectedAsesor || selectedAsesor === "" ? true : item.asesor === selectedAsesor;
       const matchLvs = selectedLvsScore !== null ? item.q4_score === selectedLvsScore : true;
       const matchCategory = !selectedCategory || selectedCategory === "" ? true : item.categorizacion?.trim() === selectedCategory;
-      const matchSucursal = !selectedSucursal || selectedSucursal === "" ? true : item.sucursal === selectedSucursal;
+      const itemSucursal = item.sucursal?.trim().toUpperCase();
+      const matchSucursal = !selectedSucursal || selectedSucursal === "" ? true : itemSucursal === selectedSucursal;
       return matchMonth && matchAsesor && matchLvs && matchCategory && matchSucursal;
     });
   }, [uniqueData, selectedMonth, selectedAsesor, selectedLvsScore, selectedCategory, selectedSucursal]);

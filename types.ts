@@ -368,6 +368,8 @@ export interface CourseGrade {
   funcion: string;
   icf: number;
   courses: Record<string, number>;
+  icfByFunction?: Record<string, number>;
+  coursesByFunction?: Record<string, Record<string, number>>;
 }
 
 export interface RelatorioItem {
@@ -375,11 +377,25 @@ export interface RelatorioItem {
   curso: string;
   nombre: string;
   unidad: string;
+  area?: string;
   fechaRegistro: string;
   referenciaMeses: string;
   clase: string;
   claseFecha?: string;
   claseHora?: string;
+  modalidad?: string;
+  linkCurso?: string;
+}
+
+export interface CoursePhase {
+  curso: string;
+  fase: string;
+  modalidad: string;
+}
+
+export interface CollaboratorContact {
+  nombre: string;
+  telefono: string;
 }
 
 export interface AppConfig {
@@ -398,6 +414,8 @@ export interface AppConfig {
     action_plan_sales?: string;
     action_plan_form?: string;
     hr_relatorio?: string;
+    hr_contacts?: string;
+    hr_phases?: string;
   };
   geminiApiKey: string;
   reportTemplate?: ReportTemplate;

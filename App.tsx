@@ -1,25 +1,27 @@
 ﻿import React, { useState } from 'react';
+import { Suspense, lazy } from 'react';
 import { Routes, Route, useNavigate, useLocation, Navigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import Portal from './components/Portal';
-import Dashboard from './components/Dashboard';
-import QualityDashboard from './components/QualityDashboard';
-import DetailedQualityPostventa from './components/DetailedQualityPostventa';
-import PostventaDashboard from './components/PostventaDashboard';
-import PostventaKpiDashboard from './components/PostventaKpiDashboard';
-import PostventaBillingDashboard from './components/PostventaBillingDashboard';
-import SalesQualityDashboard from './components/SalesQualityDashboard';
-import InternalPostventaDashboard from './components/InternalPostventaDashboard';
-import ActionPlanDashboard from './components/ActionPlanDashboard';
-import PCGCDashboard from './components/PCGCDashboard';
-import RRHHDashboard from './components/RRHHDashboard';
-import ExecutiveSummary from './components/ExecutiveSummary';
-import ProfessionalReport from './components/ProfessionalReport';
-import FullReportPrintView from './components/FullReportPrintView';
-import ReportConfigModal from './components/ReportConfigModal';
 import { Icons } from './components/Icon';
 import { AppConfig, AreaConfig, AreaType } from './types';
 import { DEFAULT_CONFIG, SALES_QUALITY_SHEET_KEY, SALES_CLAIMS_SHEET_KEY, AREAS } from './constants';
+
+const Dashboard = lazy(() => import('./components/Dashboard'));
+const QualityDashboard = lazy(() => import('./components/QualityDashboard'));
+const DetailedQualityPostventa = lazy(() => import('./components/DetailedQualityPostventa'));
+const PostventaDashboard = lazy(() => import('./components/PostventaDashboard'));
+const PostventaKpiDashboard = lazy(() => import('./components/PostventaKpiDashboard'));
+const PostventaBillingDashboard = lazy(() => import('./components/PostventaBillingDashboard'));
+const SalesQualityDashboard = lazy(() => import('./components/SalesQualityDashboard'));
+const InternalPostventaDashboard = lazy(() => import('./components/InternalPostventaDashboard'));
+const ActionPlanDashboard = lazy(() => import('./components/ActionPlanDashboard'));
+const PCGCDashboard = lazy(() => import('./components/PCGCDashboard'));
+const RRHHDashboard = lazy(() => import('./components/RRHHDashboard'));
+const ExecutiveSummary = lazy(() => import('./components/ExecutiveSummary'));
+const ProfessionalReport = lazy(() => import('./components/ProfessionalReport'));
+const FullReportPrintView = lazy(() => import('./components/FullReportPrintView'));
+const ReportConfigModal = lazy(() => import('./components/ReportConfigModal'));
 
 function App() {
   const navigate = useNavigate();
@@ -61,6 +63,17 @@ function App() {
     >
       {children}
     </motion.div>
+  );
+
+  const RouteLoader = ({ label = 'Cargando módulo...' }: { label?: string }) => (
+    <div className="flex min-h-[50vh] items-center justify-center px-6">
+      <div className="rounded-[2rem] border border-slate-200/80 bg-white/85 px-8 py-7 text-center shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur-xl">
+        <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950 text-white shadow-[0_14px_34px_rgba(15,23,42,0.24)]">
+          <Icons.Activity className="h-5 w-5 animate-pulse" />
+        </div>
+        <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-400">{label}</p>
+      </div>
+    </div>
   );
 
   const DashboardHeader = ({ title, onBack }: { title: string, onBack: () => void }) => (
@@ -426,7 +439,9 @@ function App() {
       dashboardContent = (
         <RRHHDashboard 
           gradesUrl={config.sheetUrls.rrhh || ''} 
-          relatorioUrl={config.sheetUrls.hr_relatorio || ''} 
+          relatorioUrl={config.sheetUrls.hr_relatorio || ''}
+          contactsUrl={config.sheetUrls.hr_contacts || ''}
+          phasesUrl={config.sheetUrls.hr_phases || ''}
           onBack={handleBack} 
         />
       );
@@ -464,7 +479,9 @@ function App() {
       <PageWrapper>
         <div className="min-h-screen bg-slate-50">
           <main className="animate-fade-in w-full">
-            {dashboardContent}
+            <Suspense fallback={<RouteLoader label="Cargando dashboard..." />}>
+              {dashboardContent}
+            </Suspense>
           </main>
         </div>
       </PageWrapper>
@@ -474,64 +491,66 @@ function App() {
 
   return (
     <>
-      <AnimatePresence mode="wait">
-        <Routes location={location} key={location.pathname}>
-          <Route path="/" element={<PageWrapper><Portal onSelectArea={handleSelectArea} /></PageWrapper>} />
-          
-          <Route path="/calidad" element={<QualitySelection />} />
-          <Route path="/calidad/postventa_selection" element={<PostventaQualitySelection />} />
-          <Route path="/calidad/ventas" element={<VentasSelection />} />
-          <Route path="/calidad/ventas/surveys" element={<DashboardView type="calidad" subType="ventas-surveys" />} />
-          <Route path="/calidad/ventas/claims" element={<DashboardView type="calidad" subType="ventas-claims" />} />
-          <Route path="/calidad/ventas/cem_os" element={<DashboardView type="calidad" subType="ventas-cem_os" />} />
-          <Route path="/calidad/postventa/claims" element={<DashboardView type="calidad" subType="postventa-claims" />} />
-          <Route path="/calidad/postventa/internal_surveys" element={<DashboardView type="calidad" subType="postventa-internal" />} />
-          <Route path="/calidad/postventa" element={<Navigate to="/calidad/postventa_selection" />} />
-          <Route path="/calidad/pcgc" element={<DashboardView type="calidad" subType="pcgc" />} />
-          <Route path="/calidad/plan_accion" element={<DashboardView type="calidad" subType="plan_accion" />} />
-          <Route path="/calidad/refuerzo" element={<DashboardView type="calidad" subType="refuerzo" />} />
-          
-          <Route path="/executive" element={<DashboardView type="executive" />} />
-          <Route path="/report" element={<ProfessionalReport config={config} onBack={() => navigate('/executive')} />} />
-          
-          <Route path="/postventa" element={<PostventaSelection />} />
-          <Route path="/postventa/operativo" element={<DashboardView type="postventa" subType="operativo" />} />
-          <Route path="/postventa/kpis" element={<DashboardView type="postventa" subType="kpis" />} />
-          <Route path="/postventa/facturacion" element={<DashboardView type="postventa" subType="facturacion" />} />
-          
-          <Route path="/dashboard/:areaId" element={<DashboardView type="generic" />} />
-          
-          <Route path="*" element={<Navigate to="/" />} />
-        </Routes>
-      </AnimatePresence>
-      
-      <ReportConfigModal 
-        isOpen={!!printReportLocation}
-        onClose={() => setPrintReportLocation(null)}
-        initialLocation={printReportLocation || 'JUJUY'}
-        template={config.reportTemplate || DEFAULT_CONFIG.reportTemplate}
-        onUpdateTemplate={(newTemplate) => {
-            handleSaveConfig({ ...config, reportTemplate: newTemplate });
-        }}
-        onGenerate={(cfg) => {
-            setReportConfig(cfg);
-            setPrintReportLocation(null);
-        }}
-      />
-      
-      {reportConfig && (
-        <FullReportPrintView 
-            location={reportConfig.location}
-            config={reportConfig}
-            onClose={() => setReportConfig(null)}
-            sheetUrls={{
-                salesQuality: SALES_QUALITY_SHEET_KEY,
-                salesClaims: SALES_CLAIMS_SHEET_KEY,
-                postventaSummary: config.sheetUrls.calidad || '',
-                postventaDetailed: (reportConfig.location === 'JUJUY' ? config.sheetUrls.detailed_quality : config.sheetUrls.detailed_quality_salta) || ''
-            }}
+      <Suspense fallback={<RouteLoader />}>
+        <AnimatePresence mode="wait">
+          <Routes location={location} key={location.pathname}>
+            <Route path="/" element={<PageWrapper><Portal onSelectArea={handleSelectArea} /></PageWrapper>} />
+            
+            <Route path="/calidad" element={<QualitySelection />} />
+            <Route path="/calidad/postventa_selection" element={<PostventaQualitySelection />} />
+            <Route path="/calidad/ventas" element={<VentasSelection />} />
+            <Route path="/calidad/ventas/surveys" element={<DashboardView type="calidad" subType="ventas-surveys" />} />
+            <Route path="/calidad/ventas/claims" element={<DashboardView type="calidad" subType="ventas-claims" />} />
+            <Route path="/calidad/ventas/cem_os" element={<DashboardView type="calidad" subType="ventas-cem_os" />} />
+            <Route path="/calidad/postventa/claims" element={<DashboardView type="calidad" subType="postventa-claims" />} />
+            <Route path="/calidad/postventa/internal_surveys" element={<DashboardView type="calidad" subType="postventa-internal" />} />
+            <Route path="/calidad/postventa" element={<Navigate to="/calidad/postventa_selection" />} />
+            <Route path="/calidad/pcgc" element={<DashboardView type="calidad" subType="pcgc" />} />
+            <Route path="/calidad/plan_accion" element={<DashboardView type="calidad" subType="plan_accion" />} />
+            <Route path="/calidad/refuerzo" element={<DashboardView type="calidad" subType="refuerzo" />} />
+            
+            <Route path="/executive" element={<DashboardView type="executive" />} />
+            <Route path="/report" element={<ProfessionalReport config={config} onBack={() => navigate('/executive')} />} />
+            
+            <Route path="/postventa" element={<PostventaSelection />} />
+            <Route path="/postventa/operativo" element={<DashboardView type="postventa" subType="operativo" />} />
+            <Route path="/postventa/kpis" element={<DashboardView type="postventa" subType="kpis" />} />
+            <Route path="/postventa/facturacion" element={<DashboardView type="postventa" subType="facturacion" />} />
+            
+            <Route path="/dashboard/:areaId" element={<DashboardView type="generic" />} />
+            
+            <Route path="*" element={<Navigate to="/" />} />
+          </Routes>
+        </AnimatePresence>
+        
+        <ReportConfigModal 
+          isOpen={!!printReportLocation}
+          onClose={() => setPrintReportLocation(null)}
+          initialLocation={printReportLocation || 'JUJUY'}
+          template={config.reportTemplate || DEFAULT_CONFIG.reportTemplate}
+          onUpdateTemplate={(newTemplate) => {
+              handleSaveConfig({ ...config, reportTemplate: newTemplate });
+          }}
+          onGenerate={(cfg) => {
+              setReportConfig(cfg);
+              setPrintReportLocation(null);
+          }}
         />
-      )}
+        
+        {reportConfig && (
+          <FullReportPrintView 
+              location={reportConfig.location}
+              config={reportConfig}
+              onClose={() => setReportConfig(null)}
+              sheetUrls={{
+                  salesQuality: SALES_QUALITY_SHEET_KEY,
+                  salesClaims: SALES_CLAIMS_SHEET_KEY,
+                  postventaSummary: config.sheetUrls.calidad || '',
+                  postventaDetailed: (reportConfig.location === 'JUJUY' ? config.sheetUrls.detailed_quality : config.sheetUrls.detailed_quality_salta) || ''
+              }}
+          />
+        )}
+      </Suspense>
     </>
   );
 }

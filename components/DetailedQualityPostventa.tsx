@@ -25,6 +25,15 @@ const DetailedQualityPostventa: React.FC<DetailedQualityPostventaProps> = ({ she
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [selectedSucursal, setSelectedSucursal] = useState<string | null>(null);
 
+  const normalizeAdvisorName = (value: string | null | undefined) => {
+    if (!value) return 'SIN ASESOR';
+    return value
+      .replace(/\d+/g, '')
+      .replace(/\s+/g, ' ')
+      .trim()
+      .toUpperCase();
+  };
+
   useEffect(() => {
     const loadData = async () => {
       setLoadingState(LoadingState.LOADING);
@@ -56,9 +65,11 @@ const DetailedQualityPostventa: React.FC<DetailedQualityPostventaProps> = ({ she
   const uniqueData = useMemo(() => {
     const seen = new Set();
     return data.filter((item) => {
-      if (!item.cod_id || item.cod_id.trim() === "" || item.cod_id === "0") return false;
-      if (seen.has(item.cod_id)) return false;
-      seen.add(item.cod_id);
+      const key = item.cod_id?.trim();
+      if (!key) return false;
+      if (key === "0") return false;
+      if (seen.has(key)) return false;
+      seen.add(key);
       return true;
     });
   }, [data]);
@@ -71,7 +82,7 @@ const DetailedQualityPostventa: React.FC<DetailedQualityPostventaProps> = ({ she
   const filteredData = useMemo(() => {
     return uniqueData.filter(item => {
       const matchMonth = !selectedMonth || selectedMonth === "" ? true : item.mes === selectedMonth;
-      const matchAsesor = !selectedAsesor || selectedAsesor === "" ? true : item.asesor === selectedAsesor;
+      const matchAsesor = !selectedAsesor || selectedAsesor === "" ? true : normalizeAdvisorName(item.asesor) === selectedAsesor;
       const matchLvs = selectedLvsScore !== null ? item.q4_score === selectedLvsScore : true;
       const matchCategory = !selectedCategory || selectedCategory === "" ? true : item.categorizacion?.trim() === selectedCategory;
       const itemSucursal = item.sucursal?.trim().toUpperCase();
@@ -89,7 +100,7 @@ const DetailedQualityPostventa: React.FC<DetailedQualityPostventaProps> = ({ she
   };
 
   const asesores = useMemo(() => {
-    return [...new Set(uniqueData.map(d => d.asesor))].sort();
+    return [...new Set(uniqueData.map(d => normalizeAdvisorName(d.asesor)).filter(Boolean))].sort();
   }, [uniqueData]);
 
   const metrics = useMemo(() => {
@@ -128,14 +139,15 @@ const DetailedQualityPostventa: React.FC<DetailedQualityPostventaProps> = ({ she
   const advisorRanking = useMemo(() => {
     const stats: Record<string, { count: number; sumLvs: number; scores: Record<number, number> }> = {};
     filteredData.forEach(d => {
-      if (!stats[d.asesor]) {
-        stats[d.asesor] = { count: 0, sumLvs: 0, scores: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } };
+      const advisorName = normalizeAdvisorName(d.asesor);
+      if (!stats[advisorName]) {
+        stats[advisorName] = { count: 0, sumLvs: 0, scores: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0 } };
       }
-      stats[d.asesor].count++;
+      stats[advisorName].count++;
       const score = d.q4_score || 0;
-      stats[d.asesor].sumLvs += score;
+      stats[advisorName].sumLvs += score;
       if (score >= 1 && score <= 5) {
-        stats[d.asesor].scores[score as 1|2|3|4|5]++;
+        stats[advisorName].scores[score as 1|2|3|4|5]++;
       }
     });
     return Object.entries(stats)
@@ -242,7 +254,7 @@ const DetailedQualityPostventa: React.FC<DetailedQualityPostventaProps> = ({ she
     >
       <div className="min-h-screen bg-slate-50/50 -m-6 p-8 space-y-10 pb-32">
         {/* Modern Header with Stats */}
-        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm relative overflow-hidden">
+        <div className="mt-[168px] flex flex-col lg:flex-row justify-between items-start lg:items-center bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm relative overflow-hidden">
           <div className="relative z-10">
             <div className="flex items-center gap-4 mb-4">
               <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
@@ -282,7 +294,8 @@ const DetailedQualityPostventa: React.FC<DetailedQualityPostventaProps> = ({ she
         </div>
 
         {/* Professional Horizontal Filters Bar */}
-        <div className="bg-white/80 backdrop-blur-xl px-10 py-8 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-wrap items-center gap-10 sticky top-[80px] z-40">
+        <div className="fixed top-[88px] left-1/2 z-50 w-[calc(100%-4rem)] max-w-[calc(100vw-4rem)] -translate-x-1/2">
+          <div className="bg-white/95 backdrop-blur-md px-10 py-8 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-wrap items-center gap-10">
           <div className="flex flex-col gap-2.5">
             <span className="text-[9px] font-black text-blue-500 uppercase tracking-[0.3em] flex items-center gap-2">
               <Icons.Calendar className="w-3 h-3" /> Periodo
@@ -355,6 +368,9 @@ const DetailedQualityPostventa: React.FC<DetailedQualityPostventaProps> = ({ she
             </button>
           </div>
         </div>
+        </div>
+
+        <div className="h-[148px]"></div>
 
         {/* KPI Cards Grid - Modern Style */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-8">
@@ -484,9 +500,9 @@ const DetailedQualityPostventa: React.FC<DetailedQualityPostventaProps> = ({ she
                             {advisorRanking.map((adv, idx) => (
                                 <tr key={idx} className="group hover:bg-white/5 transition-colors">
                                     <td className="py-4">
-                                        <div className="text-[11px] font-black uppercase tracking-tight text-white group-hover:text-blue-400 transition-colors truncate max-w-[120px]">
-                                            {adv.name}
-                                        </div>
+                    <div className="text-[11px] font-black uppercase tracking-tight text-white group-hover:text-blue-400 transition-colors max-w-[180px]">
+                        {adv.name}
+                    </div>
                                         <div className="text-[8px] font-bold text-white/20 uppercase tracking-widest">
                                             {adv.count} Casos
                                         </div>
@@ -569,7 +585,7 @@ const DetailedQualityPostventa: React.FC<DetailedQualityPostventaProps> = ({ she
                     <Icons.User className="w-5 h-5" />
                   </div>
                   <div>
-                    <div className="text-[11px] font-black text-slate-900 uppercase tracking-tight mb-1">{row.asesor}</div>
+                    <div className="text-[11px] font-black text-slate-900 uppercase tracking-tight mb-1">{normalizeAdvisorName(row.asesor)}</div>
                     <div className="text-[9px] font-bold text-slate-300 uppercase tracking-widest">{row.mes}</div>
                   </div>
                 </div>

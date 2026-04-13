@@ -1,32 +1,16 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
-  LayoutDashboard, 
-  Users, 
-  Calendar, 
-  Search, 
-  Download, 
-  Filter, 
-  X, 
-  ChevronRight,
-  GraduationCap,
-  AlertCircle,
-  CheckCircle2,
-  Clock,
-  Mail,
-  ArrowLeft
+import {
+  LayoutDashboard,
+  Users,
+  Calendar,
+  Search,
+  AlertCircle
 } from 'lucide-react';
-import { 
-  PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip,
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, Legend
-} from 'recharts';
-import { format, parse } from 'date-fns';
-import { es } from 'date-fns/locale';
-import { fetchHRGradesData, fetchHRRelatorioData } from '../services/dataService';
-import { CourseGrade, RelatorioItem, LoadingState } from '../types';
-import { DashboardFrame, SkeletonLoader, StatusBadge, DataTable } from './DashboardUI';
+import { fetchHRGradesData, fetchHRRelatorioData, fetchHRContactsData, fetchCoursePhasesData } from '../services/dataService';
+import { CourseGrade, RelatorioItem, LoadingState, CollaboratorContact, CoursePhase } from '../types';
+import { SkeletonLoader } from './DashboardUI';
 
-// Views
 import RRHHTalentView from './RRHHTalentView';
 import RRHHCollaboratorsView from './RRHHCollaboratorsView';
 import RRHHCalendarView from './RRHHCalendarView';
@@ -34,20 +18,23 @@ import RRHHCalendarView from './RRHHCalendarView';
 interface RRHHDashboardProps {
   gradesUrl: string;
   relatorioUrl: string;
+  contactsUrl: string;
+  phasesUrl: string;
   onBack: () => void;
 }
 
 export type RRHHView = 'dashboard' | 'collaborators' | 'calendar';
 
-const RRHHDashboard: React.FC<RRHHDashboardProps> = ({ gradesUrl, relatorioUrl, onBack }) => {
+const RRHHDashboard: React.FC<RRHHDashboardProps> = ({ gradesUrl, relatorioUrl, contactsUrl, phasesUrl, onBack }) => {
   const [view, setView] = useState<RRHHView>('dashboard');
   const [grades, setGrades] = useState<CourseGrade[]>([]);
   const [relatorio, setRelatorio] = useState<RelatorioItem[]>([]);
+  const [contacts, setContacts] = useState<CollaboratorContact[]>([]);
+  const [phases, setPhases] = useState<CoursePhase[]>([]);
   const [loadingState, setLoadingState] = useState<LoadingState>(LoadingState.IDLE);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCollabId, setSelectedCollabId] = useState<string | null>(null);
 
-  // Filters
   const [selectedUnit, setSelectedUnit] = useState<string>('ALL');
   const [selectedArea, setSelectedArea] = useState<string>('ALL');
   const [selectedFunction, setSelectedFunction] = useState<string>('ALL');
@@ -60,44 +47,35 @@ const RRHHDashboard: React.FC<RRHHDashboardProps> = ({ gradesUrl, relatorioUrl, 
     const loadData = async () => {
       setLoadingState(LoadingState.LOADING);
       setErrorMessage(null);
-      console.log(`RRHHDashboard: Loading data (attempt ${retryCount + 1})...`);
-      
+
       if (!gradesUrl || !relatorioUrl) {
-        console.warn("RRHHDashboard: Missing URLs", { gradesUrl, relatorioUrl });
         setLoadingState(LoadingState.ERROR);
-        setErrorMessage("Faltan configurar las URLs de RRHH en los ajustes.");
+        setErrorMessage('Faltan configurar las URLs de RRHH.');
         return;
       }
 
       try {
-        const [gradesData, relatorioData] = await Promise.all([
+        const [gradesData, relatorioData, contactsData, phasesData] = await Promise.all([
           fetchHRGradesData(gradesUrl),
-          fetchHRRelatorioData(relatorioUrl)
+          fetchHRRelatorioData(relatorioUrl),
+          fetchHRContactsData(contactsUrl),
+          fetchCoursePhasesData(phasesUrl)
         ]);
-        
+
         setGrades(gradesData);
         setRelatorio(relatorioData);
+        setContacts(contactsData);
+        setPhases(phasesData);
         setLoadingState(LoadingState.SUCCESS);
-        console.log("RRHHDashboard: Data loaded successfully");
       } catch (error: any) {
-        console.error("RRHHDashboard: Error loading HR data:", error);
+        console.error('RRHHDashboard: Error loading HR data:', error);
         setLoadingState(LoadingState.ERROR);
-        
-        // Try to parse the JSON error from our proxy
-        try {
-          const errorData = JSON.parse(error.message);
-          setErrorMessage(errorData.details || errorData.error || "Error de conexión");
-        } catch (e) {
-          setErrorMessage(error.message || "Error desconocido al cargar datos");
-        }
+        setErrorMessage(error.message || 'Error desconocido al cargar datos');
       }
     };
-    loadData();
-  }, [gradesUrl, relatorioUrl, retryCount]);
 
-  const handleRetry = () => {
-    setRetryCount(prev => prev + 1);
-  };
+    loadData();
+  }, [gradesUrl, relatorioUrl, contactsUrl, phasesUrl, retryCount]);
 
   const filteredGrades = useMemo(() => {
     return grades.filter(g => {
@@ -105,15 +83,14 @@ const RRHHDashboard: React.FC<RRHHDashboardProps> = ({ gradesUrl, relatorioUrl, 
       const matchUnit = selectedUnit === 'ALL' || g.unidad === selectedUnit;
       const matchArea = selectedArea === 'ALL' || g.area === selectedArea;
       const matchFunction = selectedFunction === 'ALL' || g.funcion === selectedFunction;
-      
+
       if (showPendingOnly) {
-        const hasPending = relatorio.some(r => r.nombre.toLowerCase() === g.colaborador.toLowerCase());
-        return matchSearch && matchUnit && matchArea && matchFunction && hasPending;
+        return matchSearch && matchUnit && matchArea && matchFunction && g.icf < 100;
       }
 
       return matchSearch && matchUnit && matchArea && matchFunction;
     });
-  }, [grades, searchQuery, selectedUnit, selectedArea, selectedFunction, showPendingOnly, relatorio]);
+  }, [grades, searchQuery, selectedUnit, selectedArea, selectedFunction, showPendingOnly]);
 
   const units = useMemo(() => ['ALL', ...new Set(grades.map(g => g.unidad))].sort(), [grades]);
   const areas = useMemo(() => ['ALL', ...new Set(grades.map(g => g.area))].sort(), [grades]);
@@ -143,9 +120,10 @@ const RRHHDashboard: React.FC<RRHHDashboardProps> = ({ gradesUrl, relatorioUrl, 
     switch (view) {
       case 'dashboard':
         return (
-          <RRHHTalentView 
-            grades={filteredGrades} 
+          <RRHHTalentView
+            grades={filteredGrades}
             relatorio={relatorio}
+            phases={phases}
             units={units}
             areas={areas}
             functions={functions}
@@ -163,9 +141,10 @@ const RRHHDashboard: React.FC<RRHHDashboardProps> = ({ gradesUrl, relatorioUrl, 
         );
       case 'collaborators':
         return (
-          <RRHHCollaboratorsView 
-            grades={grades} 
+          <RRHHCollaboratorsView
+            grades={grades}
             relatorio={relatorio}
+            phases={phases}
             initialSearch={searchQuery}
             initialSelectedId={selectedCollabId}
             onNavigateToCalendar={handleNavigateToCalendar}
@@ -173,8 +152,10 @@ const RRHHDashboard: React.FC<RRHHDashboardProps> = ({ gradesUrl, relatorioUrl, 
         );
       case 'calendar':
         return (
-          <RRHHCalendarView 
+          <RRHHCalendarView
             relatorio={relatorio}
+            contacts={contacts}
+            phases={phases}
             initialSelectedEvent={selectedCalendarEvent}
             onCloseEventDetail={() => setSelectedCalendarEvent(null)}
           />
@@ -185,75 +166,45 @@ const RRHHDashboard: React.FC<RRHHDashboardProps> = ({ gradesUrl, relatorioUrl, 
   };
 
   return (
-    <div className="min-h-screen bg-[#F8F9FA] font-sans text-[#1A1A1A]">
-      {/* Main Content */}
+    <div className="min-h-screen bg-slate-50/30 font-sans text-slate-900">
       <main className="flex flex-col min-w-0">
-        {/* Header */}
-        <header className="bg-white border-b border-slate-100 z-20 sticky top-0 shadow-sm">
-          <div className="max-w-[1600px] mx-auto w-full">
-            {/* Top Bar */}
-            <div className="h-16 px-6 flex items-center justify-between border-b border-slate-50">
-              <div className="flex items-center gap-3">
-                <div className="w-10 h-10 bg-[#001E50] rounded-xl flex items-center justify-center shadow-lg shadow-[#001E50]/20">
-                  <span className="text-white font-black text-xl">A</span>
+        <header className="sticky top-0 z-20 border-b border-slate-100 bg-white/80 shadow-sm backdrop-blur-md">
+          <div className="mx-auto w-full max-w-[1600px]">
+            <div className="flex h-20 items-center justify-between border-b border-slate-50 px-8">
+              <div className="flex items-center gap-4">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#001E50] shadow-xl shadow-[#001E50]/10">
+                  <span className="font-display text-2xl font-bold text-white">A</span>
                 </div>
                 <div>
-                  <h1 className="font-black text-sm leading-tight uppercase tracking-tighter text-[#001E50]">Autosol</h1>
-                  <p className="text-[8px] font-black text-[#00B0F0] uppercase tracking-[0.2em]">Talent Hub</p>
+                  <h1 className="font-display text-lg font-bold leading-none tracking-tight text-[#001E50]">Autosol</h1>
+                  <p className="mt-1 text-[10px] font-semibold uppercase tracking-[0.2em] text-[#00B0F0]">Talent Hub</p>
                 </div>
               </div>
 
-              <div className="flex items-center gap-4">
-                <div className="relative w-64 group">
-                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 group-focus-within:text-[#00B0F0] transition-colors" size={16} />
-                  <input 
+              <div className="flex items-center gap-6">
+                <div className="group relative w-72">
+                  <Search className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400 transition-colors group-focus-within:text-[#00B0F0]" size={18} strokeWidth={1.5} />
+                  <input
                     type="text"
-                    placeholder="Buscar..."
+                    placeholder="Buscar en el hub..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-10 pr-4 py-2 bg-slate-50 border border-transparent focus:bg-white focus:border-[#00B0F0] rounded-xl text-xs transition-all outline-none font-medium"
+                    className="w-full rounded-2xl border border-slate-100 bg-slate-50 py-2.5 pl-11 pr-4 text-sm font-medium outline-none transition-all placeholder:text-slate-400 focus:border-[#00B0F0] focus:bg-white"
                   />
                 </div>
-                <button 
-                  onClick={onBack}
-                  className="flex items-center gap-2 px-4 py-2 rounded-xl bg-slate-100 hover:bg-slate-200 transition-all text-[10px] font-black uppercase tracking-widest text-[#001E50]"
-                >
-                  <ArrowLeft size={14} />
-                  <span>Inicio</span>
-                </button>
-                <button className="flex items-center gap-2 px-4 py-2 bg-[#001E50] text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-[#003380] transition-all shadow-md shadow-[#001E50]/10">
-                  <Download size={14} />
-                  <span>Exportar</span>
-                </button>
               </div>
             </div>
 
-            {/* Navigation Tabs */}
-            <div className="px-6 flex items-center justify-between">
-              <nav className="flex items-center gap-1">
-                <TabButton 
-                  active={view === 'dashboard'} 
-                  onClick={() => setView('dashboard')}
-                  icon={<LayoutDashboard size={18} />}
-                  label="Dashboard"
-                />
-                <TabButton 
-                  active={view === 'collaborators'} 
-                  onClick={() => setView('collaborators')}
-                  icon={<Users size={18} />}
-                  label="Colaboradores"
-                />
-                <TabButton 
-                  active={view === 'calendar'} 
-                  onClick={() => setView('calendar')}
-                  icon={<Calendar size={18} />}
-                  label="Calendario"
-                />
+            <div className="flex items-center justify-between px-8">
+              <nav className="flex items-center gap-2">
+                <TabButton active={view === 'dashboard'} onClick={() => setView('dashboard')} icon={<LayoutDashboard size={20} strokeWidth={1.5} />} label="Dashboard" />
+                <TabButton active={view === 'collaborators'} onClick={() => setView('collaborators')} icon={<Users size={20} strokeWidth={1.5} />} label="Colaboradores" />
+                <TabButton active={view === 'calendar'} onClick={() => setView('calendar')} icon={<Calendar size={20} strokeWidth={1.5} />} label="Calendario" />
               </nav>
-              
-              <div className="flex items-center gap-3">
-                <div className="w-1 h-4 bg-[#00B0F0] rounded-full" />
-                <h2 className="text-sm font-black uppercase tracking-tight text-[#001E50]">
+
+              <div className="flex items-center gap-4">
+                <div className="h-6 w-1.5 rounded-full bg-[#00B0F0] shadow-sm shadow-[#00B0F0]/20" />
+                <h2 className="font-display text-base font-semibold tracking-tight text-[#001E50]">
                   {view === 'dashboard' ? 'Gestión de Talento' : view === 'collaborators' ? 'Perfil de Colaboradores' : 'Calendario de Capacitación'}
                 </h2>
               </div>
@@ -261,8 +212,7 @@ const RRHHDashboard: React.FC<RRHHDashboardProps> = ({ gradesUrl, relatorioUrl, 
           </div>
         </header>
 
-        {/* View Content */}
-        <div className="flex-1 p-6 max-w-[1600px] mx-auto w-full">
+        <div className="mx-auto w-full max-w-[1600px] flex-1 p-6">
           {loadingState === LoadingState.LOADING ? (
             <div className="space-y-8">
               <div className="grid grid-cols-3 gap-6">
@@ -273,24 +223,24 @@ const RRHHDashboard: React.FC<RRHHDashboardProps> = ({ gradesUrl, relatorioUrl, 
               <SkeletonLoader className="h-96 rounded-2xl" />
             </div>
           ) : loadingState === LoadingState.ERROR ? (
-            <div className="h-full flex flex-col items-center justify-center text-slate-400 bg-white rounded-3xl border border-dashed border-slate-200 p-12">
-              <div className="w-16 h-16 bg-rose-50 rounded-2xl flex items-center justify-center text-rose-500 mb-6">
+            <div className="flex h-full flex-col items-center justify-center rounded-3xl border border-dashed border-slate-200 bg-white p-12 text-slate-400">
+              <div className="mb-6 flex h-16 w-16 items-center justify-center rounded-2xl bg-rose-50 text-rose-500">
                 <AlertCircle size={32} />
               </div>
-              <h3 className="text-lg font-black text-[#001E50] uppercase tracking-tight mb-2">Error de Configuración</h3>
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest text-center max-w-md mb-8">
-                {errorMessage || "No se pudieron cargar los datos de RRHH. Por favor, verifica las URLs en la configuración."}
+              <h3 className="mb-2 text-lg font-black uppercase tracking-tight text-[#001E50]">Error de Carga</h3>
+              <p className="mb-8 max-w-md text-center text-xs font-bold uppercase tracking-widest text-slate-400">
+                {errorMessage || 'No se pudieron cargar los datos de RRHH.'}
               </p>
               <div className="flex gap-4">
-                <button 
-                  onClick={handleRetry}
-                  className="px-8 py-3 bg-[#001E50] text-white rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-[#003380] transition-all"
+                <button
+                  onClick={() => setRetryCount(prev => prev + 1)}
+                  className="rounded-xl bg-[#001E50] px-8 py-3 text-[10px] font-black uppercase tracking-widest text-white transition-all hover:bg-[#003380]"
                 >
                   Reintentar
                 </button>
-                <button 
+                <button
                   onClick={onBack}
-                  className="px-8 py-3 bg-slate-100 text-slate-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-slate-200 transition-all"
+                  className="rounded-xl bg-slate-100 px-8 py-3 text-[10px] font-black uppercase tracking-widest text-slate-600 transition-all hover:bg-slate-200"
                 >
                   Volver
                 </button>
@@ -325,18 +275,16 @@ interface TabButtonProps {
 const TabButton: React.FC<TabButtonProps> = ({ active, onClick, icon, label }) => (
   <button
     onClick={onClick}
-    className={`flex items-center gap-2 px-6 py-4 transition-all duration-200 relative ${
-      active 
-        ? 'text-[#00B0F0] font-black' 
-        : 'text-slate-400 hover:text-[#001E50] font-bold'
+    className={`group relative flex items-center gap-3 px-8 py-5 transition-all duration-300 ${
+      active ? 'font-semibold text-[#00B0F0]' : 'font-medium text-slate-400 hover:text-[#001E50]'
     }`}
   >
-    {icon}
-    <span className="text-[11px] uppercase tracking-wider">{label}</span>
+    <span className={`transition-transform duration-300 ${active ? 'scale-110' : 'group-hover:scale-110'}`}>{icon}</span>
+    <span className="font-display text-xs uppercase tracking-widest">{label}</span>
     {active && (
-      <motion.div 
+      <motion.div
         layoutId="activeTab"
-        className="absolute bottom-0 left-0 right-0 h-1 bg-[#00B0F0] rounded-t-full"
+        className="absolute bottom-0 left-0 right-0 h-1 rounded-t-full bg-[#00B0F0] shadow-[0_-2px_8px_rgba(0,176,240,0.4)]"
       />
     )}
   </button>

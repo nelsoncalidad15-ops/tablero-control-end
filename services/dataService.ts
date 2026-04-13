@@ -1,7 +1,7 @@
 
 /// <reference types="vite/client" />
 import Papa from 'papaparse';
-import { AutoRecord, QualityRecord, SalesQualityRecord, SalesClaimsRecord, DetailedQualityRecord, PostventaKpiRecord, BillingRecord, PCGCRecord, CemOsRecord, InternalPostventaRecord, ActionPlanRecord, CourseGrade, RelatorioItem } from '../types';
+import { AutoRecord, QualityRecord, SalesQualityRecord, SalesClaimsRecord, DetailedQualityRecord, PostventaKpiRecord, BillingRecord, PCGCRecord, CemOsRecord, InternalPostventaRecord, ActionPlanRecord, CourseGrade, RelatorioItem, CollaboratorContact, CoursePhase } from '../types';
 import { buildApiUrl } from './apiConfig';
 
 // --- Helper Functions ---
@@ -134,6 +134,27 @@ const parseScore = (val: string): number | null => {
     return num === 0 ? null : num; // Assuming 0 usually means no score in this context, unless specified
 };
 
+export const normalizeKey = (key: string) => {
+    if (!key) return '';
+    return key.toLowerCase()
+        .normalize("NFD")
+        .replace(/[\u0300-\u036f]/g, "")
+        .replace(/[^a-z0-9]/g, "")
+        .trim();
+};
+
+const getRowValue = (row: Record<string, any>, ...possibleKeys: string[]) => {
+    const normalizedPossibleKeys = possibleKeys.map(normalizeKey);
+    const keys = Object.keys(row);
+
+    for (const possibleKey of possibleKeys) {
+        if (row[possibleKey] !== undefined) return row[possibleKey];
+    }
+
+    const foundKey = keys.find(key => normalizedPossibleKeys.includes(normalizeKey(key)));
+    return foundKey ? row[foundKey] : undefined;
+};
+
 const cleanVendedor = (val: string) => {
     if (!val) return '';
     let s = val.trim();
@@ -215,7 +236,45 @@ const parseCSV = (text: string): string[][] => {
 
 // --- Main Data Fetchers ---
 
+const PROXY_REQUEST_TIMEOUT_MS = 45000;
+const BACKEND_WAKE_TIMEOUT_MS = 12000;
+const RETRYABLE_PROXY_ATTEMPTS = 2;
+
+let backendWakePromise: Promise<void> | null = null;
+
+const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+
+const wakeBackendIfNeeded = async () => {
+    const apiBase = buildApiUrl('');
+    if (!apiBase || typeof window === 'undefined') return;
+
+    if (!backendWakePromise) {
+        backendWakePromise = (async () => {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), BACKEND_WAKE_TIMEOUT_MS);
+
+            try {
+                await fetch(buildApiUrl('/api/health'), {
+                    signal: controller.signal,
+                    headers: {
+                        'Accept': 'application/json',
+                        'X-Requested-With': 'XMLHttpRequest'
+                    }
+                });
+            } catch (error) {
+                console.warn('[DataService] Backend wake-up ping failed, continuing with main request.', error);
+            } finally {
+                clearTimeout(timeoutId);
+            }
+        })();
+    }
+
+    await backendWakePromise;
+};
+
 const fetchFromProxy = async (sheetKey: string): Promise<string> => {
+    await wakeBackendIfNeeded();
+
     // If it's a full URL, pass it as a query parameter to our proxy to avoid CORS
     const url = sheetKey.startsWith('http') 
         ? buildApiUrl(`/api/data/custom?url=${encodeURIComponent(sheetKey)}`) 
@@ -223,41 +282,58 @@ const fetchFromProxy = async (sheetKey: string): Promise<string> => {
     
     console.log(`[DataService] Fetching from: ${url}`);
 
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 20000); // 20s timeout
+    let lastError: unknown;
 
-    try {
-        const response = await fetch(url, { 
-            signal: controller.signal,
-            headers: {
-                'Accept': 'application/json',
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        });
-        clearTimeout(timeoutId);
+    for (let attempt = 1; attempt <= RETRYABLE_PROXY_ATTEMPTS; attempt++) {
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), PROXY_REQUEST_TIMEOUT_MS);
 
-        if (!response.ok) {
-            let errorDetail = response.statusText;
-            try {
-                const errorJson = await response.json();
-                errorDetail = errorJson.details || errorJson.error || response.statusText;
-            } catch (e) {
-                // Not JSON, just use status text
+        try {
+            const response = await fetch(url, { 
+                signal: controller.signal,
+                headers: {
+                    'Accept': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            });
+            clearTimeout(timeoutId);
+
+            if (!response.ok) {
+                let errorDetail = response.statusText;
+                try {
+                    const errorJson = await response.json();
+                    errorDetail = errorJson.details || errorJson.error || response.statusText;
+                } catch (e) {
+                    // Not JSON, just use status text
+                }
+                throw new Error(errorDetail);
             }
-            throw new Error(errorDetail);
+            return await response.text();
+        } catch (error: any) {
+            clearTimeout(timeoutId);
+            lastError = error;
+            console.error(`Error fetching from proxy for ${sheetKey} (attempt ${attempt}/${RETRYABLE_PROXY_ATTEMPTS}):`, error);
+
+            const isAbort = error?.name === 'AbortError';
+            const isNetwork = error instanceof TypeError;
+            const isRetryable = attempt < RETRYABLE_PROXY_ATTEMPTS && (isAbort || isNetwork);
+
+            if (isRetryable) {
+                await delay(1800);
+                continue;
+            }
+
+            if (isAbort) {
+                throw new Error(`La peticion al backend excedio el tiempo limite (${Math.round(PROXY_REQUEST_TIMEOUT_MS / 1000)}s). Si el servicio esta en Render Free, espere un momento y vuelva a intentar porque puede estar despertando.`);
+            }
+            if (isNetwork) {
+                throw new Error(`No se pudo contactar al backend (${url}). Revise que VITE_API_URL apunte al servicio correcto y que Render este respondiendo.`);
+            }
+            throw error;
         }
-        return await response.text();
-    } catch (error: any) {
-        clearTimeout(timeoutId);
-        console.error(`Error fetching from proxy for ${sheetKey}:`, error);
-        if (error.name === 'AbortError') {
-            throw new Error("La petición al servidor excedió el tiempo límite (20s). Verifique que el servidor en AI Studio esté activo.");
-        }
-        if (error instanceof TypeError && url.startsWith('/api/')) {
-            throw new Error("No se pudo contactar al backend. Configure VITE_API_URL con la URL real de su servidor API.");
-        }
-        throw error;
     }
+
+    throw lastError instanceof Error ? lastError : new Error('No se pudo completar la solicitud al backend.');
 };
 
 export const fetchSheetData = async (sheetKey: string): Promise<AutoRecord[]> => {
@@ -365,6 +441,34 @@ export const fetchHRRelatorioData = async (sheetKey: string): Promise<RelatorioI
     } catch (error) {
         console.error("Error loading HR relatorio data:", error);
         throw error; // Throw instead of returning [] to trigger error UI
+    }
+};
+
+export const fetchHRContactsData = async (sheetKey: string): Promise<CollaboratorContact[]> => {
+    if (!sheetKey) {
+        console.warn("fetchHRContactsData: No sheet key provided");
+        return [];
+    }
+    try {
+        const text = await fetchFromProxy(sheetKey);
+        return parseHRContactsCSV(text);
+    } catch (error) {
+        console.error("Error loading HR contacts data:", error);
+        throw error;
+    }
+};
+
+export const fetchCoursePhasesData = async (sheetKey: string): Promise<CoursePhase[]> => {
+    if (!sheetKey) {
+        console.warn("fetchCoursePhasesData: No sheet key provided");
+        return [];
+    }
+    try {
+        const text = await fetchFromProxy(sheetKey);
+        return parseCoursePhasesCSV(text);
+    } catch (error) {
+        console.error("Error loading course phases data:", error);
+        throw error;
     }
 };
 
@@ -627,10 +731,11 @@ const parseSalesClaimsCSV = (csvText: string): SalesClaimsRecord[] => {
   
     const headers = rows[0].map(cleanHeader);
     const records: SalesClaimsRecord[] = [];
+    let lastKnownMonth = '';
   
     for (let i = 1; i < rows.length; i++) {
       const currentLine = rows[i];
-      if (currentLine.length < headers.length - 1) continue;
+      if (!currentLine || currentLine.every(cell => !String(cell || '').trim())) continue;
   
       const record: any = { id: `sc-row-${i}` };
       
@@ -669,12 +774,19 @@ const parseSalesClaimsCSV = (csvText: string): SalesClaimsRecord[] => {
         record[header] = value;
       });
 
+      if ((!record.mes || normalizeMonth(record.mes) === 'Unknown') && lastKnownMonth) {
+        record.mes = lastKnownMonth;
+      }
+
       if (!record.mes || normalizeMonth(record.mes) === 'Unknown') {
         record.mes = pickFirstValidMonth(record.mes, record.fecha_reclamo, record.fecha_finalizacion);
       }
 
       if (!record.mes || record.mes === 'Unknown') record.mes = 'Unknown';
-      else record.mes = normalizeMonth(record.mes);
+      else {
+        record.mes = normalizeMonth(record.mes);
+        lastKnownMonth = record.mes;
+      }
       
       record.sucursal = normalizeBranch(record.sucursal);
 
@@ -691,6 +803,11 @@ const parseDetailedQualityCSV = (csvText: string): DetailedQualityRecord[] => {
     if (rows.length < 2) return [];
   
     const headers = rows[0].map(cleanHeader);
+    const isCompactSaltaFormat = headers.includes('clave f') && headers.includes('concat t ac');
+    const isFlatSaltaFormat =
+        headers.includes('concesionario') &&
+        headers.includes('codigo id asesor de servicio') &&
+        headers.includes('orden de reparacion');
     const companyIdx = headers.indexOf('nombre de la compania');
     const apellidoIdx = headers.indexOf('apellido');
     const nombreIdx = headers.indexOf('nombre');
@@ -702,6 +819,66 @@ const parseDetailedQualityCSV = (csvText: string): DetailedQualityRecord[] => {
         // Remove numbers and extra spaces
         return name.replace(/\d+/g, '').replace(/\s+/g, ' ').trim();
     };
+
+    const parseCompactScores = (value: string) => {
+        const matches = value.match(/\b[1-5]\b/g) || [];
+        const numericScores = matches.map(match => parseInt(match, 10)).filter(score => score >= 1 && score <= 5);
+        return {
+            q1: numericScores[0] ?? null,
+            q2: numericScores[1] ?? null,
+            q3: numericScores[2] ?? null,
+            q4: numericScores[3] ?? numericScores[numericScores.length - 1] ?? null,
+            q6: numericScores[4] ?? null
+        };
+    };
+
+    if (isCompactSaltaFormat) {
+        const idxClave = headers.indexOf('clave f');
+        const idxEstado = headers.indexOf('estado r');
+        const idxConcat = headers.indexOf('concat t ac');
+
+        for (let i = 1; i < rows.length; i++) {
+            const currentLine = rows[i];
+            if (currentLine.length === 0) continue;
+
+            const codId = idxClave !== -1 ? (currentLine[idxClave] || '').trim() : '';
+            if (!codId) continue;
+
+            const concatValue = idxConcat !== -1 ? (currentLine[idxConcat] || '').trim() : '';
+            const scores = parseCompactScores(concatValue);
+
+            const record: DetailedQualityRecord = {
+                id: `dq-row-${i}`,
+                sucursal: 'SALTA',
+                mes: 'Unknown',
+                cod_id: codId,
+                fecha_servicio: '',
+                vin: '',
+                modelo: '',
+                cliente: `Registro ${codId}`,
+                orden: codId,
+                asesor: 'Sin Asesor',
+                q1_score: scores.q1,
+                q1_comment: '',
+                q2_score: scores.q2,
+                q2_comment: '',
+                q3_score: scores.q3,
+                q3_comment: '',
+                q4_score: scores.q4,
+                q4_comment: concatValue,
+                q6_score: null,
+                q7_score: null,
+                q8_val: '',
+                comentario_cliente: concatValue,
+                estado_cliente: idxEstado !== -1 ? (currentLine[idxEstado] || '').trim() : '',
+                categorizacion: '',
+            };
+
+            records.push(record);
+        }
+
+        return records;
+    }
 
     for (let i = 1; i < rows.length; i++) {
       const currentLine = rows[i];
@@ -716,12 +893,16 @@ const parseDetailedQualityCSV = (csvText: string): DetailedQualityRecord[] => {
 
         // Map by exact cleaned header name
         if (header.includes('mes')) record.mes = normalizeMonth(value);
+        else if (header === 'concesionario') record.sucursal = normalizeBranch(value);
         else if (header.includes('codid') || header.includes('cod id')) record.cod_id = value.trim();
+        else if (header.includes('codigo id asesor de servicio')) record.cod_id = value.trim();
         else if (header.includes('fecha de servicio') || header.includes('fecha servicio')) record.fecha_servicio = value;
         else if (header.includes('vin') || header.includes('chasis')) record.vin = value;
         else if (header.includes('modelo')) record.modelo = value;
         else if (header.includes('or') || header.includes('orden')) record.orden = value;
         else if (header.includes('asesor')) record.asesor = cleanAsesorName(value);
+        else if (header.includes('apellido asesor de servicio')) record.asesor_apellido = value.trim();
+        else if (header.includes('nombre asesor de servicio')) record.asesor_nombre = value.trim();
         
         // Scores - Matching the user's specific header structure
         else if (header.includes('trato personal') && header.includes('(q1)')) record.q1_score = parseScore(value);
@@ -743,6 +924,8 @@ const parseDetailedQualityCSV = (csvText: string): DetailedQualityRecord[] => {
         else if (header === 'comentario del cliente') record.comentario_cliente = value;
         else if (header === 'estado cliente') record.estado_cliente = value;
         else if (header === 'categorizacion') record.categorizacion = value;
+        else if (header.includes('comentario interna')) record.comentario_interno = value;
+        else if (header === 'estado') record.estado_cliente = value;
       });
 
       // Client name construction using the FIRST occurrence of these headers
@@ -758,8 +941,30 @@ const parseDetailedQualityCSV = (csvText: string): DetailedQualityRecord[] => {
           record.cliente = 'Cliente Desconocido';
       }
 
+      if ((!record.asesor || record.asesor === 'Sin Asesor') && (record.asesor_apellido || record.asesor_nombre)) {
+          record.asesor = cleanAsesorName(`${record.asesor_apellido || ''} ${record.asesor_nombre || ''}`.trim());
+      }
+
+      if (isFlatSaltaFormat) {
+          const internalComment = String(record.comentario_interno || '').trim();
+          const parsedScores = parseCompactScores(internalComment);
+
+          if (record.q1_score == null) record.q1_score = parsedScores.q1;
+          if (record.q2_score == null) record.q2_score = parsedScores.q2;
+          if (record.q3_score == null) record.q3_score = parsedScores.q3;
+          if (record.q4_score == null) record.q4_score = parsedScores.q4;
+          if (record.q6_score == null) record.q6_score = parsedScores.q6;
+
+          if (!record.q1_comment) record.q1_comment = internalComment;
+          if (!record.q2_comment) record.q2_comment = internalComment;
+          if (!record.q3_comment) record.q3_comment = internalComment;
+          if (!record.q4_comment) record.q4_comment = internalComment;
+          if (!record.comentario_cliente) record.comentario_cliente = internalComment;
+      }
+
       // Ensure mandatory fields have defaults
-      if (!record.mes) record.mes = 'Unknown';
+      if (!record.mes || record.mes === 'Unknown') record.mes = pickFirstValidMonth(record.fecha_servicio, record.mes);
+      if (!record.sucursal && isFlatSaltaFormat) record.sucursal = 'SALTA';
       if (!record.asesor) record.asesor = 'Sin Asesor';
       if (!record.orden) record.orden = '—';
 
@@ -912,6 +1117,39 @@ const parsePCGCCSV = (csvText: string): PCGCRecord[] => {
     return records;
 };
 
+const containsAny = (value: string, terms: string[]) => terms.some(term => value.includes(term));
+
+const findHeaderIndex = (
+    headers: string[],
+    candidates: string[],
+    options?: { exclude?: string[]; exactOnly?: boolean }
+) => {
+    const cleanedCandidates = candidates.map(cleanHeader).filter(Boolean);
+    const excludedTerms = options?.exclude?.map(cleanHeader).filter(Boolean) ?? [];
+
+    const isExcluded = (header: string) => containsAny(header, excludedTerms);
+
+    const exactMatch = headers.findIndex(header => cleanedCandidates.includes(header));
+    if (exactMatch !== -1) return exactMatch;
+
+    if (options?.exactOnly) return -1;
+
+    return headers.findIndex(header => {
+        if (isExcluded(header)) return false;
+
+        const normalizedHeader = header.replace(/\s+/g, '');
+        return cleanedCandidates.some(candidate => {
+            const normalizedCandidate = candidate.replace(/\s+/g, '');
+            return (
+                header.includes(candidate) ||
+                candidate.includes(header) ||
+                normalizedHeader.includes(normalizedCandidate) ||
+                normalizedCandidate.includes(normalizedHeader)
+            );
+        });
+    });
+};
+
 const parseCemOsCSV = (csvText: string): CemOsRecord[] => {
     const rows = parseCSV(csvText);
     if (rows.length < 2) return [];
@@ -958,7 +1196,7 @@ const parseCemOsCSV = (csvText: string): CemOsRecord[] => {
     const idxFechaDominio = getIdx('Fecha Dominio');
     const idxDominio = getIdx('Dominio');
     const idxMailInterna = getIdx('MAIL Encuesta interna');
-    const idxCem = getIdx('CEM') !== -1 ? getIdx('CEM') : getIdx('OS');
+    const idxCem = findHeaderIndex(headers, ['CEM OS', 'CEM', 'OS'], { exclude: ['comentario', 'reclamo', 'observacion'] });
     const idxInterna = getIdx('Encuesta Interna');
     const idxTemprana = getIdx('Encuesta TEMPRANA');
     const idxEstadoInterna = getIdx('Estado encuesta interna');
@@ -1200,18 +1438,7 @@ const parseInternalPostventaCSV = (csvText: string): InternalPostventaRecord[] =
             else if (header === 'or operario') record.operario = value;
             else if (header === 'or codigo') record.codigo = value;
             else if (header === 'or fecini') record.fecha_inicio = value;
-            else if (header === 'or fecfin') {
-                record.fecha_fin = value;
-                // Use fecfin as fallback for month if created_at is not available
-                if (!record.mes && value && value.includes('-')) {
-                    const match = value.match(/^\d{4}-(\d{2})-\d{2}/);
-                    if (match) {
-                        const monthNum = parseInt(match[1]);
-                        const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-                        record.mes = monthNames[monthNum - 1];
-                    }
-                }
-            }
+            else if (header === 'or fecfin') record.fecha_fin = value;
             else if (header === 'or nombre') record.cliente_nombre = value;
             else if (header === 'ser nombre') record.servicio = value;
             else if (header === 'fv dominio') record.dominio = value;
@@ -1220,16 +1447,7 @@ const parseInternalPostventaCSV = (csvText: string): InternalPostventaRecord[] =
             else if (header === 'au nombre') record.auto = value;
             else if (header === 'mar nombre') record.marca = value;
             else if (header === 'fv chasis') record.chasis = value;
-            else if (header === 'created at') {
-                record.created_at = value;
-                // Extract month from "2026-01-03T..."
-                const match = value.match(/^\d{4}-(\d{2})-\d{2}/);
-                if (match) {
-                    const monthNum = parseInt(match[1]);
-                    const monthNames = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
-                    record.mes = monthNames[monthNum - 1];
-                }
-            }
+            else if (header === 'created at') record.created_at = value;
             else if (header === 'estadonombre') record.estado = value;
             else if (header === 'nombre sucursal') {
                 record.nombre_sucursal = value;
@@ -1258,6 +1476,7 @@ const parseInternalPostventaCSV = (csvText: string): InternalPostventaRecord[] =
             record[header] = value;
         });
 
+        record.mes = pickFirstValidMonth(record.fecha_fin, record.created_at, record.mes);
         if (!record.anio) record.anio = 2026;
         if (!record.sucursal && record.nombre_sucursal) record.sucursal = normalizeBranch(record.nombre_sucursal);
 
@@ -1267,170 +1486,202 @@ const parseInternalPostventaCSV = (csvText: string): InternalPostventaRecord[] =
 };
 
 const parseHRGradesCSV = (csvText: string): CourseGrade[] => {
-    const results = Papa.parse(csvText, { skipEmptyLines: true });
-    const rows = results.data as string[][];
-    
-    if (rows.length < 2) return [];
+    const results = Papa.parse(csvText, { header: true, skipEmptyLines: true });
+    const data = results.data as Record<string, any>[];
+    const headers = results.meta.fields || [];
 
-    // Find header row
-    let headerIndex = -1;
-    for (let i = 0; i < Math.min(rows.length, 10); i++) {
-        const rowStr = rows[i].join(',').toLowerCase();
-        if (rowStr.includes('colaborador') || rowStr.includes('unidad') || rowStr.includes('icf')) {
-            headerIndex = i;
-            break;
-        }
-    }
+    if (data.length === 0) return [];
 
-    if (headerIndex === -1) headerIndex = 0;
+    const basicInfoKeys = [
+        'ID', 'Colaborador', 'Unidad', 'Area', 'Funcion', 'ICF',
+        'Progreso ICF', 'Nombre', 'Sede', 'Departamento', 'Cargo',
+        'Puesto', 'Sector', 'Ubicacion', 'Empleado', 'Legajo', 'DNI',
+        'Email', 'Correo', 'Estado', 'Ingreso', 'Antiguedad', 'nm_curso',
+        'nm_unidad', 'nm_area', 'nm_funcion', 'nm_cargo', 'nm_puesto'
+    ];
+    const normalizedBasicKeys = new Set(basicInfoKeys.map(normalizeKey));
+    const collaboratorMap = new Map<string, CourseGrade>();
 
-    const headers = rows[headerIndex].map(h => h.trim().toLowerCase());
-    console.log("parseHRGradesCSV: Headers found:", headers);
-    
-    // The course names are in the row ABOVE the headers if headerIndex > 0
-    const courseNamesRow = headerIndex > 0 ? rows[headerIndex - 1] : rows[headerIndex];
-    
-    // Find key column indices
-    const colIndices = {
-        unidad: headers.findIndex(h => h.includes('unidad')),
-        colaborador: headers.findIndex(h => h.includes('colaborador') || h.includes('nombre')),
-        area: headers.findIndex(h => h.includes('area')),
-        funcion: headers.findIndex(h => h.includes('funcion') || h.includes('puesto')),
-        icf: headers.findIndex(h => h.includes('icf'))
-    };
-
-    console.log("parseHRGradesCSV: Column indices:", colIndices);
-
-    // Fallbacks if not found
-    if (colIndices.unidad === -1) colIndices.unidad = 0;
-    if (colIndices.colaborador === -1) colIndices.colaborador = 1;
-    if (colIndices.area === -1) colIndices.area = 2;
-    if (colIndices.funcion === -1) colIndices.funcion = 3;
-    if (colIndices.icf === -1) colIndices.icf = 5;
-
-    const records: CourseGrade[] = [];
-    let lastUnidad = '';
-    let lastArea = '';
-
-    for (let i = headerIndex + 1; i < rows.length; i++) {
-        const row = rows[i];
-        if (!row || row.length <= Math.max(...Object.values(colIndices))) continue;
-        
-        const name = row[colIndices.colaborador]?.trim();
-        if (!name || name.toLowerCase().includes('colaborador') || name.toLowerCase().includes('nombre')) continue;
-
-        // Fill down logic
-        if (row[colIndices.unidad] && row[colIndices.unidad].trim()) lastUnidad = row[colIndices.unidad].trim();
-        if (row[colIndices.area] && row[colIndices.area].trim()) lastArea = row[colIndices.area].trim();
-
-        const record: CourseGrade = {
-            id: `hr-grade-${i}`,
-            unidad: lastUnidad.includes('3059') ? 'JUJUY' : lastUnidad.includes('3087') ? 'SALTA' : lastUnidad,
-            colaborador: name,
-            area: lastArea.trim(),
-            funcion: row[colIndices.funcion]?.trim() || '',
-            icf: parseNumber(row[colIndices.icf]),
-            courses: {}
+    data.forEach((row, index) => {
+        const getVal = (possibleKeys: string[], fallbackIndex: number) => {
+            const value = getRowValue(row, ...possibleKeys);
+            if (value !== undefined && value !== null && String(value).trim() !== '') return value;
+            if (headers.length > fallbackIndex) return row[headers[fallbackIndex]];
+            return undefined;
         };
 
-        // Courses usually start after the fixed columns (e.g. after index 5 or 6)
-        // We'll assume courses are any columns that aren't the fixed ones and have a name in courseNamesRow
-        const fixedIndices = Object.values(colIndices);
-        for (let j = 0; j < courseNamesRow.length; j++) {
-            if (fixedIndices.includes(j)) continue;
-            
-            const courseName = courseNamesRow[j];
-            if (courseName && courseName.trim() && !courseName.toLowerCase().includes('promedio')) {
-                const rawValue = row[j]?.trim() || '';
-                
-                // New logic:
-                // '0' -> Pendiente (0)
-                // Empty -> No le corresponde (-1)
-                // Number > 0 -> Grade
-                if (rawValue === '0') {
-                    record.courses[courseName.trim()] = 0;
-                } else if (rawValue === '') {
-                    record.courses[courseName.trim()] = -1;
-                } else {
-                    const num = parseNumber(rawValue);
-                    if (isNaN(num) || (num === 0 && !/^\d+$/.test(rawValue))) {
-                        // It's text, check if it's a "not applicable" indicator
-                        const lower = rawValue.toLowerCase();
-                        if (lower === '-' || lower === 'n/a' || lower.includes('no corr') || lower.includes('no le corr')) {
-                            record.courses[courseName.trim()] = -1; // Not applicable
-                        } else {
-                            // Other text might mean pending or some other status, default to 0 for now
-                            record.courses[courseName.trim()] = 0;
-                        }
-                    } else {
-                        record.courses[courseName.trim()] = num;
-                    }
-                }
+        const name = String(getVal(['Colaborador', 'Nombre', 'Empleado'], 1) || 'Sin Nombre');
+        if (name.toLowerCase().includes('colaborador') || name === 'C' || name.trim() === '' || name === 'Nombre') return;
+
+        const rawUnit = String(getVal(['Unidad', 'Sede', 'Ubicacion'], 0) || 'Sin Unidad');
+        let unit = rawUnit;
+        if (rawUnit.includes('3059')) unit = 'Jujuy';
+        else if (rawUnit.includes('3087')) unit = 'Salta';
+
+        const area = String(getVal(['Area', 'Departamento', 'Sector'], 2) || 'Sin Area');
+        const func = String(getVal(['Funcion', 'Cargo', 'Puesto'], 3) || 'Sin Funcion');
+        const icf = parseFloat(String(getVal(['ICF', 'Progreso ICF', 'Indice'], 5) || '0').replace('%', '').replace(',', '.')) || 0;
+        const id = String(getVal(['ID', 'Legajo'], 0) || `collab-${index}`);
+
+        const rowCourses: Record<string, number> = {};
+        headers.forEach((key, colIdx) => {
+            if (colIdx < 7) return;
+
+            const normalizedHeader = normalizeKey(key);
+            if (!normalizedBasicKeys.has(normalizedHeader) && key.trim() !== '') {
+                const rawVal = String(row[key] || '').trim();
+                if (rawVal === '' || rawVal === '-' || rawVal.toLowerCase() === 'n/a') return;
+
+                const val = parseFloat(rawVal.replace('%', '').replace(',', '.').trim());
+                if (!isNaN(val)) rowCourses[key] = val;
             }
+        });
+
+        const filteredCourses: Record<string, number> = {};
+        Object.entries(rowCourses).forEach(([courseName, score]) => {
+            if (!courseName.startsWith('_') && !/^\d+$/.test(courseName.trim())) {
+                filteredCourses[courseName] = score;
+            }
+        });
+
+        if (collaboratorMap.has(name)) {
+            const existing = collaboratorMap.get(name)!;
+            if (!existing.unidad.split(' | ').includes(unit)) existing.unidad += ` | ${unit}`;
+            if (!existing.area.split(' | ').includes(area)) existing.area += ` | ${area}`;
+            if (!existing.funcion.split(' | ').includes(func)) existing.funcion += ` | ${func}`;
+
+            if (!existing.icfByFunction) existing.icfByFunction = {};
+            existing.icfByFunction[func] = Math.max(existing.icfByFunction[func] || 0, icf);
+
+            if (!existing.coursesByFunction) existing.coursesByFunction = {};
+            if (!existing.coursesByFunction[func]) existing.coursesByFunction[func] = {};
+
+            Object.entries(filteredCourses).forEach(([courseName, score]) => {
+                existing.courses[courseName] = Math.max(existing.courses[courseName] || 0, score);
+                existing.coursesByFunction![func][courseName] = Math.max(existing.coursesByFunction![func][courseName] || 0, score);
+            });
+
+            const functionValues = Object.values(existing.icfByFunction) as number[];
+            existing.icf = Math.round(functionValues.reduce((acc, value) => acc + value, 0) / functionValues.length);
+        } else {
+            collaboratorMap.set(name, {
+                id: `${id}-${name}`,
+                colaborador: name,
+                unidad: unit,
+                area,
+                funcion: func,
+                icf,
+                courses: filteredCourses,
+                icfByFunction: { [func]: icf },
+                coursesByFunction: { [func]: filteredCourses }
+            });
         }
+    });
 
-        records.push(record);
-    }
-
-    return records;
+    return Array.from(collaboratorMap.values());
 };
 
 const parseHRRelatorioCSV = (csvText: string): RelatorioItem[] => {
-    const results = Papa.parse(csvText, { skipEmptyLines: true });
+    const results = Papa.parse(csvText, { header: false, skipEmptyLines: true });
     const rows = results.data as string[][];
-    
+
+    if (rows.length === 0) return [];
+
+    const firstRow = rows[0];
+    const isHeader = firstRow.some(cell =>
+        ['nombre', 'colaborador', 'curso', 'fecha', 'clase', 'referencia'].some(header =>
+            normalizeKey(cell).includes(header)
+        )
+    );
+
+    return rows
+        .slice(isHeader ? 1 : 0)
+        .filter(row => row.length >= 1)
+        .map((row, index) => {
+            const colC = row[2] || '';
+
+            if (colC.includes('|')) {
+                const parts = colC.split('|').map(part => part.trim()).filter(Boolean);
+                let curso = parts[1] || row[1] || '';
+                let fecha = '';
+                let hora = '';
+
+                if (parts.length >= 4) {
+                    const lastPart = parts[parts.length - 1];
+                    if (lastPart.toLowerCase().includes('hs') || lastPart.includes(':') || /\d+[\.:]\d+/.test(lastPart)) {
+                        hora = lastPart;
+                        fecha = parts[parts.length - 2];
+                    } else {
+                        fecha = lastPart;
+                    }
+                } else if (parts.length === 3) {
+                    fecha = parts[2];
+                }
+
+                const rawUnit = row[4] || 'Sin Unidad';
+                let unit = rawUnit;
+                if (rawUnit.includes('3059')) unit = 'Jujuy';
+                else if (rawUnit.includes('3087')) unit = 'Salta';
+
+                return {
+                    id: `hr-rel-${index}`,
+                    referenciaMeses: parts[0] || row[0] || '',
+                    curso,
+                    clase: colC,
+                    claseFecha: fecha || colC,
+                    claseHora: hora,
+                    nombre: row[3] || 'Sin Nombre',
+                    unidad: unit,
+                    area: 'Sin Area',
+                    fechaRegistro: row[5] || '',
+                    linkCurso: row[8] || ''
+                };
+            }
+
+            const rawUnitFallback = row[4] || row[1] || 'Sin Unidad';
+            let unitFallback = rawUnitFallback;
+            if (rawUnitFallback.includes('3059')) unitFallback = 'Jujuy';
+            else if (rawUnitFallback.includes('3087')) unitFallback = 'Salta';
+
+            return {
+                id: `hr-rel-${index}`,
+                referenciaMeses: row[0] || '',
+                curso: row[1] || '',
+                clase: colC,
+                claseFecha: row[2] || '',
+                claseHora: row[4] || row[3] || '',
+                nombre: row[3] || row[0] || 'Sin Nombre',
+                unidad: unitFallback,
+                area: 'Sin Area',
+                fechaRegistro: row[5] || '',
+                linkCurso: row[8] || ''
+            };
+        });
+};
+
+const parseHRContactsCSV = (csvText: string): CollaboratorContact[] => {
+    const results = Papa.parse(csvText, { header: false, skipEmptyLines: true });
+    const rows = results.data as string[][];
+
+    return rows
+        .filter(row => row.length >= 2 && row[0] && row[1])
+        .map(row => ({
+            nombre: row[0].trim(),
+            telefono: row[1].trim()
+        }));
+};
+
+const parseCoursePhasesCSV = (csvText: string): CoursePhase[] => {
+    const results = Papa.parse(csvText, { header: false, skipEmptyLines: true });
+    const rows = results.data as string[][];
+
     if (rows.length < 2) return [];
 
-    // Find header row
-    let headerIndex = -1;
-    for (let i = 0; i < Math.min(rows.length, 10); i++) {
-        const rowStr = rows[i].join(',').toLowerCase();
-        if (rowStr.includes('curso') || rowStr.includes('nombre') || rowStr.includes('unidad')) {
-            headerIndex = i;
-            break;
-        }
-    }
-
-    if (headerIndex === -1) headerIndex = 0;
-
-    const headers = rows[headerIndex].map(h => h.trim().toLowerCase());
-    console.log("parseHRRelatorioCSV: Headers found:", headers);
-    
-    // Find key column indices
-    const colIndices = {
-        curso: headers.findIndex(h => h.includes('curso')),
-        nombre: headers.findIndex(h => h.includes('nombre') || h.includes('colaborador')),
-        unidad: headers.findIndex(h => h.includes('unidad')),
-        fechaRegistro: headers.findIndex(h => h.includes('registro')),
-        referenciaMeses: headers.findIndex(h => h.includes('referencia') || h.includes('mes')),
-        clase: headers.findIndex(h => h.includes('clase'))
-    };
-
-    console.log("parseHRRelatorioCSV: Column indices:", colIndices);
-
-    const records: RelatorioItem[] = [];
-
-    for (let i = headerIndex + 1; i < rows.length; i++) {
-        const row = rows[i];
-        if (!row || row.length <= Math.max(...Object.values(colIndices))) continue;
-
-        const clase = colIndices.clase !== -1 ? row[colIndices.clase] || '' : '';
-        const segments = clase.split('|').map((s: string) => s.trim());
-        const claseFecha = segments.length >= 2 ? segments[segments.length - 2] : undefined;
-        const claseHora = segments.length >= 1 ? segments[segments.length - 1] : undefined;
-
-        records.push({
-            id: `hr-rel-${i}`,
-            curso: colIndices.curso !== -1 ? row[colIndices.curso] || '' : '',
-            nombre: colIndices.nombre !== -1 ? (row[colIndices.nombre] || '').trim() : '',
-            unidad: colIndices.unidad !== -1 ? row[colIndices.unidad] || '' : '',
-            fechaRegistro: colIndices.fechaRegistro !== -1 ? row[colIndices.fechaRegistro] || '' : '',
-            referenciaMeses: colIndices.referenciaMeses !== -1 ? row[colIndices.referenciaMeses] || '' : '',
-            clase,
-            claseFecha,
-            claseHora
-        });
-    }
-
-    return records;
+    return rows.slice(1)
+        .filter(row => row[0])
+        .map(row => ({
+            curso: (row[0] || '').trim(),
+            fase: (row[1] || 'Otros').trim() || 'Otros',
+            modalidad: (row[2] || 'Sin Modalidad').trim() || 'Sin Modalidad'
+        }));
 };

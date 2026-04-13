@@ -10,9 +10,19 @@ const DETAILED_QUALITY_SALTA_PUBLIC_URL = "https://docs.google.com/spreadsheets/
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
+const GOOGLE_FETCH_TIMEOUT_MS = 30000;
+const SHEET_CACHE_TTL_MS = 5 * 60 * 1000;
+
+type CachedSheetEntry = {
+  csv: string;
+  contentType: string;
+  cachedAt: number;
+  source: "google_api" | "csv_export";
+};
 
 async function startServer() {
   const app = express();
+  const sheetCache = new Map<string, CachedSheetEntry>();
   const defaultAllowedOrigins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
@@ -87,6 +97,8 @@ async function startServer() {
     pcgc: process.env.SHEET_URL_PCGC,
     hr_grades: process.env.LINK_RRHH_NOTAS || process.env.SHEET_URL_HR_GRADES,
     hr_relatorio: process.env.LINK_RRHH_RELAT || process.env.SHEET_URL_HR_RELATORIO,
+    hr_contacts: process.env.LINK_RRHH_CONTACTOS || process.env.SHEET_URL_HR_CONTACTS,
+    hr_phases: process.env.LINK_RRHH_FASES || process.env.SHEET_URL_HR_PHASES,
     rrhh: process.env.SHEET_URL_RRHH || process.env.RRHH_URL,
     ventas: process.env.SHEET_URL_VENTAS || process.env.VENTAS_URL,
   };
@@ -137,6 +149,36 @@ async function startServer() {
     ).join('\n');
   };
 
+  const getCacheKey = (sheetName: string, resolvedUrl: string) => `${sheetName}::${resolvedUrl}`;
+
+  const getFreshCacheEntry = (cacheKey: string) => {
+    const entry = sheetCache.get(cacheKey);
+    if (!entry) return null;
+    if (Date.now() - entry.cachedAt > SHEET_CACHE_TTL_MS) return null;
+    return entry;
+  };
+
+  const storeCacheEntry = (cacheKey: string, csv: string, source: CachedSheetEntry["source"]) => {
+    sheetCache.set(cacheKey, {
+      csv,
+      cachedAt: Date.now(),
+      contentType: "text/csv; charset=utf-8",
+      source
+    });
+  };
+
+  const sendCsvResponse = (
+    res: express.Response,
+    csv: string,
+    cacheStatus: "MISS" | "HIT" | "STALE",
+    source: string
+  ) => {
+    res.setHeader("X-Cache-Status", cacheStatus);
+    res.setHeader("X-Data-Source", source);
+    res.header("Content-Type", "text/csv; charset=utf-8");
+    return res.send(csv);
+  };
+
   // Helper to normalize Google Sheets URLs to CSV export links (Legacy method)
   const normalizeSheetUrl = (url: string): string => {
     if (!url) return url;
@@ -183,6 +225,13 @@ async function startServer() {
       });
     }
 
+    const cacheKey = getCacheKey(sheetName, url);
+    const freshCacheEntry = getFreshCacheEntry(cacheKey);
+    if (freshCacheEntry) {
+      console.log(`[Cache] HIT for ${sheetName}`);
+      return sendCsvResponse(res, freshCacheEntry.csv, "HIT", freshCacheEntry.source);
+    }
+
     // Try Google Sheets API first if credentials are provided
     if (process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && process.env.GOOGLE_PRIVATE_KEY) {
       try {
@@ -192,7 +241,7 @@ async function startServer() {
           
           // Set a timeout for the Google API call
           const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error("Timeout al conectar con Google Sheets API")), 15000)
+            setTimeout(() => reject(new Error(`Timeout al conectar con Google Sheets API (${Math.round(GOOGLE_FETCH_TIMEOUT_MS / 1000)}s)`)), GOOGLE_FETCH_TIMEOUT_MS)
           );
 
           // Get spreadsheet metadata to find the sheet name for the GID
@@ -222,8 +271,8 @@ async function startServer() {
           }
 
           const csvData = arrayToCsv(rows);
-          res.header("Content-Type", "text/csv; charset=utf-8");
-          return res.send(csvData);
+          storeCacheEntry(cacheKey, csvData, "google_api");
+          return sendCsvResponse(res, csvData, "MISS", "google_api");
         }
       } catch (apiError: any) {
         console.error(`[API] Error using Google Sheets API for ${sheetName}:`, apiError.message || apiError);
@@ -237,7 +286,7 @@ async function startServer() {
       console.log(`[Proxy] Fetching via CSV export: ${url.substring(0, 50)}...`);
       
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 15000);
+      const timeoutId = setTimeout(() => controller.abort(), GOOGLE_FETCH_TIMEOUT_MS);
 
       const response = await fetch(url, { signal: controller.signal });
       clearTimeout(timeoutId);
@@ -249,10 +298,15 @@ async function startServer() {
         throw new Error(`Google Sheets respondió con error ${response.status}`);
       }
       const data = await response.text();
-      res.header("Content-Type", "text/csv; charset=utf-8");
-      res.send(data);
+      storeCacheEntry(cacheKey, data, "csv_export");
+      return sendCsvResponse(res, data, "MISS", "csv_export");
     } catch (error: any) {
       console.error(`[Proxy] Error fetching sheet ${sheetName}:`, error.message || error);
+      const staleCacheEntry = sheetCache.get(cacheKey);
+      if (staleCacheEntry) {
+        console.warn(`[Cache] Serving stale data for ${sheetName} after upstream failure.`);
+        return sendCsvResponse(res, staleCacheEntry.csv, "STALE", staleCacheEntry.source);
+      }
       res.status(500).json({ 
         error: "Error al obtener datos de la fuente.",
         details: error.name === 'AbortError' ? "La peticiÃ³n excediÃ³ el tiempo lÃ­mite (15s)" : (error instanceof Error ? error.message : String(error))
@@ -268,7 +322,8 @@ async function startServer() {
       time: new Date().toISOString(),
       nodeVersion: process.version,
       googleAuthConfigured: !!(process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && process.env.GOOGLE_PRIVATE_KEY),
-      configuredSheetsCount: Object.values(sheetUrls).filter(Boolean).length
+      configuredSheetsCount: Object.values(sheetUrls).filter(Boolean).length,
+      cachedSheetsCount: sheetCache.size
     });
   });
 

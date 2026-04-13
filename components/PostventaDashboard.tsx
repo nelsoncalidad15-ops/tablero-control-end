@@ -11,7 +11,6 @@ import { AutoRecord, LoadingState } from '../types';
 import { MOCK_DATA, MONTHS, YEARS } from '../constants';
 import { motion } from 'motion/react';
 import { DashboardFrame, LuxuryKPICard, SkeletonLoader, StatusBadge, InsightCard, DataTable, MonthSelector, ChartWrapper } from './DashboardUI';
-import ChatBot from './ChatBot';
 
 interface PostventaDashboardProps {
   sheetUrl: string;
@@ -735,12 +734,6 @@ const PostventaDashboard: React.FC<PostventaDashboardProps> = ({ sheetUrl, onBac
                 pageSize={10}
             />
         </div>
-
-        {/* ChatBot Integration */}
-        <ChatBot 
-            apiKey={typeof process !== 'undefined' ? process.env.GEMINI_API_KEY : ''}
-            context={`Dashboard de Gestión de Postventa. Año: ${selectedYear}. Sucursales: ${selectedBranches.join(', ')}. PPT Diarios: ${metrics.pptDiariosTotal}.`}
-        />
 
         {/* Expanded Chart Modal */}
         {expandedChart && (

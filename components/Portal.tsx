@@ -10,155 +10,115 @@ interface PortalProps {
   }
 
 const Portal: React.FC<PortalProps> = ({ onSelectArea }) => {
-  return (
-    <div className="h-screen relative bg-slate-950 flex flex-col items-center justify-center font-sans overflow-hidden">
-        
-        {/* Immersive Background */}
-        <motion.div 
-            initial={{ scale: 1.1, opacity: 0 }}
-            animate={{ scale: 1, opacity: 0.4 }}
-            transition={{ duration: 2, ease: "easeOut" }}
-            className="absolute inset-0 z-0"
-            style={{
-                backgroundImage: 'url("https://images.unsplash.com/photo-1492144534655-ae79c964c9d7?q=80&w=2800&auto=format&fit=crop")',
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                filter: 'brightness(0.5) contrast(1.1) saturate(0)'
-            }}
-        />
-        
-        {/* Sophisticated Gradients */}
-        <div className="absolute inset-0 z-0 bg-gradient-to-b from-slate-950/20 via-slate-950/80 to-slate-950"></div>
-        <div className="absolute inset-0 z-0 bg-radial-gradient from-transparent to-slate-950/90"></div>
+  const portalAreas = [
+    { id: 'executive', name: 'Sala de Situación', icon: 'Activity', description: 'Resumen ejecutivo central.' } as any,
+    ...AREAS.map((area) => ({
+      ...area,
+      description:
+        area.id === 'postventa'
+          ? 'Taller, PPT y servicios.'
+          : area.id === 'rrhh'
+          ? 'Talento y desempeño.'
+          : area.id === 'calidad'
+          ? 'Auditorías y satisfacción.'
+          : 'Ventas y leads.',
+    })),
+  ];
 
-        {/* Main Content Container */}
-        <div className="relative z-10 w-full px-4 py-4 md:py-[2vh] flex flex-col items-center h-full justify-between max-h-screen">
-            
-            {/* Header: Brand */}
-            <motion.div 
-              initial={{ y: -30, opacity: 0 }}
-              animate={{ y: 0, opacity: 1 }}
-              transition={{ duration: 0.8, delay: 0.1 }}
-              className="flex flex-col items-center text-center w-full mb-[2vh]"
+  return (
+    <div className="relative min-h-screen overflow-hidden bg-slate-950 font-sans text-white">
+        <div className="pointer-events-none absolute inset-0">
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),_transparent_34%),radial-gradient(circle_at_80%_18%,_rgba(245,158,11,0.12),_transparent_26%),linear-gradient(180deg,_#020617_0%,_#050816_45%,_#020617_100%)]" />
+            <div className="absolute inset-x-0 top-0 h-56 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.05),transparent)] opacity-40" />
+            <div className="absolute -left-24 top-24 h-72 w-72 rounded-full bg-sky-500/10 blur-3xl" />
+            <div className="absolute bottom-8 right-0 h-80 w-80 rounded-full bg-amber-400/10 blur-3xl" />
+            <div className="absolute inset-0 opacity-[0.08]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px)', backgroundSize: '72px 72px' }} />
+        </div>
+
+        <div className="relative mx-auto flex min-h-screen w-full max-w-6xl flex-col px-4 py-6 md:px-8 md:py-8">
+            <motion.div
+              initial={{ opacity: 0, y: -16 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="mb-5 flex items-center justify-between rounded-[1.5rem] border border-white/10 bg-white/6 px-5 py-4 shadow-[0_24px_80px_rgba(2,6,23,0.32)] backdrop-blur-xl"
             >
-                <div className="flex items-center gap-4 md:gap-6 mb-2">
-                    <motion.div 
-                      whileHover={{ scale: 1.1, rotate: 5 }}
-                      className="w-10 h-10 md:w-14 md:h-14 bg-white rounded-xl md:rounded-2xl flex items-center justify-center shadow-2xl shadow-white/10"
-                    >
-                         <span className="text-slate-950 font-black text-lg md:text-xl tracking-tighter italic">VW</span>
-                    </motion.div>
-                    <div className="h-8 md:h-10 w-px bg-white/20"></div>
-                    <div className="flex flex-col text-left">
-                        <h2 className="text-white text-lg md:text-2xl font-light tracking-[0.4em] uppercase leading-none">Autosol</h2>
-                        <span className="text-blue-400 text-[7px] md:text-[9px] font-black uppercase tracking-[0.6em] mt-1 md:mt-2">GRUPO CENOA</span>
+                <div className="flex items-center gap-4">
+                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white text-base font-black italic text-slate-950">
+                        VW
+                    </div>
+                    <div>
+                        <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-slate-400">Autosol Group</p>
+                        <h1 className="text-xl font-black tracking-tight text-white md:text-2xl">Centro de Control Operativo</h1>
                     </div>
                 </div>
-
-                <h1 className="text-2xl md:text-4xl lg:text-6xl font-black text-white tracking-tighter leading-tight mb-1 uppercase italic">
-                  Tablero de <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 via-indigo-400 to-white">Control</span>
-                </h1>
-                
-                <p className="text-slate-400 text-xs md:text-base leading-relaxed max-w-2xl font-medium opacity-80 px-4">
-                    Monitoreo estratégico y análisis de performance en tiempo real.
-                </p>
             </motion.div>
 
-            {/* Grid of Cards */}
-            <div className="grid grid-cols-1 sm:grid-cols-1 lg:grid-cols-3 gap-2 md:gap-3 w-full max-w-5xl flex-1 items-center content-center">
-                {/* Sala de Situación Card */}
-                <motion.button 
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ duration: 0.5, delay: 0.2 }}
-                    whileHover={{ y: -5, scale: 1.01 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={() => onSelectArea({ id: 'executive' as any, name: 'Sala de Situación', icon: 'Activity', color: 'blue', description: 'Resumen Ejecutivo Unificado' })}
-                    className="group relative bg-blue-600/10 backdrop-blur-3xl border border-blue-500/30 rounded-[2.5rem] p-4 text-left hover:bg-blue-600/20 hover:border-blue-500/50 transition-all duration-500 overflow-hidden shadow-xl shadow-blue-500/10"
+            <div className="grid flex-1 grid-cols-1 gap-5">
+                <motion.section
+                  initial={{ opacity: 0, y: 24 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.7 }}
+                  className="rounded-[1.85rem] border border-white/10 bg-[linear-gradient(135deg,rgba(5,8,22,0.92),rgba(10,15,33,0.86))] px-6 py-6 text-white shadow-[0_32px_90px_rgba(2,6,23,0.44)] backdrop-blur-xl md:px-8 md:py-7"
                 >
-                    <div className="flex flex-col items-center text-center">
-                        <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500 to-indigo-600 text-white shadow-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-all duration-500 border border-white/20">
-                            <Icons.Activity className="w-6 h-6" />
-                        </div>
-                        <h3 className="text-lg md:text-xl font-black text-white mb-1 md:mb-2 tracking-tight uppercase group-hover:text-blue-400 transition-colors">
-                            Sala de Situación
-                        </h3>
-                        <p className="text-slate-400 text-[9px] md:text-[10px] leading-relaxed font-bold uppercase tracking-[0.25em] opacity-60 group-hover:opacity-100 transition-opacity max-w-[200px]">
-                            Resumen Ejecutivo Unificado
+                    <div className="max-w-2xl">
+                        <h2 className="max-w-xl text-4xl font-black leading-[0.96] tracking-tight md:text-5xl">
+                            Visión operativa clara para decisiones rápidas.
+                        </h2>
+                        <p className="mt-4 max-w-xl text-[15px] leading-7 text-slate-300 md:text-base">
+                            Calidad, postventa, RRHH y seguimiento ejecutivo en una sola vista.
+                            Leer rápido, detectar desvíos y actuar.
                         </p>
                     </div>
-                </motion.button>
+                </motion.section>
 
-                {/* Regular Areas */}
-                {AREAS.map((area, idx) => {
-                    const IconComponent = Icons[area.icon as keyof typeof Icons] || Icons.Home;
-                    return (
-                        <motion.button 
-                            key={area.id}
-                            initial={{ y: 20, opacity: 0 }}
-                            animate={{ y: 0, opacity: 1 }}
-                            transition={{ duration: 0.5, delay: 0.3 + (idx * 0.05) }}
-                            whileHover={{ y: -5, scale: 1.01 }}
-                            whileTap={{ scale: 0.98 }}
-                            onClick={() => onSelectArea(area)}
-                            className="group relative bg-white/5 backdrop-blur-3xl border border-white/10 rounded-[2.5rem] p-4 text-left hover:bg-white/10 hover:border-white/20 transition-all duration-500 overflow-hidden shadow-xl"
-                        >
-                            <div className="flex flex-col items-center text-center">
-                                <div className={`w-12 h-12 rounded-2xl bg-gradient-to-br ${
-                                  area.id === 'postventa' ? 'from-blue-600 to-indigo-800 shadow-blue-500/30' : 
-                                  area.id === 'rrhh' ? 'from-purple-600 to-fuchsia-800 shadow-purple-500/30' : 
-                                  area.id === 'calidad' ? 'from-emerald-600 to-teal-800 shadow-emerald-500/30' : 
-                                  'from-orange-500 to-amber-700 shadow-orange-500/30'
-                                } text-white shadow-xl flex items-center justify-center mb-3 group-hover:scale-110 transition-all duration-500 border border-white/20`}>
-                                    <IconComponent className="w-6 h-6" />
-                                </div>
+                <motion.section
+                  initial={{ opacity: 0, y: 24 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.7, delay: 0.1 }}
+                  className="rounded-[1.85rem] border border-white/10 bg-white/6 p-6 shadow-[0_28px_80px_rgba(2,6,23,0.3)] backdrop-blur-xl"
+                >
+                    <div className="mb-5 flex items-center justify-between">
+                        <div>
+                            <p className="text-[10px] font-bold uppercase tracking-[0.28em] text-slate-400">Acceso rápido</p>
+                            <h3 className="mt-2 text-2xl font-black tracking-tight text-white">Áreas principales</h3>
+                        </div>
+                    </div>
 
-                                <h3 className="text-lg md:text-xl font-black text-white mb-1 md:mb-2 tracking-tight uppercase group-hover:text-blue-400 transition-colors">
-                                    {area.name}
-                                </h3>
-                                <p className="text-slate-400 text-[9px] md:text-[10px] leading-relaxed font-bold uppercase tracking-[0.25em] opacity-60 group-hover:opacity-100 transition-opacity max-w-[200px]">
-                                    {area.description}
-                                </p>
-                            </div>
-                        </motion.button>
-                    );
-                })}
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-5">
+                        {portalAreas.map((area, idx) => {
+                            const IconComponent = Icons[area.icon as keyof typeof Icons] || Icons.Home;
+                            const isExecutive = area.id === 'executive';
+                            const palette = isExecutive
+                              ? 'bg-blue-500/15 text-blue-300 border-blue-400/20'
+                              : area.id === 'postventa'
+                              ? 'bg-blue-500/15 text-blue-300 border-blue-400/20'
+                              : area.id === 'rrhh'
+                              ? 'bg-amber-500/15 text-amber-300 border-amber-400/20'
+                              : area.id === 'calidad'
+                              ? 'bg-emerald-500/15 text-emerald-300 border-emerald-400/20'
+                              : 'bg-orange-500/15 text-orange-300 border-orange-400/20';
 
-                {/* Logout */}
-                <div className="grid grid-cols-1 gap-4">
-                    <motion.button 
-                        whileHover={{ scale: 1.05, backgroundColor: 'rgba(239,68,68,0.1)' }}
-                        whileTap={{ scale: 0.95 }}
-                        onClick={() => {
-                            localStorage.removeItem('autosol_auth');
-                            window.location.reload();
-                        }}
-                        className="bg-rose-500/10 border border-rose-500/20 rounded-3xl p-3 flex flex-col items-center justify-center gap-1 text-rose-400 hover:text-rose-300 transition-all backdrop-blur-3xl"
-                    >
-                        <Icons.LogOut className="w-5 h-5" />
-                        <span className="text-[8px] font-black uppercase tracking-widest">Cerrar Sesión</span>
-                    </motion.button>
-                </div>
+                            return (
+                              <motion.button
+                                key={area.id}
+                                initial={{ opacity: 0, y: 16 }}
+                                animate={{ opacity: 1, y: 0 }}
+                                transition={{ delay: 0.12 + idx * 0.05 }}
+                                whileHover={{ y: -5 }}
+                                whileTap={{ scale: 0.99 }}
+                                onClick={() => onSelectArea(isExecutive ? { id: 'executive' as any, name: 'Sala de Situación', icon: 'Activity', color: 'blue', description: 'Resumen Ejecutivo Unificado' } : area)}
+                                className="rounded-[1.65rem] border border-white/10 bg-[linear-gradient(180deg,rgba(11,16,32,0.92),rgba(15,23,42,0.82))] p-6 text-left transition-all hover:border-white/30 hover:bg-[#10172b] hover:shadow-[0_18px_50px_rgba(15,23,42,0.35)] md:min-h-[210px]"
+                              >
+                                  <div className={`mb-5 flex h-12 w-12 items-center justify-center rounded-2xl border ${palette}`}>
+                                      <IconComponent className="h-5.5 w-5.5" />
+                                  </div>
+                                  <h4 className="max-w-[12rem] text-lg font-black uppercase leading-6 tracking-tight text-white">{area.name}</h4>
+                                  <p className="mt-3 max-w-[13rem] text-[15px] leading-7 text-slate-400">{area.description}</p>
+                              </motion.button>
+                            );
+                        })}
+                    </div>
+                </motion.section>
             </div>
-
-            {/* Footer info */}
-            <motion.div 
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 1 }}
-              className="w-full max-w-5xl mt-2 md:mt-4 px-6"
-            >
-                <div className="w-full flex flex-col md:flex-row items-center justify-between gap-2 md:gap-4 border-t border-white/10 pt-2 pb-2">
-                  <p className="text-white/20 text-[8px] font-black uppercase tracking-[0.4em]">
-                      Autosol Corporate Hub v2.5 â€¢ 2024
-                  </p>
-                  <div className="flex gap-6">
-                    <span className="text-white/20 text-[8px] font-black uppercase tracking-widest cursor-pointer hover:text-white/40 transition-colors">Privacy</span>
-                    <span className="text-white/20 text-[8px] font-black uppercase tracking-widest cursor-pointer hover:text-white/40 transition-colors">Security</span>
-                    <span className="text-white/20 text-[8px] font-black uppercase tracking-widest cursor-pointer hover:text-white/40 transition-colors">Support</span>
-                  </div>
-                </div>
-            </motion.div>
         </div>
     </div>
   );

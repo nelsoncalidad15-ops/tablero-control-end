@@ -30,6 +30,8 @@ export const ACTION_PLAN_SHEET_KEY = "action_plan";
 export const ACTION_PLAN_SALES_SHEET_KEY = "action_plan_sales";
 export const HR_GRADES_SHEET_KEY = "hr_grades";
 export const HR_RELATORIO_SHEET_KEY = "hr_relatorio";
+export const HR_CONTACTS_SHEET_KEY = "hr_contacts";
+export const HR_PHASES_SHEET_KEY = "hr_phases";
 
 export const GEMINI_MODEL = "gemini-3-flash-preview";
 
@@ -110,7 +112,9 @@ export const DEFAULT_CONFIG = {
     internal_postventa: INTERNAL_POSTVENTA_SHEET_KEY,
     action_plan: ACTION_PLAN_SHEET_KEY,
     action_plan_sales: ACTION_PLAN_SALES_SHEET_KEY,
-    hr_relatorio: HR_RELATORIO_SHEET_KEY
+    hr_relatorio: HR_RELATORIO_SHEET_KEY,
+    hr_contacts: HR_CONTACTS_SHEET_KEY,
+    hr_phases: HR_PHASES_SHEET_KEY
   } as Record<AreaType, string> & { 
     detailed_quality: string; 
     detailed_quality_salta: string; 
@@ -125,6 +129,8 @@ export const DEFAULT_CONFIG = {
     action_plan: string;
     action_plan_sales: string;
     hr_relatorio: string;
+    hr_contacts: string;
+    hr_phases: string;
   },
   geminiApiKey: '',
   reportTemplate: DEFAULT_REPORT_TEMPLATE

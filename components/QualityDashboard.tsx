@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+﻿import React, { useState, useEffect, useMemo } from 'react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend, ScatterChart, Scatter, ZAxis, ReferenceLine, ComposedChart, LineChart, Line
 } from 'recharts';
@@ -139,7 +139,7 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
     const counts = { Si: 0, No: 0 };
     contextData.forEach(d => {
         const val = d.resuelto ? d.resuelto.trim().toLowerCase() : '';
-        if (val === 'si' || val === 'sí') counts.Si++;
+        if (val === 'si' || val === 'sÃ­') counts.Si++;
         else if (val === 'no') counts.No++;
     });
     
@@ -294,32 +294,32 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
   return (
     <DashboardFrame
         title="Intelligence Hub"
-        subtitle="Análisis de Calidad Autosol"
+        subtitle="Analisis de Calidad Autosol"
         lastUpdated={new Date().toLocaleTimeString()}
         isLoading={loadingState === LoadingState.LOADING}
         onBack={onBack}
     >
-        <div className="space-y-10 pb-32 -m-6 p-8 bg-[#f8fafc] min-h-screen">
+        <div className="space-y-8 pb-24 -m-6 p-6 md:p-8 bg-[#f6f8fb] min-h-screen">
 
             {/* Modern Header Section */}
-            <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-8 mb-12">
-                <div>
+            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-end gap-6">
+                <div className="max-w-3xl">
                     <motion.div 
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
-                        className="inline-flex items-center gap-3 px-4 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-600 text-[10px] font-black uppercase tracking-[0.3em] mb-4"
+                        className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-blue-700 text-[10px] font-semibold tracking-[0.16em] mb-4"
                     >
-                        <Icons.Activity className="w-3 h-3" /> Dashboard de Calidad
+                        <Icons.Activity className="w-3 h-3" /> Calidad Postventa
                     </motion.div>
-                    <h1 className="text-6xl font-black text-slate-950 uppercase italic tracking-tighter leading-none mb-4">
-                        GESTIÓN DE <span className="text-blue-600">RECLAMOS</span>
+                    <h1 className="text-4xl md:text-5xl font-black text-slate-950 tracking-tight leading-none mb-3">
+                        GESTION DE <span className="text-blue-600">RECLAMOS</span>
                     </h1>
-                    <p className="text-slate-400 text-xs font-black uppercase tracking-[0.4em] ml-1">
-                        Análisis de Satisfacción y Procesos • {area.name}
+                    <p className="text-sm text-slate-500 leading-relaxed">
+                        Analisis de Satisfaccion y Procesos • {area.name}
                     </p>
                 </div>
                 
-                <div className="flex items-center gap-8">
+                <div className="grid grid-cols-2 gap-4 w-full xl:w-auto xl:min-w-[320px]">
                     <div className="text-right">
                         <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.4em] block mb-2">Total Casos</span>
                         <div className="flex items-baseline justify-end gap-2">
@@ -329,7 +329,7 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
                     </div>
                     <div className="h-12 w-px bg-slate-200"></div>
                     <div className="text-right">
-                        <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.4em] block mb-2">Resolución</span>
+                        <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.4em] block mb-2">Resolucion</span>
                         <div className="flex items-baseline justify-end gap-2">
                             <span className="text-5xl font-black text-slate-950 leading-none">
                                 {Math.round((resolutionChartData.find(d => d.name === 'Resuelto')?.value || 0) / (uniqueClaimsCount || 1) * 100)}%
@@ -340,9 +340,9 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
             </div>
 
             {/* Professional Horizontal Filters Bar - NOW AT THE TOP */}
-            <div className="bg-white/80 backdrop-blur-xl px-10 py-8 rounded-[2.5rem] border border-white shadow-xl shadow-slate-200/50 flex flex-wrap items-center gap-10">
-                <div className="flex flex-col gap-2.5">
-                    <span className="text-[9px] font-black text-blue-500 uppercase tracking-[0.3em] flex items-center gap-2">
+            <div className="bg-white px-6 md:px-8 py-6 rounded-[2rem] border border-slate-200 shadow-sm flex flex-wrap items-end gap-6 md:gap-8">
+                <div className="flex flex-col gap-2 min-w-[240px]">
+                    <span className="text-[11px] font-semibold text-slate-500 tracking-[0.14em] flex items-center gap-2">
                         <Icons.Calendar className="w-3 h-3" /> Periodo
                     </span>
                     <MonthSelector 
@@ -352,24 +352,24 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
                     />
                 </div>
 
-                <div className="h-12 w-px bg-slate-100"></div>
+                <div className="hidden md:block h-10 w-px bg-slate-200"></div>
 
-                <div className="flex flex-col gap-2.5">
-                    <span className="text-[9px] font-black text-blue-500 uppercase tracking-[0.3em] flex items-center gap-2">
+                <div className="flex flex-col gap-2 min-w-[240px]">
+                    <span className="text-[11px] font-semibold text-slate-500 tracking-[0.14em] flex items-center gap-2">
                         <Icons.MapPin className="w-3 h-3" /> Sucursal
                     </span>
-                    <div className="flex bg-slate-50 p-1 rounded-xl border border-slate-100">
-                        {['', 'JUJUY', 'SALTA', 'TARTAGAL'].map((suc) => (
+                    <div className="flex flex-wrap gap-2">
+                        {['', ...availableBranches].map((suc) => (
                             <button
                                 key={suc}
                                 onClick={() => {
                                     if (suc === '') setSelectedBranches([]);
                                     else setSelectedBranches([suc]);
                                 }}
-                                className={`px-6 py-1.5 rounded-lg text-[10px] font-black uppercase tracking-widest transition-all ${
+                                className={`px-4 py-2 rounded-xl text-[11px] font-semibold transition-all border ${
                                     (selectedBranches.length === 1 && selectedBranches[0] === suc) || (suc === '' && selectedBranches.length === 0)
-                                        ? 'bg-white text-blue-600 shadow-sm border border-slate-100' 
-                                        : 'text-slate-400 hover:text-slate-600'
+                                        ? 'bg-slate-950 text-white border-slate-950 shadow-sm' 
+                                        : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
                                 }`}
                             >
                                 {suc || 'Todas'}
@@ -378,16 +378,16 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
                     </div>
                 </div>
 
-                <div className="h-12 w-px bg-slate-100"></div>
+                <div className="hidden md:block h-10 w-px bg-slate-200"></div>
 
-                <div className="flex flex-col gap-2.5">
-                    <span className="text-[9px] font-black text-blue-500 uppercase tracking-[0.3em] flex items-center gap-2">
+                <div className="flex flex-col gap-2 min-w-[240px]">
+                    <span className="text-[11px] font-semibold text-slate-500 tracking-[0.14em] flex items-center gap-2">
                         <Icons.User className="w-3 h-3" /> Responsable
                     </span>
                     <select 
                         value={selectedResponsable || ''} 
                         onChange={(e) => setSelectedResponsable(e.target.value || null)}
-                        className="text-xs font-black uppercase tracking-widest text-slate-900 bg-slate-50 px-4 py-2 rounded-xl border border-slate-100 outline-none cursor-pointer hover:border-blue-200 transition-colors min-w-[200px]"
+                        className="text-sm font-semibold text-slate-800 bg-slate-50 px-4 py-2.5 rounded-xl border border-slate-200 outline-none cursor-pointer hover:border-slate-300 transition-colors min-w-[220px]"
                     >
                         <option value="">Todos los responsables</option>
                         {responsableTableData.map(r => <option key={r.name} value={r.name}>{r.name}</option>)}
@@ -402,7 +402,7 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
                             setSelectedMotivo(null);
                             setSelectedResponsable(null);
                         }}
-                        className="px-6 py-3 bg-slate-950 text-white rounded-2xl text-[10px] font-black uppercase tracking-widest flex items-center gap-3 hover:bg-blue-600 transition-all shadow-lg shadow-slate-900/10"
+                        className="px-5 py-2.5 bg-white text-slate-700 rounded-2xl text-[11px] font-semibold border border-slate-200 flex items-center gap-2.5 hover:bg-slate-50 transition-all"
                     >
                         <Icons.X className="w-3 h-3" /> Limpiar
                     </button>
@@ -410,24 +410,24 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
             </div>
 
             {/* Modern KPIs Section */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 <motion.div 
-                    whileHover={{ y: -8, scale: 1.02 }}
-                    className="bg-white p-10 rounded-[3.5rem] border border-slate-100 shadow-sm relative overflow-hidden group"
+                    whileHover={{ y: -4 }}
+                    className="bg-white p-7 rounded-[2rem] border border-slate-200 shadow-sm"
                 >
-                    <div className="flex justify-between items-start mb-12">
+                    <div className="flex justify-between items-start mb-6">
                         <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all duration-500 shadow-lg shadow-blue-500/10">
-                                <Icons.ClipboardList className="w-6 h-6" />
+                            <div className="w-11 h-11 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-700">
+                                <Icons.ClipboardList className="w-5 h-5" />
                             </div>
                             <div>
                                 <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-1">Volumen Total</h3>
-                                <p className="text-xs font-black text-slate-900 uppercase tracking-widest">Reclamos Únicos</p>
+                                <p className="text-xs font-black text-slate-900 uppercase tracking-widest">Reclamos Unicos</p>
                             </div>
                         </div>
                     </div>
                     <div className="flex items-baseline gap-3 mb-10">
-                        <span className="text-8xl font-black text-slate-900 tracking-tighter leading-none">{uniqueClaimsCount}</span>
+                        <span className="text-5xl font-black text-slate-950 tracking-tight leading-none">{uniqueClaimsCount}</span>
                         <div className="flex flex-col">
                             <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Casos</span>
                             <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest flex items-center gap-1 mt-1">
@@ -436,28 +436,28 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
                         </div>
                     </div>
                     {/* Decorative background number */}
-                    <div className="absolute -bottom-10 -right-10 text-[12rem] font-black text-slate-50 select-none pointer-events-none leading-none opacity-50">
+                    <div className="hidden">
                         01
                     </div>
                 </motion.div>
 
                 <motion.div 
-                    whileHover={{ y: -8, scale: 1.02 }}
-                    className="bg-[#0f172a] p-10 rounded-[3.5rem] text-white relative overflow-hidden group shadow-2xl shadow-slate-900/40"
+                    whileHover={{ y: -4 }}
+                    className="bg-slate-950 p-7 rounded-[2rem] text-white shadow-lg shadow-slate-900/15"
                 >
-                    <div className="flex justify-between items-start mb-12">
+                    <div className="flex justify-between items-start mb-6">
                         <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-2xl bg-indigo-500 flex items-center justify-center text-white shadow-lg shadow-indigo-500/20">
-                                <Icons.Tag className="w-6 h-6" />
+                            <div className="w-11 h-11 rounded-2xl bg-white/10 flex items-center justify-center text-white">
+                                <Icons.Tag className="w-5 h-5" />
                             </div>
                             <div>
-                                <h3 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em] mb-1">Análisis de Reclamos</h3>
+                                <h3 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em] mb-1">Analisis de Reclamos</h3>
                                 <p className="text-xs font-black text-white uppercase tracking-widest">Cantidad de Reclamos</p>
                             </div>
                         </div>
                     </div>
                     <div className="flex items-baseline gap-3 mb-10">
-                        <span className="text-8xl font-black text-white tracking-tighter leading-none">{totalClaimsCount}</span>
+                        <span className="text-5xl font-black text-white tracking-tight leading-none">{totalClaimsCount}</span>
                         <div className="flex flex-col">
                             <span className="text-xs font-black text-indigo-300 uppercase tracking-widest">Registros</span>
                             <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest flex items-center gap-1 mt-1">
@@ -466,28 +466,28 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
                         </div>
                     </div>
                     {/* Decorative background number */}
-                    <div className="absolute -bottom-10 -right-10 text-[12rem] font-black text-white/5 select-none pointer-events-none leading-none">
+                    <div className="hidden">
                         02
                     </div>
                 </motion.div>
 
                 <motion.div 
-                    whileHover={{ y: -8, scale: 1.02 }}
-                    className="bg-white p-10 rounded-[3.5rem] border border-slate-100 shadow-sm relative overflow-hidden group"
+                    whileHover={{ y: -4 }}
+                    className="bg-white p-7 rounded-[2rem] border border-slate-200 shadow-sm"
                 >
-                    <div className="flex justify-between items-start mb-12">
+                    <div className="flex justify-between items-start mb-6">
                         <div className="flex items-center gap-4">
-                            <div className="w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white transition-all duration-500 shadow-lg shadow-emerald-500/10">
-                                <Icons.CheckCircle className="w-6 h-6" />
+                            <div className="w-11 h-11 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-700">
+                                <Icons.CheckCircle className="w-5 h-5" />
                             </div>
                             <div>
                                 <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-1">Efectividad</h3>
-                                <p className="text-xs font-black text-slate-900 uppercase tracking-widest">Resolución</p>
+                                <p className="text-xs font-black text-slate-900 uppercase tracking-widest">Resolucion</p>
                             </div>
                         </div>
                     </div>
                     <div className="flex items-baseline gap-3 mb-10">
-                        <span className="text-8xl font-black text-slate-900 tracking-tighter leading-none">
+                        <span className="text-5xl font-black text-slate-950 tracking-tight leading-none">
                             {Math.round((resolutionChartData.find(d => d.name === 'Resuelto')?.value || 0) / (uniqueClaimsCount || 1) * 100)}%
                         </span>
                         <div className="flex flex-col">
@@ -498,7 +498,7 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
                         </div>
                     </div>
                     {/* Decorative background number */}
-                    <div className="absolute -bottom-10 -right-10 text-[12rem] font-black text-slate-50 select-none pointer-events-none leading-none opacity-50">
+                    <div className="hidden">
                         03
                     </div>
                 </motion.div>
@@ -509,10 +509,10 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
                 {/* Annual Evolution - Large */}
                 <div className="xl:col-span-2">
                     <ChartWrapper 
-                        title="Evolución Anual de Reclamos"
-                        subtitle="Reclamos (OR Únicas) por mes"
+                        title="Evolucion anual de reclamos"
+                        subtitle="Casos unicos por mes"
                     >
-                        <div className="h-[400px] w-full mt-10">
+                        <div className="h-[340px] w-full mt-6">
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={annualClaimsChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                                     <defs>
@@ -521,8 +521,8 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
                                             <stop offset="100%" stopColor="#1E40AF" stopOpacity={1} />
                                         </linearGradient>
                                         <linearGradient id="barGradientInactive" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="0%" stopColor="#0f172a" stopOpacity={0.8} />
-                                            <stop offset="100%" stopColor="#0f172a" stopOpacity={1} />
+                                            <stop offset="0%" stopColor="#cbd5e1" stopOpacity={1} />
+                                            <stop offset="100%" stopColor="#94a3b8" stopOpacity={1} />
                                         </linearGradient>
                                     </defs>
                                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
@@ -530,15 +530,15 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
                                         dataKey="name" 
                                         axisLine={false} 
                                         tickLine={false} 
-                                        tick={{fontSize: 10, fill: '#94a3b8', fontWeight: 900}}
+                                        tick={{fontSize: 11, fill: '#64748b', fontWeight: 700}}
                                         interval={0}
                                     />
-                                    <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fill: '#94a3b8', fontWeight: 900}} />
+                                    <YAxis axisLine={false} tickLine={false} tick={{fontSize: 11, fill: '#64748b', fontWeight: 700}} />
                                     <Tooltip 
                                         cursor={{fill: '#f8fafc'}} 
-                                        contentStyle={{borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.25)', textTransform: 'uppercase', fontSize: '10px', fontWeight: 900}} 
+                                        contentStyle={{borderRadius: '18px', border: '1px solid #e2e8f0', boxShadow: '0 16px 30px -12px rgb(15 23 42 / 0.18)', fontSize: '12px', fontWeight: 600}} 
                                     />
-                                    <Bar dataKey="value" radius={[12, 12, 0, 0]} barSize={45}>
+                                    <Bar dataKey="value" radius={[10, 10, 0, 0]} barSize={34}>
                                         {annualClaimsChartData.map((entry, index) => (
                                             <Cell 
                                                 key={`cell-${index}`} 
@@ -553,17 +553,17 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
                 </div>
 
                 {/* Resolution Pie Chart */}
-                <ChartWrapper title="Estado de Resolución" subtitle="Distribución de casos">
-                    <div className="h-[400px] relative mt-10">
+                <ChartWrapper title="Estado de resolucion" subtitle="Distribucion de casos">
+                    <div className="h-[340px] relative mt-6">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                                 <Pie
                                     data={resolutionChartData}
                                     cx="50%"
                                     cy="50%"
-                                    innerRadius={90}
-                                    outerRadius={130}
-                                    paddingAngle={12}
+                                    innerRadius={72}
+                                    outerRadius={106}
+                                    paddingAngle={6}
                                     dataKey="value"
                                     stroke="none"
                                 >
@@ -571,16 +571,16 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
                                         <Cell key={`cell-${index}`} fill={entry.name === 'Resuelto' ? '#10B981' : '#F43F5E'} stroke="none" />
                                     ))}
                                 </Pie>
-                                <Tooltip contentStyle={{borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.25)'}} />
-                                <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{fontSize: '10px', fontWeight: 900, textTransform: 'uppercase', paddingTop: '20px'}} />
+                                <Tooltip contentStyle={{borderRadius: '18px', border: '1px solid #e2e8f0', boxShadow: '0 16px 30px -12px rgb(15 23 42 / 0.18)'}} />
+                                <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{fontSize: '11px', fontWeight: 600, paddingTop: '10px'}} />
                             </PieChart>
                         </ResponsiveContainer>
                         <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
                             <div className="text-center">
-                                <span className="text-5xl font-black text-slate-950 italic leading-none">
+                                <span className="text-4xl font-black text-slate-950 leading-none">
                                     {Math.round((resolutionChartData.find(d => d.name === 'Resuelto')?.value || 0) / (uniqueClaimsCount || 1) * 100)}%
                                 </span>
-                                <span className="block text-[10px] text-slate-400 font-black uppercase tracking-widest mt-3">Éxito</span>
+                                <span className="block text-[10px] text-slate-400 font-black uppercase tracking-widest mt-3">Exito</span>
                             </div>
                         </div>
                     </div>
@@ -589,10 +589,10 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
 
             {/* Motivos Chart - Full Width */}
             <ChartWrapper 
-                title="Motivos de Reclamo"
-                subtitle="Frecuencia de incidencias - Top 10 Análisis Detallado"
+                title="Motivos de reclamo"
+                subtitle="Top 10 de incidencias"
             >
-                <div style={{ height: `${Math.max(500, topMotivoChartData.length * 55)}px` }} className="mt-10">
+                <div style={{ height: `${Math.max(500, topMotivoChartData.length * 55)}px` }} className="mt-7">
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart 
                             layout="vertical" 
@@ -638,10 +638,10 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
             {/* Sector Responsable Chart - Full Width */}
             {sectorChartData.length > 0 && (
                 <ChartWrapper 
-                    title="Sector Responsable"
-                    subtitle="Distribución de reclamos por área de responsabilidad"
+                    title="Sector responsable"
+                    subtitle="Distribucion por area"
                 >
-                    <div style={{ height: `${Math.max(400, sectorChartData.length * 55)}px` }} className="mt-10">
+                    <div style={{ height: `${Math.max(400, sectorChartData.length * 55)}px` }} className="mt-7">
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart 
                                 layout="vertical" 
@@ -685,37 +685,37 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
             )}
 
             {/* Performance por Asesor Section */}
-            <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
-                <div className="px-10 py-6 border-b border-slate-50 bg-slate-50/30 flex items-center justify-between">
+            <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden">
+                <div className="px-8 py-5 border-b border-slate-200 bg-slate-50/60 flex items-center justify-between">
                     <div>
-                        <h3 className="text-xl font-black text-slate-900 tracking-tighter uppercase italic">Performance por Asesor</h3>
-                        <p className="text-[9px] font-black text-slate-400 uppercase tracking-[0.4em] mt-1">Distribución de carga</p>
+                        <h3 className="text-xl font-black text-slate-900 tracking-tight">Performance por Asesor</h3>
+                        <p className="text-[11px] font-semibold text-slate-500 mt-1">Distribucion de carga</p>
                     </div>
-                    <div className="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
+                    <div className="w-10 h-10 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-700">
                         <Icons.Users className="w-5 h-5" />
                     </div>
                 </div>
-                <div className="p-8 overflow-x-auto no-scrollbar">
-                    <div className="flex gap-6 min-w-max">
+                <div className="p-6 overflow-x-auto no-scrollbar">
+                    <div className="flex gap-4 min-w-max">
                         {responsableTableData.map((r, i) => {
                             const isSelected = selectedResponsable === r.name;
                             return (
                                 <motion.button 
                                     key={i} 
-                                    whileHover={{ y: -5, scale: 1.02 }}
+                                    whileHover={{ y: -3 }}
                                     onClick={() => setSelectedResponsable(isSelected ? null : r.name)}
-                                    className={`flex flex-col justify-center items-center min-w-[180px] p-8 rounded-[2.5rem] transition-all border ${
+                                    className={`flex flex-col justify-center items-center min-w-[170px] p-6 rounded-[1.75rem] transition-all border ${
                                         isSelected 
                                         ? 'bg-slate-950 text-white border-slate-950 shadow-xl shadow-slate-900/40' 
                                         : 'bg-white hover:bg-slate-50 text-slate-600 border-slate-100'
                                     }`}
                                 >
-                                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center mb-6 ${isSelected ? 'bg-blue-500/20 text-blue-400' : 'bg-slate-50 text-slate-300'}`}>
+                                    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center mb-4 ${isSelected ? 'bg-blue-500/20 text-blue-400' : 'bg-slate-50 text-slate-400'}`}>
                                         <Icons.User className="w-5 h-5" />
                                     </div>
-                                    <span className="text-[10px] font-black uppercase tracking-tight mb-4 text-center line-clamp-2 max-w-[140px]">{r.name}</span>
-                                    <div className={`text-4xl font-black italic ${isSelected ? 'text-blue-400' : 'text-slate-950'}`}>{r.value}</div>
-                                    <div className="text-[8px] font-black uppercase tracking-widest opacity-40 mt-2">Reclamos</div>
+                                    <span className="text-[12px] font-semibold mb-3 text-center line-clamp-2 max-w-[140px] leading-tight">{r.name}</span>
+                                    <div className={`text-3xl font-black ${isSelected ? 'text-blue-400' : 'text-slate-950'}`}>{r.value}</div>
+                                    <div className="text-[10px] font-medium opacity-60 mt-1">Reclamos</div>
                                 </motion.button>
                             );
                         })}
@@ -724,18 +724,18 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
             </div>
 
             {/* Modern Detail Table */}
-            <div className="bg-white rounded-[3.5rem] shadow-sm border border-slate-100 overflow-hidden">
-                <div className="p-12 border-b border-slate-50 bg-slate-50/30 flex flex-col md:flex-row items-start md:items-center justify-between gap-8">
+            <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden">
+                <div className="p-8 border-b border-slate-200 bg-slate-50/60 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
                     <div>
-                        <h3 className="text-4xl font-black text-slate-900 tracking-tighter uppercase italic">Registros Detallados</h3>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] mt-2">Historial completo de gestiones</p>
+                        <h3 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">Registros Detallados</h3>
+                        <p className="text-sm text-slate-500 mt-2">Historial completo de gestiones</p>
                     </div>
                     <div className="flex items-center gap-6">
-                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest bg-white border border-slate-100 px-8 py-4 rounded-2xl shadow-sm">
+                        <span className="text-sm font-semibold text-slate-600 bg-white border border-slate-200 px-5 py-3 rounded-2xl shadow-sm">
                             {displayData.length} Resultados
                         </span>
-                        <button className="w-14 h-14 rounded-2xl bg-slate-950 text-white flex items-center justify-center hover:bg-blue-600 transition-all shadow-xl shadow-slate-900/20">
-                            <Icons.Download className="w-6 h-6" />
+                        <button className="w-12 h-12 rounded-2xl bg-white border border-slate-200 text-slate-700 flex items-center justify-center hover:bg-slate-50 transition-all shadow-sm">
+                            <Icons.Download className="w-5 h-5" />
                         </button>
                     </div>
                 </div>
@@ -743,8 +743,8 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-slate-50/50">
-                                <th className="p-12 text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] w-1/3">Cliente / Información</th>
-                                <th className="p-12 text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] w-2/3">Detalle del Reclamo y Gestión</th>
+                                <th className="p-8 text-[11px] font-semibold text-slate-500 tracking-[0.14em] w-1/3">Cliente / Informacion</th>
+                                <th className="p-8 text-[11px] font-semibold text-slate-500 tracking-[0.14em] w-2/3">Detalle del Reclamo y Gestion</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50">
@@ -754,36 +754,36 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
                                 const advisor = record.asesor ? normalizeString(record.asesor) : (record.responsable ? normalizeString(record.responsable) : 'Sin Asignar');
                                 
                                 return (
-                                <tr key={idx} className="hover:bg-slate-50/30 transition-colors group border-l-4 border-transparent hover:border-blue-500">
-                                    <td className="p-12 align-top border-r border-slate-50/50">
-                                        <div className="text-slate-950 font-black uppercase text-lg tracking-tight mb-6 leading-tight">{record.cliente}</div>
+                                <tr key={idx} className="hover:bg-slate-50/30 transition-colors group">
+                                    <td className="p-8 align-top border-r border-slate-100">
+                                        <div className="text-slate-950 font-black text-lg tracking-tight mb-5 leading-tight">{record.cliente}</div>
                                         <div className="flex flex-wrap gap-3 mb-10">
-                                            <div className="flex items-center gap-2 bg-slate-950 text-white px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest shadow-lg shadow-slate-900/10">
+                                            <div className="flex items-center gap-2 bg-slate-950 text-white px-3.5 py-2 rounded-xl text-[10px] font-semibold tracking-wide shadow-sm">
                                                 <Icons.FileText className="w-3 h-3 text-blue-400" />
                                                 OR: {record.orden}
                                             </div>
-                                            <div className="flex items-center gap-2 bg-slate-50 text-slate-500 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-slate-100">
+                                            <div className="flex items-center gap-2 bg-slate-50 text-slate-600 px-3.5 py-2 rounded-xl text-[10px] font-semibold tracking-wide border border-slate-200">
                                                 <Icons.MapPin className="w-3 h-3 text-slate-300" />
                                                 {record.sucursal}
                                             </div>
                                             {record.categorizacion && record.categorizacion !== '-' && (
-                                                <div className="flex items-center gap-2 bg-indigo-50 text-indigo-600 px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest border border-indigo-100">
+                                                <div className="flex items-center gap-2 bg-blue-50 text-blue-700 px-3.5 py-2 rounded-xl text-[10px] font-semibold tracking-wide border border-blue-100">
                                                     <Icons.Tag className="w-3 h-3" />
                                                     {record.categorizacion}
                                                 </div>
                                             )}
                                         </div>
                                         
-                                        <div className="space-y-5">
-                                            <div className="flex items-center gap-4 text-[11px] font-black text-slate-400 uppercase tracking-tight group-hover:text-blue-600 transition-colors">
-                                                <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center">
+                                        <div className="space-y-4">
+                                            <div className="flex items-center gap-3 text-[12px] font-semibold text-slate-600 group-hover:text-blue-700 transition-colors">
+                                                <div className="w-8 h-8 rounded-xl bg-slate-50 flex items-center justify-center">
                                                     <Icons.User className="w-4 h-4" />
                                                 </div>
                                                 <span>Asesor: {advisor}</span>
                                             </div>
                                             {record.sector && (
-                                                <div className="flex items-center gap-4 text-[11px] font-black text-slate-400 uppercase tracking-tight">
-                                                    <div className="w-8 h-8 rounded-lg bg-slate-50 flex items-center justify-center">
+                                                <div className="flex items-center gap-3 text-[12px] font-semibold text-slate-600">
+                                                    <div className="w-8 h-8 rounded-xl bg-slate-50 flex items-center justify-center">
                                                         <Icons.ShieldCheck className="w-4 h-4 text-indigo-400" />
                                                     </div>
                                                     <span>Sector: {normalizeString(record.sector)}</span>
@@ -792,8 +792,8 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
                                         </div>
 
                                         {(isResolved || isNotResolved) && (
-                                            <div className="mt-10">
-                                                <div className={`inline-flex items-center gap-3 px-6 py-2.5 rounded-full text-[10px] font-black uppercase tracking-[0.2em] border ${
+                                            <div className="mt-7">
+                                                <div className={`inline-flex items-center gap-2.5 px-4 py-2 rounded-full text-[10px] font-semibold tracking-[0.12em] border ${
                                                     isResolved 
                                                     ? 'bg-emerald-50 text-emerald-600 border-emerald-100' 
                                                     : 'bg-rose-50 text-rose-600 border-rose-100'
@@ -804,12 +804,12 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
                                             </div>
                                         )}
                                     </td>
-                                    <td className="p-12 text-sm text-slate-600 leading-relaxed align-top">
-                                        <div className="space-y-10">
-                                            <div className="bg-white p-8 rounded-[2.5rem] border border-slate-50 shadow-sm relative group-hover:border-blue-100 transition-colors">
-                                                <span className="text-[10px] text-slate-300 font-black uppercase tracking-[0.3em] block mb-6">Observación del Reclamo</span>
-                                                <p className="text-sm font-bold text-slate-700 leading-relaxed">
-                                                    {record.observacion || <span className="italic opacity-30">Sin descripción registrada</span>}
+                                    <td className="p-8 text-sm text-slate-600 leading-relaxed align-top">
+                                        <div className="space-y-7">
+                                            <div className="bg-slate-50/70 p-6 rounded-[1.5rem] border border-slate-200 relative group-hover:border-blue-100 transition-colors">
+                                                <span className="text-[11px] text-slate-500 font-semibold tracking-[0.12em] block mb-4">Observacion del Reclamo</span>
+                                                <p className="text-[15px] font-medium text-slate-700 leading-7">
+                                                    {record.observacion || <span className="italic opacity-30">Sin descripcion registrada</span>}
                                                 </p>
                                             </div>
                                             
@@ -822,10 +822,10 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
                                                         const isSelected = selectedMotivo === trimmedTag;
                                                         
                                                         return (
-                                                            <span key={tIdx} className={`text-[10px] font-black uppercase tracking-widest px-6 py-3 rounded-2xl border transition-all ${
+                                                            <span key={tIdx} className={`text-[10px] font-semibold tracking-[0.08em] px-4 py-2 rounded-xl border transition-all ${
                                                                 isSelected 
-                                                                ? 'bg-blue-600 text-white border-blue-600 shadow-xl shadow-blue-500/20' 
-                                                                : 'bg-white text-slate-400 border-slate-100 group-hover:border-slate-200'
+                                                                ? 'bg-blue-600 text-white border-blue-600 shadow-sm' 
+                                                                : 'bg-white text-slate-500 border-slate-200 group-hover:border-slate-300'
                                                             }`}>
                                                                 {trimmedTag}
                                                             </span>
@@ -835,13 +835,13 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
                                             )}
                                             
                                             {record.observacion_resolucion && (
-                                                 <div className="mt-10 bg-slate-900 rounded-[2.5rem] p-10 text-[12px] text-slate-300 italic relative overflow-hidden shadow-2xl">
-                                                     <div className="absolute top-0 left-0 w-2 h-full bg-blue-500"></div>
-                                                     <div className="flex items-center gap-3 mb-6">
+                                                 <div className="mt-7 bg-slate-950 rounded-[1.75rem] p-7 text-[13px] text-slate-200 relative overflow-hidden shadow-lg">
+                                                     <div className="absolute top-0 left-0 w-1 h-full bg-blue-500"></div>
+                                                     <div className="flex items-center gap-3 mb-4">
                                                         <Icons.CheckCircle className="w-4 h-4 text-blue-400" />
-                                                        <span className="font-black text-blue-400 not-italic text-[10px] uppercase tracking-[0.3em]">Resolución de Gestión</span>
+                                                        <span className="font-semibold text-blue-400 not-italic text-[11px] tracking-[0.14em]">Resolucion de Gestion</span>
                                                      </div>
-                                                     <p className="leading-relaxed font-medium">
+                                                     <p className="leading-6 font-medium">
                                                          {record.observacion_resolucion}
                                                      </p>
                                                  </div>
@@ -849,23 +849,23 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
 
                                             {/* Root Cause and Actions Section */}
                                             {(record.causa_raiz || record.accion_contencion || record.accion_correctiva) && (
-                                                <div className="mt-10 grid grid-cols-1 md:grid-cols-3 gap-6">
+                                                <div className="mt-7 grid grid-cols-1 md:grid-cols-3 gap-4">
                                                     {record.causa_raiz && (
-                                                        <div className="bg-rose-50/50 p-6 rounded-3xl border border-rose-100">
-                                                            <span className="text-[9px] text-rose-400 font-black uppercase tracking-widest block mb-2">Causa Raíz</span>
-                                                            <p className="text-[11px] font-bold text-slate-700">{record.causa_raiz}</p>
+                                                        <div className="bg-rose-50/60 p-5 rounded-[1.5rem] border border-rose-100">
+                                                            <span className="text-[10px] text-rose-500 font-semibold tracking-[0.1em] block mb-2">Causa Raiz</span>
+                                                            <p className="text-[12px] font-medium text-slate-700 leading-6">{record.causa_raiz}</p>
                                                         </div>
                                                     )}
                                                     {record.accion_contencion && (
-                                                        <div className="bg-amber-50/50 p-6 rounded-3xl border border-amber-100">
-                                                            <span className="text-[9px] text-amber-500 font-black uppercase tracking-widest block mb-2">Acción Contención</span>
-                                                            <p className="text-[11px] font-bold text-slate-700">{record.accion_contencion}</p>
+                                                        <div className="bg-amber-50/60 p-5 rounded-[1.5rem] border border-amber-100">
+                                                            <span className="text-[10px] text-amber-600 font-semibold tracking-[0.1em] block mb-2">Accion Contencion</span>
+                                                            <p className="text-[12px] font-medium text-slate-700 leading-6">{record.accion_contencion}</p>
                                                         </div>
                                                     )}
                                                     {record.accion_correctiva && (
-                                                        <div className="bg-emerald-50/50 p-6 rounded-3xl border border-emerald-100">
-                                                            <span className="text-[9px] text-emerald-500 font-black uppercase tracking-widest block mb-2">Acción Correctiva</span>
-                                                            <p className="text-[11px] font-bold text-slate-700">{record.accion_correctiva}</p>
+                                                        <div className="bg-emerald-50/60 p-5 rounded-[1.5rem] border border-emerald-100">
+                                                            <span className="text-[10px] text-emerald-600 font-semibold tracking-[0.1em] block mb-2">Accion Correctiva</span>
+                                                            <p className="text-[12px] font-medium text-slate-700 leading-6">{record.accion_correctiva}</p>
                                                         </div>
                                                     )}
                                                 </div>
@@ -877,9 +877,9 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
                         </tbody>
                     </table>
                 </div>
-                <div className="p-12 bg-slate-50/50 border-t border-slate-50 flex justify-center">
-                    <button className="px-12 py-5 bg-white border border-slate-200 rounded-[2rem] text-[11px] font-black text-slate-950 uppercase tracking-[0.3em] hover:bg-slate-950 hover:text-white transition-all shadow-xl shadow-slate-900/5">
-                        Cargar más resultados
+                <div className="p-8 bg-slate-50/50 border-t border-slate-100 flex justify-center">
+                    <button className="px-8 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-semibold text-slate-800 hover:bg-slate-950 hover:text-white transition-all shadow-sm">
+                        Cargar mas resultados
                     </button>
                 </div>
             </div>
@@ -889,3 +889,5 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
 };
 
 export default QualityDashboard;
+
+

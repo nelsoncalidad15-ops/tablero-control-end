@@ -42,3 +42,7 @@ services:
         sync: false
       - key: LINK_RRHH_RELAT
         sync: false
+      - key: LINK_RRHH_CONTACTOS
+        sync: false
+      - key: LINK_RRHH_FASES
+        sync: false

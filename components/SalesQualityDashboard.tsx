@@ -11,7 +11,6 @@ import { SalesQualityRecord, SalesClaimsRecord, CemOsRecord, LoadingState, AppCo
 import { MONTHS, SALES_QUALITY_SHEET_KEY, SALES_CLAIMS_SHEET_KEY, CEM_OS_SHEET_KEY, CEM_OS_SALTA_SHEET_KEY } from '../constants';
 import CemOsDashboard from './CemOsDashboard';
 import { DashboardFrame, LuxuryKPICard, SkeletonLoader, StatusBadge, InsightCard, DataTable, ChartWrapper, MonthSelector } from './DashboardUI';
-import ChatBot from './ChatBot';
 
 // --- SHARED COMPONENTS ---
 
@@ -1230,10 +1229,6 @@ const SalesQualityDashboard: React.FC<SalesQualityDashboardProps> = ({ onBack, i
             )
             }
         </div>
-        <ChatBot 
-            apiKey={typeof process !== 'undefined' ? process.env.GEMINI_API_KEY : ''}
-            context={`Dashboard de Calidad de Ventas. Tab activo: ${activeTab}. Unidades analizadas: ${totalUnidades}.`}
-        />
     </DashboardFrame>
   );
 };

@@ -26,6 +26,23 @@ interface CemOsDashboardProps {
 
 const COLORS = ['#001E50', '#00B0F0', '#10b981', '#64748b', '#ef4444', '#334155'];
 
+const isValidDateValue = (val: string) => {
+  if (!val) return false;
+  const clean = val.trim();
+  if (!clean) return false;
+
+  const normalized = clean.replace(/\s+/g, ' ');
+  const datePatterns = [
+    /^\d{1,2}[/-]\d{1,2}[/-]\d{2,4}(?:\s+\d{1,2}:\d{2}(?::\d{2})?)?$/,
+    /^\d{4}[/-]\d{1,2}[/-]\d{1,2}(?:[ T].*)?$/
+  ];
+
+  if (datePatterns.some(pattern => pattern.test(normalized))) return true;
+
+  const parsed = Date.parse(normalized);
+  return !Number.isNaN(parsed);
+};
+
 const CemOsDashboard: React.FC<CemOsDashboardProps> = ({ 
   data = [], 
   loadingState, 
@@ -75,14 +92,9 @@ const CemOsDashboard: React.FC<CemOsDashboardProps> = ({
     const total = filteredData.length;
     
     // Declared: unique emails that have a valid date in fecha_link_llega
-    const isDate = (val: string) => {
-      if (!val) return false;
-      return /\d{1,2}[/-]\d{1,2}[/-]\d{2,4}/.test(val);
-    };
-
     const declaredEmails = new Set(
       filteredData
-        .filter(d => isDate(d.fecha_link_llega))
+        .filter(d => isValidDateValue(d.fecha_link_llega))
         .map(d => d.cliente_email)
         .filter(Boolean)
     );
@@ -149,8 +161,6 @@ const CemOsDashboard: React.FC<CemOsDashboardProps> = ({
   const advisorStats = useMemo(() => {
     const advisors: Record<string, { active: number, responded: number }> = {};
     
-    const isDate = (val: string) => /\d{1,2}[/-]\d{1,2}[/-]\d{2,4}/.test(val);
-
     filteredData.forEach(d => {
       if (!d.vendedor) return;
       
@@ -158,7 +168,7 @@ const CemOsDashboard: React.FC<CemOsDashboardProps> = ({
 
       if (!advisors[name]) advisors[name] = { active: 0, responded: 0 };
       
-      const hasLink = isDate(d.fecha_link_llega);
+      const hasLink = isValidDateValue(d.fecha_link_llega);
       const hasResponded = d.cem_score !== null;
       
       if (hasLink) {

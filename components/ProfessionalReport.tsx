@@ -115,7 +115,19 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
 
   const isDate = (val: string) => {
     if (!val) return false;
-    return /\d{1,2}[/-]\d{1,2}[/-]\d{2,4}/.test(val);
+    const clean = val.trim();
+    if (!clean) return false;
+
+    const normalized = clean.replace(/\s+/g, ' ');
+    const datePatterns = [
+      /^\d{1,2}[/-]\d{1,2}[/-]\d{2,4}(?:\s+\d{1,2}:\d{2}(?::\d{2})?)?$/,
+      /^\d{4}[/-]\d{1,2}[/-]\d{1,2}(?:[ T].*)?$/
+    ];
+
+    if (datePatterns.some(pattern => pattern.test(normalized))) return true;
+
+    const parsed = Date.parse(normalized);
+    return !Number.isNaN(parsed);
   };
 
   const filteredMetrics = useMemo(() => {

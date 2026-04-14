@@ -154,7 +154,7 @@ function App() {
     }
   };
 
-  const PasswordGate = () => (
+  const passwordGate = (
     <div className="min-h-screen flex items-center justify-center px-6 bg-[radial-gradient(circle_at_top,_rgba(14,165,233,0.18),_transparent_40%),linear-gradient(135deg,_#020617_0%,_#0f172a_45%,_#111827_100%)]">
       <div className="w-full max-w-xl rounded-[2.5rem] border border-white/10 bg-white/6 p-8 md:p-12 text-white shadow-2xl backdrop-blur-3xl">
         <div className="mb-8 flex items-center gap-4">
@@ -666,7 +666,7 @@ function App() {
   }
 
   if (requiresPassword && !hasDashboardAccess) {
-    return <PasswordGate />;
+    return passwordGate;
   }
 
   return (

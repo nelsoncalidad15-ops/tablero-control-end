@@ -49,6 +49,8 @@ async function startServer() {
     res.setHeader("Vary", "Origin");
     res.setHeader("X-Content-Type-Options", "nosniff");
     res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+    res.setHeader("Cache-Control", "no-store, max-age=0");
+    res.setHeader("Pragma", "no-cache");
     next();
   });
 
@@ -102,10 +104,11 @@ async function startServer() {
     rrhh: process.env.SHEET_URL_RRHH || process.env.RRHH_URL,
     ventas: process.env.SHEET_URL_VENTAS || process.env.VENTAS_URL,
   };
+  const allowedSheetNames = new Set(Object.keys(sheetUrls));
+  const passwordProtected = process.env.IS_PASSWORD_PROTECTED === "true" && !!process.env.GLOBAL_PASSWORD;
+  const dashboardPassword = (process.env.GLOBAL_PASSWORD || "").trim();
 
   console.log("[Debug] Current Working Directory:", process.cwd());
-  console.log("[Debug] LINK_AVANCE_PPT:", process.env.LINK_AVANCE_PPT ? "Found" : "Not Found");
-  console.log("[Debug] GOOGLE_SERVICE_ACCOUNT_EMAIL:", process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL ? "Found" : "Not Found");
 
   // Helper to extract Spreadsheet ID and GID from URL
   const extractSheetInfo = (url: string) => {
@@ -175,8 +178,28 @@ async function startServer() {
   ) => {
     res.setHeader("X-Cache-Status", cacheStatus);
     res.setHeader("X-Data-Source", source);
+    res.setHeader("Cache-Control", "no-store, max-age=0");
     res.header("Content-Type", "text/csv; charset=utf-8");
     return res.send(csv);
+  };
+
+  const getProvidedPassword = (req: express.Request) =>
+    (req.header("X-Dashboard-Password") || "").trim();
+
+  const requireDashboardPassword = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    if (!passwordProtected) {
+      return next();
+    }
+
+    const providedPassword = getProvidedPassword(req);
+    if (providedPassword && providedPassword === dashboardPassword) {
+      return next();
+    }
+
+    return res.status(401).json({
+      error: "Contraseña de acceso requerida.",
+      passwordProtected: true,
+    });
   };
 
   // Helper to normalize Google Sheets URLs to CSV export links (Legacy method)
@@ -205,12 +228,28 @@ async function startServer() {
   };
 
   // API Route to proxy Google Sheets
-  app.get("/api/data/:sheetName", async (req, res) => {
-    const { sheetName } = req.params;
-    const queryUrl = req.query.url as string;
-    let url = queryUrl || sheetUrls[sheetName];
+  app.get("/api/auth/validate", (req, res) => {
+    if (!passwordProtected) {
+      return res.json({ passwordProtected: false, valid: true });
+    }
+
+    const providedPassword = getProvidedPassword(req);
+    if (providedPassword && providedPassword === dashboardPassword) {
+      return res.json({ passwordProtected: true, valid: true });
+    }
+
+    return res.status(401).json({ passwordProtected: true, valid: false });
+  });
+
+  app.get("/api/data/:sheetName", requireDashboardPassword, async (req, res) => {
+    const sheetName = String(req.params.sheetName || "");
+    let url = sheetUrls[sheetName];
 
     console.log(`[Proxy] Request for sheet: ${sheetName}`);
+
+    if (!allowedSheetNames.has(sheetName)) {
+      return res.status(404).json({ error: `La fuente "${sheetName}" no existe.` });
+    }
 
     if (!url) {
       return res.status(400).json({ error: `Falta configurar el link de Google Sheets para "${sheetName}".` });
@@ -320,37 +359,9 @@ async function startServer() {
       status: "ok", 
       environment: process.env.NODE_ENV || "development",
       time: new Date().toISOString(),
-      nodeVersion: process.version,
-      googleAuthConfigured: !!(process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && process.env.GOOGLE_PRIVATE_KEY),
-      configuredSheetsCount: Object.values(sheetUrls).filter(Boolean).length,
-      cachedSheetsCount: sheetCache.size
+      passwordProtected
     });
   });
-
-  if (process.env.NODE_ENV !== "production") {
-    app.get("/api/debug/secrets", (req, res) => {
-      const relevantKeys = Object.keys(process.env).filter(key =>
-        key.startsWith("LINK_") ||
-        key.startsWith("SHEET_") ||
-        key.startsWith("GOOGLE_") ||
-        key === "VITE_API_URL"
-      );
-
-      const secretsStatus: Record<string, boolean | number | string[] | undefined> = {
-        _found_keys: relevantKeys,
-        GOOGLE_SERVICE_ACCOUNT_EMAIL: !!process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL,
-        GOOGLE_PRIVATE_KEY: !!process.env.GOOGLE_PRIVATE_KEY,
-        GOOGLE_PRIVATE_KEY_LENGTH: process.env.GOOGLE_PRIVATE_KEY?.length || 0,
-        VITE_API_URL: !!process.env.VITE_API_URL,
-      };
-
-      relevantKeys.forEach(key => {
-        secretsStatus[key] = !!process.env[key];
-      });
-
-      res.json(secretsStatus);
-    });
-  }
 
   // Vite middleware for development
   if (process.env.NODE_ENV !== "production") {

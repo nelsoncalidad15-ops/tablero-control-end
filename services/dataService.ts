@@ -3,6 +3,7 @@
 import Papa from 'papaparse';
 import { AutoRecord, QualityRecord, SalesQualityRecord, SalesClaimsRecord, DetailedQualityRecord, PostventaKpiRecord, BillingRecord, PCGCRecord, CemOsRecord, InternalPostventaRecord, ActionPlanRecord, CourseGrade, RelatorioItem, CollaboratorContact, CoursePhase } from '../types';
 import { buildApiUrl } from './apiConfig';
+import { getStoredDashboardPassword } from './apiConfig';
 
 // --- Helper Functions ---
 
@@ -244,6 +245,20 @@ let backendWakePromise: Promise<void> | null = null;
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+const buildRequestHeaders = () => {
+    const headers: Record<string, string> = {
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+    };
+
+    const dashboardPassword = getStoredDashboardPassword();
+    if (dashboardPassword) {
+        headers['X-Dashboard-Password'] = dashboardPassword;
+    }
+
+    return headers;
+};
+
 const wakeBackendIfNeeded = async () => {
     const apiBase = buildApiUrl('');
     if (!apiBase || typeof window === 'undefined') return;
@@ -256,10 +271,7 @@ const wakeBackendIfNeeded = async () => {
             try {
                 await fetch(buildApiUrl('/api/health'), {
                     signal: controller.signal,
-                    headers: {
-                        'Accept': 'application/json',
-                        'X-Requested-With': 'XMLHttpRequest'
-                    }
+                    headers: buildRequestHeaders()
                 });
             } catch (error) {
                 console.warn('[DataService] Backend wake-up ping failed, continuing with main request.', error);
@@ -275,10 +287,7 @@ const wakeBackendIfNeeded = async () => {
 const fetchFromProxy = async (sheetKey: string): Promise<string> => {
     await wakeBackendIfNeeded();
 
-    // If it's a full URL, pass it as a query parameter to our proxy to avoid CORS
-    const url = sheetKey.startsWith('http') 
-        ? buildApiUrl(`/api/data/custom?url=${encodeURIComponent(sheetKey)}`) 
-        : buildApiUrl(`/api/data/${sheetKey}`);
+    const url = buildApiUrl(`/api/data/${encodeURIComponent(sheetKey)}`);
     
     console.log(`[DataService] Fetching from: ${url}`);
 
@@ -291,10 +300,7 @@ const fetchFromProxy = async (sheetKey: string): Promise<string> => {
         try {
             const response = await fetch(url, { 
                 signal: controller.signal,
-                headers: {
-                    'Accept': 'application/json',
-                    'X-Requested-With': 'XMLHttpRequest'
-                }
+                headers: buildRequestHeaders()
             });
             clearTimeout(timeoutId);
 

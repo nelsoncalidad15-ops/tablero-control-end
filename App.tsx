@@ -6,6 +6,7 @@ import Portal from './components/Portal';
 import { Icons } from './components/Icon';
 import { AppConfig, AreaConfig, AreaType } from './types';
 import { DEFAULT_CONFIG, SALES_QUALITY_SHEET_KEY, SALES_CLAIMS_SHEET_KEY, AREAS } from './constants';
+import { buildApiUrl, clearStoredDashboardPassword, getStoredDashboardPassword, setStoredDashboardPassword } from './services/apiConfig';
 
 const Dashboard = lazy(() => import('./components/Dashboard'));
 const QualityDashboard = lazy(() => import('./components/QualityDashboard'));
@@ -30,10 +31,178 @@ function App() {
   const [config, setConfig] = useState<AppConfig>(DEFAULT_CONFIG);
   const [printReportLocation, setPrintReportLocation] = useState<'JUJUY' | 'SALTA' | null>(null);
   const [reportConfig, setReportConfig] = useState<{ location: 'JUJUY' | 'SALTA', month: string | null, template: any } | null>(null);
+  const [isCheckingAccess, setIsCheckingAccess] = useState(true);
+  const [requiresPassword, setRequiresPassword] = useState(false);
+  const [hasDashboardAccess, setHasDashboardAccess] = useState(false);
+  const [passwordDraft, setPasswordDraft] = useState(getStoredDashboardPassword());
+  const [passwordError, setPasswordError] = useState('');
+  const [isPasswordSubmitting, setIsPasswordSubmitting] = useState(false);
 
   const handleSaveConfig = (newConfig: AppConfig) => {
     setConfig(newConfig);
   };
+
+  React.useEffect(() => {
+    let isActive = true;
+
+    const verifyAccess = async () => {
+      setIsCheckingAccess(true);
+
+      try {
+        const healthResponse = await fetch(buildApiUrl('/api/health'), {
+          headers: {
+            Accept: 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+          },
+        });
+        const healthData = await healthResponse.json();
+
+        if (!isActive) return;
+
+        const protectedMode = !!healthData.passwordProtected;
+        setRequiresPassword(protectedMode);
+
+        if (!protectedMode) {
+          setHasDashboardAccess(true);
+          setPasswordError('');
+          setIsCheckingAccess(false);
+          return;
+        }
+
+        const storedPassword = getStoredDashboardPassword();
+        setPasswordDraft(storedPassword);
+
+        if (!storedPassword) {
+          setHasDashboardAccess(false);
+          setPasswordError('');
+          setIsCheckingAccess(false);
+          return;
+        }
+
+        const validationResponse = await fetch(buildApiUrl('/api/auth/validate'), {
+          headers: {
+            Accept: 'application/json',
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-Dashboard-Password': storedPassword,
+          },
+        });
+
+        if (!isActive) return;
+
+        if (validationResponse.ok) {
+          setHasDashboardAccess(true);
+          setPasswordError('');
+        } else {
+          clearStoredDashboardPassword();
+          setPasswordDraft('');
+          setHasDashboardAccess(false);
+        }
+      } catch (error) {
+        if (!isActive) return;
+        console.warn('[App] Unable to verify backend access, continuing in unprotected mode.', error);
+        setRequiresPassword(false);
+        setHasDashboardAccess(true);
+      } finally {
+        if (isActive) {
+          setIsCheckingAccess(false);
+        }
+      }
+    };
+
+    verifyAccess();
+
+    return () => {
+      isActive = false;
+    };
+  }, []);
+
+  const handlePasswordSubmit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setPasswordError('');
+
+    const password = passwordDraft.trim();
+    if (!password) {
+      setPasswordError('Ingresá la contraseña para continuar.');
+      return;
+    }
+
+    setIsPasswordSubmitting(true);
+    try {
+      const validationResponse = await fetch(buildApiUrl('/api/auth/validate'), {
+        headers: {
+          Accept: 'application/json',
+          'X-Requested-With': 'XMLHttpRequest',
+          'X-Dashboard-Password': password,
+        },
+      });
+
+      if (!validationResponse.ok) {
+        throw new Error('Contraseña inválida');
+      }
+
+      setStoredDashboardPassword(password);
+      setRequiresPassword(true);
+      setHasDashboardAccess(true);
+      setPasswordError('');
+    } catch (error) {
+      clearStoredDashboardPassword();
+      setHasDashboardAccess(false);
+      setPasswordError('La contraseña no es válida. Probá de nuevo.');
+      console.error('[App] Password validation failed:', error);
+    } finally {
+      setIsPasswordSubmitting(false);
+    }
+  };
+
+  const PasswordGate = () => (
+    <div className="min-h-screen flex items-center justify-center px-6 bg-[radial-gradient(circle_at_top,_rgba(14,165,233,0.18),_transparent_40%),linear-gradient(135deg,_#020617_0%,_#0f172a_45%,_#111827_100%)]">
+      <div className="w-full max-w-xl rounded-[2.5rem] border border-white/10 bg-white/6 p-8 md:p-12 text-white shadow-2xl backdrop-blur-3xl">
+        <div className="mb-8 flex items-center gap-4">
+          <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-500/15 border border-blue-400/20 text-blue-300">
+            <Icons.Shield className="h-6 w-6" />
+          </div>
+          <div>
+            <p className="text-[10px] font-black uppercase tracking-[0.5em] text-blue-200/60">Acceso protegido</p>
+            <h1 className="mt-2 text-3xl font-black uppercase italic tracking-tighter">Tablero Autosol</h1>
+          </div>
+        </div>
+        <p className="max-w-lg text-sm text-slate-300">
+          Este entorno requiere una contraseña para ver los tableros y las fuentes de datos.
+        </p>
+        <form onSubmit={handlePasswordSubmit} className="mt-8 space-y-4">
+          <label className="block">
+            <span className="mb-2 block text-[10px] font-black uppercase tracking-[0.35em] text-slate-400">Contraseña</span>
+            <input
+              type="password"
+              value={passwordDraft}
+              onChange={(e) => setPasswordDraft(e.target.value)}
+              className="w-full rounded-2xl border border-white/10 bg-slate-950/60 px-5 py-4 text-sm text-white outline-none transition placeholder:text-slate-500 focus:border-blue-400/60"
+              placeholder="Ingresá la clave"
+              autoComplete="current-password"
+            />
+          </label>
+          {passwordError ? (
+            <p className="text-sm font-medium text-rose-300">{passwordError}</p>
+          ) : (
+            <p className="text-xs uppercase tracking-[0.3em] text-slate-500">
+              {requiresPassword ? 'Autenticación requerida por el backend.' : 'Verificando acceso...'}
+            </p>
+          )}
+          <button
+            type="submit"
+            disabled={isPasswordSubmitting || isCheckingAccess}
+            className="w-full rounded-2xl bg-gradient-to-r from-blue-500 to-cyan-500 px-5 py-4 text-[11px] font-black uppercase tracking-[0.35em] text-white shadow-lg shadow-blue-500/20 transition hover:scale-[1.01] disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {isPasswordSubmitting ? 'Validando...' : 'Ingresar'}
+          </button>
+        </form>
+        <div className="mt-8 grid gap-3 text-xs text-slate-400 md:grid-cols-2">
+          <div className="rounded-2xl border border-white/5 bg-white/5 p-4">Las credenciales no se guardan en GitHub.</div>
+          <div className="rounded-2xl border border-white/5 bg-white/5 p-4">Si cambia la clave, se invalida el acceso local.</div>
+        </div>
+      </div>
+    </div>
+  );
 
   const handleSelectArea = (area: AreaConfig) => {
     if (area.id === 'executive' as any) {
@@ -488,6 +657,17 @@ function App() {
     );
   };
 
+  if (isCheckingAccess) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-slate-950 text-white">
+        <RouteLoader label="Verificando acceso..." />
+      </div>
+    );
+  }
+
+  if (requiresPassword && !hasDashboardAccess) {
+    return <PasswordGate />;
+  }
 
   return (
     <>

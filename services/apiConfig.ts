@@ -1,5 +1,6 @@
 const INVALID_PREFIX = 'VITE_API_URL=';
 const DASHBOARD_PASSWORD_STORAGE_KEY = 'autosol_dashboard_password';
+const DEFAULT_API_BASE = 'https://tablero-control-end-api.onrender.com';
 
 const trimTrailingSlash = (value: string) => value.replace(/\/+$/, '');
 
@@ -17,9 +18,11 @@ export const resolveApiBase = (): string => {
 
   if (!rawValue) {
     if (typeof window !== 'undefined' && window.location.origin) {
-      return window.location.origin;
+      return window.location.origin.includes('github.io')
+        ? DEFAULT_API_BASE
+        : window.location.origin;
     }
-    return '';
+    return DEFAULT_API_BASE;
   }
 
   const sanitizedValue = rawValue.trim().replace(/^["']|["']$/g, '');

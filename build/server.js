@@ -51,8 +51,8 @@ async function startServer() {
     });
     const sheets = google.sheets({ version: "v4", auth });
     const resolvedDetailedQualitySaltaUrl = process.env.LINK_REFUERZO_SLA_PUBLIC ||
-        (process.env.LINK_REFUERZO_SLA?.includes("gid=1644111701") ? process.env.LINK_REFUERZO_SLA : undefined) ||
-        (process.env.SHEET_URL_DETAILED_QUALITY_SALTA?.includes("gid=1644111701") ? process.env.SHEET_URL_DETAILED_QUALITY_SALTA : undefined);
+        process.env.LINK_REFUERZO_SLA ||
+        process.env.SHEET_URL_DETAILED_QUALITY_SALTA;
     const sheetUrls = {
         // Quality & Sales Quality
         sales_quality: process.env.LINK_ENCUESTAS_V || process.env.SHEET_URL_SALES_QUALITY,

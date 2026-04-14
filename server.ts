@@ -66,8 +66,8 @@ async function startServer() {
 
   const resolvedDetailedQualitySaltaUrl =
     process.env.LINK_REFUERZO_SLA_PUBLIC ||
-    (process.env.LINK_REFUERZO_SLA?.includes("gid=1644111701") ? process.env.LINK_REFUERZO_SLA : undefined) ||
-    (process.env.SHEET_URL_DETAILED_QUALITY_SALTA?.includes("gid=1644111701") ? process.env.SHEET_URL_DETAILED_QUALITY_SALTA : undefined);
+    process.env.LINK_REFUERZO_SLA ||
+    process.env.SHEET_URL_DETAILED_QUALITY_SALTA;
 
   const sheetUrls: Record<string, string | undefined> = {
     // Quality & Sales Quality

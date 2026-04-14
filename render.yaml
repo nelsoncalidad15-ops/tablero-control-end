@@ -32,6 +32,8 @@ services:
         sync: false
       - key: LINK_REFUERZO_SLA
         sync: false
+      - key: LINK_REFUERZO_SLA_PUBLIC
+        sync: false
       - key: LINK_PLAN_ACCION
         sync: false
       - key: LINK_KPI_PV

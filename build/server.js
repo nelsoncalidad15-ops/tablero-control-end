@@ -5,7 +5,6 @@ import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
 import { google } from "googleapis";
-const DETAILED_QUALITY_SALTA_PUBLIC_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vRI_ojcN_sH7fk2qQM3KfZs1Sy4xE7AXRgXVbgYAagleUwiXZhPD5WjQROkh0PbzsHD_XDbGtB-5fX_/pub?gid=1644111701&single=true&output=csv";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const GOOGLE_FETCH_TIMEOUT_MS = 30000;
@@ -53,8 +52,7 @@ async function startServer() {
     const sheets = google.sheets({ version: "v4", auth });
     const resolvedDetailedQualitySaltaUrl = process.env.LINK_REFUERZO_SLA_PUBLIC ||
         (process.env.LINK_REFUERZO_SLA?.includes("gid=1644111701") ? process.env.LINK_REFUERZO_SLA : undefined) ||
-        (process.env.SHEET_URL_DETAILED_QUALITY_SALTA?.includes("gid=1644111701") ? process.env.SHEET_URL_DETAILED_QUALITY_SALTA : undefined) ||
-        DETAILED_QUALITY_SALTA_PUBLIC_URL;
+        (process.env.SHEET_URL_DETAILED_QUALITY_SALTA?.includes("gid=1644111701") ? process.env.SHEET_URL_DETAILED_QUALITY_SALTA : undefined);
     const sheetUrls = {
         // Quality & Sales Quality
         sales_quality: process.env.LINK_ENCUESTAS_V || process.env.SHEET_URL_SALES_QUALITY,

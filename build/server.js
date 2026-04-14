@@ -31,7 +31,7 @@ async function startServer() {
             return callback(new Error(`Origin not allowed by CORS: ${origin}`));
         },
         methods: ["GET", "OPTIONS"],
-        allowedHeaders: ["Content-Type", "X-Requested-With", "Accept"],
+        allowedHeaders: ["Content-Type", "X-Requested-With", "Accept", "X-Dashboard-Password"],
         credentials: false,
     }));
     app.use((req, res, next) => {

@@ -137,6 +137,9 @@ function App() {
       });
 
       if (!validationResponse.ok) {
+        if (validationResponse.status >= 500) {
+          throw new Error('No se pudo validar el acceso. El backend respondió con error.');
+        }
         throw new Error('Contraseña inválida');
       }
 
@@ -147,7 +150,10 @@ function App() {
     } catch (error) {
       clearStoredDashboardPassword();
       setHasDashboardAccess(false);
-      setPasswordError('La contraseña no es válida. Probá de nuevo.');
+      const message = error instanceof TypeError
+        ? 'No se pudo validar el acceso. Revisá la conexión con Render o el CORS del backend.'
+        : (error instanceof Error ? error.message : 'La contraseña no es válida. Probá de nuevo.');
+      setPasswordError(message);
       console.error('[App] Password validation failed:', error);
     } finally {
       setIsPasswordSubmitting(false);

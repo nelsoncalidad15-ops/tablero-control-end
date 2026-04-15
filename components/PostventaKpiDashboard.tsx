@@ -35,7 +35,7 @@ interface PostventaKpiDashboardProps {
 export const PostventaKpiDashboard: React.FC<PostventaKpiDashboardProps> = ({ sheetUrl, onBack }) => {
   const [data, setData] = useState<PostventaKpiRecord[]>([]);
   const [loading, setLoading] = useState<LoadingStatus>({ isLoading: true, error: null });
-  const [selectedYear, setSelectedYear] = useState<string>('2025');
+  const [selectedYear, setSelectedYear] = useState<string>('');
   const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
   const [selectedBranch, setSelectedBranch] = useState<string>('TODAS');
   const [selectedKpiId, setSelectedKpiId] = useState<string>(KPI_DEFS[0].id);
@@ -55,7 +55,24 @@ export const PostventaKpiDashboard: React.FC<PostventaKpiDashboardProps> = ({ sh
     loadData();
   }, []);
 
+  useEffect(() => {
+    if (data.length === 0) return;
+
+    const years = Array.from(
+      new Set(data.map(item => item.anio?.toString()).filter((year): year is string => !!year && year !== '0'))
+    ).sort();
+
+    if (years.length === 0) return;
+
+    const latestYear = years[years.length - 1]!;
+    if (!selectedYear || !years.includes(selectedYear)) {
+      setSelectedYear(latestYear);
+    }
+  }, [data, selectedYear]);
+
   const filteredData = useMemo(() => {
+    if (!selectedYear) return [];
+
     return data.filter(item => {
       const yearMatch = item.anio?.toString() === selectedYear;
       // If a month is highlighted, we only care about that month for the KPI cards

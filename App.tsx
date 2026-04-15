@@ -23,8 +23,8 @@ const ProfessionalReport = lazy(() => import('./components/ProfessionalReport'))
 const FullReportPrintView = lazy(() => import('./components/FullReportPrintView'));
 const ReportConfigModal = lazy(() => import('./components/ReportConfigModal'));
 
-const FRONTEND_ONLY_POSTVENTA = true;
-const FRONTEND_ONLY_RRHH = true;
+const FRONTEND_ONLY_POSTVENTA = false;
+const FRONTEND_ONLY_RRHH = false;
 
 const resolveDataSource = (frontendKey: string, backendUrl: string, enabled: boolean) =>
   enabled ? frontendKey : backendUrl;

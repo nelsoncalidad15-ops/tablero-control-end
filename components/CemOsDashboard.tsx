@@ -280,7 +280,7 @@ const CemOsDashboard: React.FC<CemOsDashboardProps> = ({
               <LuxuryKPICard title="Declarados" value={kpis.declared} color="bg-blue-600" icon={Icons.TrendingUp} />
               <LuxuryKPICard title="Respondieron" value={kpis.responded} color="bg-emerald-600" icon={Icons.Check} />
               <LuxuryKPICard title="Faltan" value={kpis.pending} color="bg-rose-600" icon={Icons.Activity} />
-              <LuxuryKPICard title="Promedio CEM" value={kpis.avgCem} color="bg-indigo-600" icon={Icons.Star} />
+              <LuxuryKPICard title="Promedio CEM" value={kpis.avgCem} color="bg-indigo-600" icon={Icons.Star} featured />
             </div>
 
       {/* Charts Grid */}

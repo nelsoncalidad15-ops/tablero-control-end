@@ -445,7 +445,7 @@ const Sparkline = ({ data, color }: { data: number[], color: string }) => {
   );
 };
 
-export const LuxuryKPICard = ({ title, value, color, icon: Icon, trend, isDark = false, isDanger = false, breakdown, sparklineData }: { 
+export const LuxuryKPICard = ({ title, value, color, icon: Icon, trend, isDark = false, isDanger = false, breakdown, sparklineData, featured = false }: { 
   title: string, 
   value: string | number, 
   color: string, 
@@ -453,6 +453,7 @@ export const LuxuryKPICard = ({ title, value, color, icon: Icon, trend, isDark =
   trend?: { value: number, isUp: boolean },
   isDark?: boolean,
   isDanger?: boolean,
+  featured?: boolean,
   breakdown?: { name: string, value: string | number, secondaryValue?: string | number, percentage?: number }[],
   sparklineData?: number[]
 }) => (
@@ -464,6 +465,7 @@ export const LuxuryKPICard = ({ title, value, color, icon: Icon, trend, isDark =
     } : {}}
     transition={isDanger ? { duration: 2, repeat: Infinity } : {}}
     className={`${isDark ? 'bg-slate-900/90 border-white/10 shadow-2xl' : 'bg-white/70 border-white/60 shadow-[0_8px_32px_rgba(0,0,0,0.03)]'} 
+      ${featured ? 'ring-2 ring-indigo-500/10 shadow-[0_16px_40px_rgba(79,70,229,0.08)]' : ''}
       ${isDanger ? 'border-rose-500/30 bg-rose-50/10' : ''}
       p-4 rounded-[1.5rem] border hover:border-blue-500/20 transition-all group overflow-hidden relative flex flex-col h-full backdrop-blur-xl`}
   >
@@ -522,8 +524,8 @@ export const LuxuryKPICard = ({ title, value, color, icon: Icon, trend, isDark =
 
       <div className="pt-2 border-t border-slate-100/50 mt-auto flex items-end justify-between">
         <div>
-          <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Consolidado</span>
-          <h4 className={`text-sm font-black ${isDark ? 'text-white' : 'text-slate-900'} tracking-tighter leading-none italic opacity-40`}>
+          <span className={`block mb-0.5 font-black text-slate-400 uppercase tracking-widest ${featured ? 'text-[8px]' : 'text-[7px]'}`}>Consolidado</span>
+          <h4 className={`font-black ${isDark ? 'text-white' : 'text-slate-900'} tracking-tighter leading-none italic ${featured ? 'text-4xl md:text-5xl opacity-100' : 'text-sm opacity-40'}`}>
             {typeof value === 'number' ? (Number.isInteger(value) ? value : value.toFixed(2)) : value}
           </h4>
         </div>

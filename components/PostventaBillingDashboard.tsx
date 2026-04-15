@@ -36,6 +36,38 @@ interface PostventaBillingDashboardProps {
   onBack?: () => void;
 }
 
+const BRANCH_LABELS = {
+  SALTA: 'Salta',
+  JUJUY: 'Jujuy',
+  EXPRESS: 'Express',
+  MOVIL: 'MOVIL',
+  SANTAFE: 'Santa Fe',
+  TARTAGAL: 'Tartagal',
+} as const;
+
+const canonicalBranch = (value: string) => {
+  const normalized = value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  if (!normalized) return '';
+  if (normalized.includes('SANTA FE')) return 'SANTAFE';
+  if (normalized.includes('TALLER MOVIL') || normalized.includes('TALLER MOVIL') || normalized.includes('MOVIL')) return 'MOVIL';
+  if (normalized.includes('JUJUY')) return 'JUJUY';
+  if (normalized.includes('SALTA')) return 'SALTA';
+  if (normalized.includes('EXPRESS')) return 'EXPRESS';
+  if (normalized.includes('TARTAGAL')) return 'TARTAGAL';
+  return normalized.replace(/[^A-Z0-9]/g, '');
+};
+
+const displayBranch = (value: string) => {
+  const key = canonicalBranch(value) as keyof typeof BRANCH_LABELS;
+  return BRANCH_LABELS[key] || value;
+};
+
 export const PostventaBillingDashboard: React.FC<PostventaBillingDashboardProps> = ({ sheetUrl, onBack }) => {
   const [data, setData] = useState<BillingRecord[]>([]);
   const [loading, setLoading] = useState<LoadingStatus>({ isLoading: true, error: null });
@@ -92,12 +124,11 @@ export const PostventaBillingDashboard: React.FC<PostventaBillingDashboardProps>
     return data.filter(item => {
       const yearMatch = item.anio?.toString() === selectedYear;
       const monthMatch = selectedMonths.length === 0 || selectedMonths.some(m => m.toLowerCase() === item.mes?.toLowerCase());
-      
-      // Ensure we only include branches that are in our BRANCHES constant
-      const isAllowedBranch = BRANCHES.includes(item.sucursal);
+      const itemBranch = canonicalBranch(item.sucursal);
+      const isAllowedBranch = Object.prototype.hasOwnProperty.call(BRANCH_LABELS, itemBranch);
       const branchMatch = selectedBranches.length === 0 
         ? isAllowedBranch 
-        : selectedBranches.includes(item.sucursal);
+        : selectedBranches.some(b => canonicalBranch(b) === itemBranch);
         
       const areaMatch = selectedAreas.length === 0 || selectedAreas.some(a => normalize(item.area) === normalize(a));
       return yearMatch && monthMatch && branchMatch && areaMatch;
@@ -121,10 +152,12 @@ export const PostventaBillingDashboard: React.FC<PostventaBillingDashboardProps>
     });
 
     // Breakdown by branch - Ensure all selected branches are included
-    const branchesToInclude = selectedBranches.length > 0 ? selectedBranches : Array.from(new Set(data.map(d => d.sucursal))).filter(Boolean);
+    const branchesToInclude = selectedBranches.length > 0
+      ? selectedBranches
+      : Array.from(new Set(data.map(d => canonicalBranch(d.sucursal)).filter(Boolean)));
     
     const branchBreakdown = branchesToInclude.map(branch => {
-      const branchData = filteredData.filter(d => d.sucursal === branch);
+      const branchData = filteredData.filter(d => canonicalBranch(d.sucursal) === canonicalBranch(branch));
       const facturacion = branchData.reduce((sum, d) => sum + (d.avance_fecha || 0), 0);
       const objetivo = branchData.reduce((sum, d) => sum + (d.objetivo_mensual || 0), 0);
       const desvio = branchData.reduce((sum, d) => sum + (d.desvio_fecha || 0), 0);
@@ -134,7 +167,7 @@ export const PostventaBillingDashboard: React.FC<PostventaBillingDashboardProps>
         ? branchData.reduce((sum, d) => sum + (d.cumplimiento_fecha_pct || 0), 0) / branchData.length 
         : 0;
       return {
-        name: branch,
+        name: displayBranch(branch),
         facturacion,
         objetivo,
         desvio,
@@ -170,9 +203,10 @@ export const PostventaBillingDashboard: React.FC<PostventaBillingDashboardProps>
     const branchesToRender = selectedBranches.length > 0 ? selectedBranches : BRANCHES;
 
     const results = branchesToRender.map(branch => {
+      const branchKey = canonicalBranch(branch);
       const branchData = months.map((m, index) => {
         const monthData = data.filter(d => 
-          d.sucursal === branch &&
+          canonicalBranch(d.sucursal) === branchKey &&
           (d.nro_mes === index + 1 || d.mes === m) && 
           d.anio?.toString() === selectedYear && 
           (selectedAreas.length === 0 || selectedAreas.some(a => normalize(d.area) === normalize(a)))
@@ -184,7 +218,7 @@ export const PostventaBillingDashboard: React.FC<PostventaBillingDashboardProps>
           isStudyMonth: selectedMonths.includes(m)
         };
       });
-      return { branch, data: branchData };
+      return { branch: displayBranch(branch), data: branchData };
     });
 
     return results
@@ -396,15 +430,15 @@ export const PostventaBillingDashboard: React.FC<PostventaBillingDashboardProps>
             <div className="relative z-10">
               <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-2">Cumplimiento {branch.name}</p>
               <h4 className={`text-4xl font-black tracking-tighter italic leading-none ${
-                branch.cumplimiento * 100 >= 95 ? 'text-emerald-500' : branch.cumplimiento * 100 >= 90 ? 'text-amber-500' : 'text-rose-500'
+                branch.cumplimiento >= 95 ? 'text-emerald-500' : branch.cumplimiento >= 90 ? 'text-amber-500' : 'text-rose-500'
               }`}>
-                {Math.round(branch.cumplimiento * 100)}%
+                {Math.round(branch.cumplimiento)}%
               </h4>
             </div>
             <div className="w-20 h-20 relative z-10">
               <GaugeChart 
-                value={branch.cumplimiento * 100} 
-                color={branch.cumplimiento * 100 >= 95 ? '#10b981' : branch.cumplimiento * 100 >= 90 ? '#f59e0b' : '#ef4444'}
+                value={branch.cumplimiento} 
+                color={branch.cumplimiento >= 95 ? '#10b981' : branch.cumplimiento >= 90 ? '#f59e0b' : '#ef4444'}
               />
             </div>
           </div>
@@ -415,15 +449,15 @@ export const PostventaBillingDashboard: React.FC<PostventaBillingDashboardProps>
             <div className="relative z-10">
               <p className="text-[10px] font-black text-blue-400/60 uppercase tracking-[0.3em] mb-2">Cumplimiento Total</p>
               <h4 className={`text-4xl font-black tracking-tighter italic leading-none ${
-                kpis.cumplimiento * 100 >= 95 ? 'text-emerald-500' : kpis.cumplimiento * 100 >= 90 ? 'text-amber-500' : 'text-rose-500'
+                kpis.cumplimiento >= 95 ? 'text-emerald-500' : kpis.cumplimiento >= 90 ? 'text-amber-500' : 'text-rose-500'
               }`}>
-                {Math.round(kpis.cumplimiento * 100)}%
+                {Math.round(kpis.cumplimiento)}%
               </h4>
             </div>
             <div className="w-20 h-20 relative z-10">
               <GaugeChart 
-                value={kpis.cumplimiento * 100} 
-                color={kpis.cumplimiento * 100 >= 95 ? '#10b981' : kpis.cumplimiento * 100 >= 90 ? '#f59e0b' : '#ef4444'}
+                value={kpis.cumplimiento} 
+                color={kpis.cumplimiento >= 95 ? '#10b981' : kpis.cumplimiento >= 90 ? '#f59e0b' : '#ef4444'}
               />
             </div>
           </div>
@@ -555,7 +589,7 @@ export const PostventaBillingDashboard: React.FC<PostventaBillingDashboardProps>
             accessor: 'cumplimiento_fecha_pct',
             render: (val) => {
               const numVal = parseFloat(val?.toString().replace('%', '').replace(',', '.')) || 0;
-              const displayVal = Math.round(numVal * 100);
+              const displayVal = Math.round(numVal);
               return (
                 <div className="flex items-center gap-2">
                   <span className={`font-black italic ${displayVal >= 95 ? 'text-emerald-600' : displayVal >= 90 ? 'text-amber-600' : 'text-rose-600'}`}>
@@ -571,7 +605,7 @@ export const PostventaBillingDashboard: React.FC<PostventaBillingDashboardProps>
             accessor: 'cumplimiento_fecha_pct',
             render: (val) => {
               const numVal = parseFloat(val?.toString().replace('%', '').replace(',', '.')) || 0;
-              const displayVal = Math.round(numVal * 100);
+              const displayVal = Math.round(numVal);
               if (displayVal >= 95) return <StatusBadge status="success" label="En Meta" />;
               if (displayVal >= 90) return <StatusBadge status="warning" label="Alerta" />;
               return <StatusBadge status="error" label="Crítico" />;

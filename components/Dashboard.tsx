@@ -27,6 +27,12 @@ const Dashboard: React.FC<DashboardProps> = ({ area, sheetUrl, apiKey, onBack })
   const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
   const [availableBranches, setAvailableBranches] = useState<string[]>([]);
 
+  const formatNumber = (value: unknown, options?: Intl.NumberFormatOptions) => {
+    const num = typeof value === 'number' ? value : Number(value);
+    if (!Number.isFinite(num)) return '0';
+    return num.toLocaleString('es-AR', options);
+  };
+
   useEffect(() => {
     const loadData = async () => {
       setLoadingState(LoadingState.LOADING);
@@ -83,23 +89,23 @@ const Dashboard: React.FC<DashboardProps> = ({ area, sheetUrl, apiKey, onBack })
       const entry: any = { MesAbrev: m };
       (availableBranches.length > 0 ? availableBranches : []).forEach(b => {
         const records = data.filter(d => d.mes === m && d.sucursal === b && d.anio === selectedYear);
-        entry[`${b}_AvancePPT`] = records.reduce((s, r) => s + r.avance_ppt, 0);
-        entry[`${b}_PPTDiario`] = records.reduce((s, r) => s + r.ppt_diarios, 0);
-        entry[`${b}_Servicios`] = records.reduce((s, r) => s + r.servicios_diarios, 0);
+        entry[`${b}_AvancePPT`] = records.reduce((s, r) => s + (Number(r.avance_ppt) || 0), 0);
+        entry[`${b}_PPTDiario`] = records.reduce((s, r) => s + (Number(r.ppt_diarios) || 0), 0);
+        entry[`${b}_Servicios`] = records.reduce((s, r) => s + (Number(r.servicios_diarios) || 0), 0);
       });
       return entry;
     });
   }, [data, selectedYear, availableBranches]); 
 
   const metrics = useMemo(() => {
-    const pptDiarios = filteredData.reduce((sum, item) => sum + item.ppt_diarios, 0);
-    const objMensual = filteredData.reduce((sum, item) => sum + item.objetivo_mensual, 0);
-    const totalAvance = filteredData.reduce((sum, item) => sum + item.avance_ppt, 0);
+    const pptDiarios = filteredData.reduce((sum, item) => sum + (Number(item.ppt_diarios) || 0), 0);
+    const objMensual = filteredData.reduce((sum, item) => sum + (Number(item.objetivo_mensual) || 0), 0);
+    const totalAvance = filteredData.reduce((sum, item) => sum + (Number(item.avance_ppt) || 0), 0);
     
     const diasLabMap = new Map<string, number>();
     filteredData.forEach(d => {
         const current = diasLabMap.get(d.sucursal) || 0;
-        diasLabMap.set(d.sucursal, current + d.dias_laborables);
+        diasLabMap.set(d.sucursal, current + (Number(d.dias_laborables) || 0));
     });
     
     const diasLabTotal = Array.from(diasLabMap.values()).reduce((a,b) => a+b, 0);
@@ -234,9 +240,9 @@ const Dashboard: React.FC<DashboardProps> = ({ area, sheetUrl, apiKey, onBack })
 
         {/* KPIs */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-8">
-          <LuxuryKPICard title="Métrica Diario" value={metrics.pptDiarios.toLocaleString('es-AR', { maximumFractionDigits: 2 })} color="bg-slate-950" icon={Icons.Activity} />
-          <LuxuryKPICard title="Objetivo Mes" value={metrics.objMensual.toLocaleString('es-AR', { maximumFractionDigits: 0 })} color="bg-blue-600" icon={Icons.Target} />
-          <LuxuryKPICard title="Avance Total" value={metrics.totalAvance.toLocaleString('es-AR', { maximumFractionDigits: 0 })} color="bg-emerald-600" icon={Icons.TrendingUp} />
+          <LuxuryKPICard title="Métrica Diario" value={formatNumber(metrics.pptDiarios, { maximumFractionDigits: 2 })} color="bg-slate-950" icon={Icons.Activity} />
+          <LuxuryKPICard title="Objetivo Mes" value={formatNumber(metrics.objMensual, { maximumFractionDigits: 0 })} color="bg-blue-600" icon={Icons.Target} />
+          <LuxuryKPICard title="Avance Total" value={formatNumber(metrics.totalAvance, { maximumFractionDigits: 0 })} color="bg-emerald-600" icon={Icons.TrendingUp} />
           <div className="bg-white rounded-[3rem] shadow-sm border border-slate-100 p-8 flex flex-col items-center justify-center text-center group">
             <div className="w-full h-40">
               <GaugeChart value={metrics.percent} label="Cumplimiento" />
@@ -287,14 +293,14 @@ const Dashboard: React.FC<DashboardProps> = ({ area, sheetUrl, apiKey, onBack })
                 {metrics.diasLabList.map((d, i) => (
                   <tr key={i} className="group hover:bg-slate-50/50 transition-colors">
                     <td className="py-4 font-black text-slate-700 uppercase text-xs tracking-tight">{d.sucursal}</td>
-                    <td className="py-4 text-right font-bold text-slate-900 font-mono">{d.dias}</td>
+                    <td className="py-4 text-right font-bold text-slate-900 font-mono">{formatNumber(d.dias)}</td>
                   </tr>
                 ))}
               </tbody>
               <tfoot>
                 <tr className="font-black text-slate-900 border-t-2 border-slate-100">
                   <td className="pt-4 uppercase text-xs tracking-tight italic">Total General</td>
-                  <td className="pt-4 text-right font-mono text-lg">{metrics.diasLabTotal}</td>
+                  <td className="pt-4 text-right font-mono text-lg">{formatNumber(metrics.diasLabTotal)}</td>
                 </tr>
               </tfoot>
             </table>

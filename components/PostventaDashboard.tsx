@@ -35,6 +35,12 @@ interface PostventaDashboardProps {
   onBack?: () => void;
 }
 
+const formatNumber = (value: unknown, options?: Intl.NumberFormatOptions) => {
+  const num = typeof value === 'number' ? value : Number(value);
+  if (!Number.isFinite(num)) return '0';
+  return num.toLocaleString('es-AR', options);
+};
+
 const BranchKpiCard = ({ title, icon: Icon, color, branchData, total, unit = "" }: { 
   title: string, 
   icon: any, 
@@ -61,7 +67,7 @@ const BranchKpiCard = ({ title, icon: Icon, color, branchData, total, unit = "" 
             <span className="text-[9px] font-black text-slate-500 uppercase tracking-widest">{branch.name}</span>
           </div>
           <span className="text-xl font-black text-slate-950 tracking-tighter italic leading-none">
-            {branch.value.toLocaleString()}{unit}
+            {formatNumber(branch.value)}{unit}
           </span>
         </div>
       ))}
@@ -70,7 +76,7 @@ const BranchKpiCard = ({ title, icon: Icon, color, branchData, total, unit = "" 
     <div className="mt-8 pt-6 border-t border-slate-100/40 flex justify-between items-end">
       <span className="text-[9px] font-black text-slate-950 uppercase tracking-[0.2em]">TOTAL CONSOLIDADO</span>
       <span className={`text-3xl font-black tracking-tighter italic leading-none ${color.replace('bg-', 'text-')}`}>
-        {total.toLocaleString()}{unit}
+        {formatNumber(total)}{unit}
       </span>
     </div>
   </motion.div>
@@ -79,7 +85,7 @@ const BranchKpiCard = ({ title, icon: Icon, color, branchData, total, unit = "" 
 export const PostventaDashboard: React.FC<PostventaDashboardProps> = ({ sheetUrl, onBack }) => {
   const [data, setData] = useState<AutoRecord[]>([]);
   const [loading, setLoading] = useState<LoadingStatus>({ isLoading: true, error: null });
-  const [selectedYear, setSelectedYear] = useState<string>("2025"); // Default to 2025
+  const [selectedYear, setSelectedYear] = useState<string>("");
   const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
   const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
 
@@ -97,7 +103,24 @@ export const PostventaDashboard: React.FC<PostventaDashboardProps> = ({ sheetUrl
     loadData();
   }, []);
 
+  useEffect(() => {
+    if (data.length === 0) return;
+
+    const years = Array.from(
+      new Set(data.map(item => item.anio?.toString()).filter((year): year is string => !!year && year !== '0'))
+    ).sort();
+
+    if (years.length === 0) return;
+
+    const latestYear = years[years.length - 1]!;
+    if (!selectedYear || !years.includes(selectedYear)) {
+      setSelectedYear(latestYear);
+    }
+  }, [data, selectedYear]);
+
   const filteredData = useMemo(() => {
+    if (!selectedYear) return [];
+
     return data.filter(item => {
       const yearMatch = item.anio?.toString() === selectedYear;
       const monthMatch = selectedMonths.length === 0 || selectedMonths.some(m => m.toLowerCase() === item.mes?.toLowerCase());
@@ -565,18 +588,20 @@ export const PostventaDashboard: React.FC<PostventaDashboardProps> = ({ sheetUrl
           { 
             header: 'AVANCE PPT', 
             accessor: 'avance_ppt',
-            render: (val) => <span className="font-black italic">{val.toLocaleString()}</span>
+            render: (val) => <span className="font-black italic">{formatNumber(val)}</span>
           },
           { 
             header: 'OBJETIVO', 
             accessor: 'objetivo_mensual',
-            render: (val) => <span className="font-black text-slate-400">{val.toLocaleString()}</span>
+            render: (val) => <span className="font-black text-slate-400">{formatNumber(val)}</span>
           },
           { 
             header: 'CUMPLIMIENTO', 
             accessor: 'avance_ppt',
             render: (val, row) => {
-              const perc = (val / row.objetivo_mensual) * 100;
+              const avance = typeof val === 'number' ? val : Number(val) || 0;
+              const objetivo = typeof row.objetivo_mensual === 'number' ? row.objetivo_mensual : Number(row.objetivo_mensual) || 0;
+              const perc = objetivo > 0 ? (avance / objetivo) * 100 : 0;
               return (
                 <div className="flex items-center gap-4">
                   <div className="flex-1 h-2 bg-slate-100 rounded-full overflow-hidden w-32">
@@ -593,7 +618,7 @@ export const PostventaDashboard: React.FC<PostventaDashboardProps> = ({ sheetUrl
           { 
             header: 'SERVICIOS', 
             accessor: 'avance_servicios',
-            render: (val) => <span className="font-black">{val.toLocaleString()}</span>
+            render: (val) => <span className="font-black">{formatNumber(val)}</span>
           }
         ]}
       />

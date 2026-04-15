@@ -29,7 +29,7 @@ const normalizeBranch = (val: string) => {
     if (s.includes('SALTA') || s === '3087' || s === '3089') return 'SALTA';
     if (s.includes('SANTA FE')) return 'SANTA FE';
     if (s.includes('EXPRESS')) return 'EXPRESS';
-    if (s.includes('MOVIL')) return 'TALLER MOVIL';
+    if (s.includes('MOVIL')) return 'MOVIL';
     return s;
 };
 
@@ -246,16 +246,7 @@ let backendWakePromise: Promise<void> | null = null;
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
-const FRONTEND_ONLY_SHEET_KEYS = new Set([
-    'postventa',
-    'postventa_kpis',
-    'postventa_billing',
-    'internal_postventa',
-    'hr_grades',
-    'hr_relatorio',
-    'hr_contacts',
-    'hr_phases',
-]);
+const FRONTEND_ONLY_SHEET_KEYS = new Set<string>();
 
 const isFrontendOnlySheetKey = (sheetKey: string) => FRONTEND_ONLY_SHEET_KEYS.has(sheetKey);
 
@@ -627,9 +618,6 @@ const fetchFromProxy = async (sheetKey: string): Promise<string> => {
 
 export const fetchSheetData = async (sheetKey: string): Promise<AutoRecord[]> => {
   try {
-    if (isFrontendOnlySheetKey(sheetKey) && sheetKey === 'postventa') {
-      return MOCK_DATA;
-    }
     const text = await fetchFromProxy(sheetKey);
     return parseAutoCSV(text);
   } catch (error) {
@@ -680,9 +668,6 @@ export const fetchDetailedQualityData = async (sheetKey: string): Promise<Detail
 
 export const fetchPostventaKpiData = async (sheetKey: string): Promise<PostventaKpiRecord[]> => {
     try {
-      if (isFrontendOnlySheetKey(sheetKey) && sheetKey === 'postventa_kpis') {
-        return MOCK_POSTVENTA_KPI_DATA;
-      }
       const text = await fetchFromProxy(sheetKey);
       return parsePostventaKpiCSV(text);
     } catch (error) {
@@ -693,9 +678,6 @@ export const fetchPostventaKpiData = async (sheetKey: string): Promise<Postventa
 
 export const fetchPostventaBillingData = async (sheetKey: string): Promise<BillingRecord[]> => {
     try {
-      if (isFrontendOnlySheetKey(sheetKey) && sheetKey === 'postventa_billing') {
-        return MOCK_POSTVENTA_BILLING_DATA;
-      }
       const text = await fetchFromProxy(sheetKey);
       return parsePostventaBillingCSV(text);
     } catch (error) {
@@ -720,9 +702,6 @@ export const fetchHRGradesData = async (sheetKey: string): Promise<CourseGrade[]
         return [];
     }
     try {
-        if (isFrontendOnlySheetKey(sheetKey) && sheetKey === 'hr_grades') {
-            return MOCK_HR_GRADES_DATA;
-        }
         const text = await fetchFromProxy(sheetKey);
         return parseHRGradesCSV(text);
     } catch (error) {
@@ -737,9 +716,6 @@ export const fetchHRRelatorioData = async (sheetKey: string): Promise<RelatorioI
         return [];
     }
     try {
-        if (isFrontendOnlySheetKey(sheetKey) && sheetKey === 'hr_relatorio') {
-            return MOCK_HR_RELATORIO_DATA;
-        }
         const text = await fetchFromProxy(sheetKey);
         return parseHRRelatorioCSV(text);
     } catch (error) {
@@ -754,9 +730,6 @@ export const fetchHRContactsData = async (sheetKey: string): Promise<Collaborato
         return [];
     }
     try {
-        if (isFrontendOnlySheetKey(sheetKey) && sheetKey === 'hr_contacts') {
-            return MOCK_HR_CONTACTS_DATA;
-        }
         const text = await fetchFromProxy(sheetKey);
         return parseHRContactsCSV(text);
     } catch (error) {
@@ -771,9 +744,6 @@ export const fetchCoursePhasesData = async (sheetKey: string): Promise<CoursePha
         return [];
     }
     try {
-        if (isFrontendOnlySheetKey(sheetKey) && sheetKey === 'hr_phases') {
-            return MOCK_HR_PHASES_DATA;
-        }
         const text = await fetchFromProxy(sheetKey);
         return parseCoursePhasesCSV(text);
     } catch (error) {
@@ -963,6 +933,7 @@ const parseSalesQualityCSV = (csvText: string): SalesQualityRecord[] => {
         else if (header.includes('fecha 2') || header.includes('2º llamado')) record.fecha_2_llamado = value;
         else if (header.includes('fecha 3') || header.includes('3º llamado')) record.fecha_3_llamado = value;
         else if (header.includes('contacto efectivo')) record.fecha_contacto_efectivo = value;
+        else if (header.includes('recontacto')) record.fecha_recontacto = value;
         else if (header.includes('envío mensaje')) record.fecha_envio_wpp = value;
         else if (header.includes('respuesta mensaje')) record.fecha_respuesta_wpp = value;
 
@@ -1718,9 +1689,6 @@ const parseActionPlanCSV = (csvText: string): ActionPlanRecord[] => {
 
 export const fetchInternalPostventaData = async (sheetKey: string): Promise<InternalPostventaRecord[]> => {
     try {
-      if (isFrontendOnlySheetKey(sheetKey) && sheetKey === 'internal_postventa') {
-        return MOCK_INTERNAL_POSTVENTA_DATA;
-      }
       const csvText = await fetchFromProxy(sheetKey);
       return parseInternalPostventaCSV(csvText);
     } catch (error) {

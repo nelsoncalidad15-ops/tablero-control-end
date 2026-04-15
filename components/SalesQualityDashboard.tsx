@@ -395,7 +395,7 @@ const SurveyView = ({
             const hasDate3rdCall = d.fecha_3_llamado && d.fecha_3_llamado.length > 5;
             const hasWppResponse = d.fecha_respuesta_wpp && d.fecha_respuesta_wpp.length > 5;
             
-            if (normalizedStatus === 'contactado' && (hasDate1stCall || hasDate2ndCall || hasDate3rdCall || hasWppResponse)) {
+            if (normalizedStatus === 'contactado' || normalizedStatus === 'recontactado') {
                 contactedEffective++;
             }
     
@@ -443,12 +443,14 @@ const SurveyView = ({
     }, [filteredData]);
 
     function inferContactState(row: SalesQualityRecord): ContactStateDefinition {
-        const hasEffectiveContact = !!(row.fecha_contacto_efectivo || row.fecha_respuesta_wpp);
+        const hasEffectiveContact = !!(row.fecha_contacto_efectivo || row.fecha_respuesta_wpp || row.fecha_recontacto);
         const hasFollowUp = !!(row.fecha_1_llamado || row.fecha_2_llamado || row.fecha_3_llamado || row.fecha_envio_wpp);
         const rawState = row.estado || '';
 
         if (!rawState && hasEffectiveContact) {
-            return { ...CONTACT_STATE_DEFINITIONS[1], label: 'Contactado' };
+            return row.fecha_recontacto
+                ? CONTACT_STATE_DEFINITIONS[0]
+                : { ...CONTACT_STATE_DEFINITIONS[1], label: 'Contactado' };
         }
         if (!rawState && hasFollowUp) {
             return {
@@ -463,7 +465,9 @@ const SurveyView = ({
 
         const resolved = resolveContactState(rawState);
         if (resolved.bucket === 'Sin dato' && hasEffectiveContact) {
-            return { ...CONTACT_STATE_DEFINITIONS[1], label: 'Contactado' };
+            return row.fecha_recontacto
+                ? CONTACT_STATE_DEFINITIONS[0]
+                : { ...CONTACT_STATE_DEFINITIONS[1], label: 'Contactado' };
         }
         if (resolved.bucket === 'Sin dato' && hasFollowUp) {
             return {

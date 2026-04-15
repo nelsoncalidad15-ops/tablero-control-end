@@ -81,6 +81,7 @@ export interface SalesQualityRecord {
   fecha_2_llamado: string;
   fecha_3_llamado: string;
   fecha_contacto_efectivo: string;
+  fecha_recontacto: string;
   fecha_envio_wpp: string;
   fecha_respuesta_wpp: string;
 

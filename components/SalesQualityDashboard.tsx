@@ -244,6 +244,87 @@ const normalizeSaleType = (type: string) => {
     return raw;
 };
 
+type ContactBucket = 'Efectivo' | 'En gestión' | 'No contactable' | 'Sin dato';
+
+interface ContactStateDefinition {
+    label: string;
+    bucket: ContactBucket;
+    color: string;
+    contacted: boolean;
+    action: string;
+    priority: number;
+}
+
+interface ContactStateSummary extends ContactStateDefinition {
+    rawKey: string;
+    count: number;
+    percentage: number;
+}
+
+const normalizeContactStateKey = (value: string) => {
+    return (value || '')
+        .normalize('NFD')
+        .replace(/[\u0300-\u036f]/g, '')
+        .toLowerCase()
+        .replace(/\s+/g, ' ')
+        .trim();
+};
+
+const CONTACT_STATE_DEFINITIONS: ContactStateDefinition[] = [
+    { label: 'RECONTACTADO', bucket: 'Efectivo', color: '#0F766E', contacted: true, action: 'Seguimiento confirmado', priority: 1 },
+    { label: 'Contactado', bucket: 'Efectivo', color: '#10B981', contacted: true, action: 'Contacto exitoso', priority: 2 },
+    { label: 'Envío por WSP', bucket: 'En gestión', color: '#3B82F6', contacted: false, action: 'Esperar respuesta', priority: 3 },
+    { label: 'Llamar luego', bucket: 'En gestión', color: '#6366F1', contacted: false, action: 'Reprogramar llamada', priority: 4 },
+    { label: 'Buzón de voz', bucket: 'En gestión', color: '#8B5CF6', contacted: false, action: 'Reintento telefónico', priority: 5 },
+    { label: 'No contactado', bucket: 'No contactable', color: '#F43F5E', contacted: false, action: 'Sin respuesta efectiva', priority: 6 },
+    { label: 'No se Encuesta', bucket: 'No contactable', color: '#E11D48', contacted: false, action: 'Base sin encuestar', priority: 7 },
+    { label: 'Número Incorrecto', bucket: 'No contactable', color: '#FB7185', contacted: false, action: 'Depurar contacto', priority: 8 },
+    { label: 'Fuera de Servicio', bucket: 'No contactable', color: '#BE123C', contacted: false, action: 'Número inactivo', priority: 9 },
+    { label: 'No quiere responder', bucket: 'No contactable', color: '#DC2626', contacted: false, action: 'Resistencia al contacto', priority: 10 },
+    { label: 'No retiró', bucket: 'No contactable', color: '#F97316', contacted: false, action: 'Caso pendiente', priority: 11 },
+    { label: 'Duplicado', bucket: 'No contactable', color: '#94A3B8', contacted: false, action: 'Excluir de la base', priority: 12 },
+    { label: 'Cerrado Sin Respuesta', bucket: 'No contactable', color: '#64748B', contacted: false, action: 'Cierre administrativo', priority: 13 },
+];
+
+const resolveContactState = (rawValue: string): ContactStateDefinition => {
+    const normalized = normalizeContactStateKey(rawValue);
+    const fallbackLabel = rawValue?.trim() || 'Sin estado';
+
+    if (!normalized) {
+        return {
+            label: 'Sin estado',
+            bucket: 'Sin dato',
+            color: '#94A3B8',
+            contacted: false,
+            action: 'Normalizar base',
+            priority: 999,
+        };
+    }
+
+    if (normalized.includes('cerrado sin respuesta')) return CONTACT_STATE_DEFINITIONS[12];
+    if (normalized.includes('no se encuesta') || normalized.includes('no encuesta')) return CONTACT_STATE_DEFINITIONS[6];
+    if (normalized.includes('no contactado') || normalized.includes('no contacta')) return CONTACT_STATE_DEFINITIONS[5];
+    if (normalized.includes('no quiere responder')) return CONTACT_STATE_DEFINITIONS[9];
+    if (normalized.includes('no retiro') || normalized.includes('no retiró')) return CONTACT_STATE_DEFINITIONS[10];
+    if (normalized.includes('numero incorrecto') || normalized.includes('numero erroneo') || normalized.includes('numero equivocado')) return CONTACT_STATE_DEFINITIONS[7];
+    if (normalized.includes('fuera de servicio') || normalized.includes('fuera servicio')) return CONTACT_STATE_DEFINITIONS[8];
+    if (normalized.includes('duplicado')) return CONTACT_STATE_DEFINITIONS[11];
+    if (normalized.includes('recontactado')) return CONTACT_STATE_DEFINITIONS[0];
+    if (normalized.includes('contactado')) return CONTACT_STATE_DEFINITIONS[1];
+    if (normalized.includes('envio') && (normalized.includes('wsp') || normalized.includes('wpp') || normalized.includes('whatsapp'))) return CONTACT_STATE_DEFINITIONS[2];
+    if (normalized.includes('llamar luego') || normalized.includes('volver a llamar') || normalized.includes('llamar mas tarde')) return CONTACT_STATE_DEFINITIONS[3];
+    if (normalized.includes('buzon') || normalized.includes('correo de voz') || normalized.includes('voicemail')) return CONTACT_STATE_DEFINITIONS[4];
+
+    return {
+        label: fallbackLabel,
+        bucket: 'Sin dato',
+        color: '#94A3B8',
+        contacted: false,
+        action: 'Clasificar estado',
+        priority: 998,
+    };
+};
+
 // --- SUB-VIEWS ---
 
 // 1. SURVEY DASHBOARD (The original view)
@@ -361,6 +442,59 @@ const SurveyView = ({
         ];
     }, [filteredData]);
 
+    const contactCenterMetrics = useMemo(() => {
+        const contactStateMap = new Map<string, ContactStateSummary>();
+        let effectiveCount = 0;
+        let managedCount = 0;
+        let noContactableCount = 0;
+        let withoutStateCount = 0;
+
+        filteredData.forEach((row: SalesQualityRecord) => {
+            const resolved = resolveContactState(row.estado || '');
+            const key = resolved.label;
+            const current = contactStateMap.get(key) || {
+                ...resolved,
+                rawKey: normalizeContactStateKey(key),
+                count: 0,
+                percentage: 0,
+            };
+
+            current.count += 1;
+            contactStateMap.set(key, current);
+
+            if (resolved.bucket === 'Efectivo') effectiveCount += 1;
+            else if (resolved.bucket === 'En gestión') managedCount += 1;
+            else if (resolved.bucket === 'No contactable') noContactableCount += 1;
+            else withoutStateCount += 1;
+        });
+
+        const total = filteredData.length;
+        const rows = Array.from(contactStateMap.values())
+            .map(item => ({
+                ...item,
+                percentage: total > 0 ? (item.count / total) * 100 : 0,
+            }))
+            .sort((a, b) => {
+                if (b.count !== a.count) return b.count - a.count;
+                return a.priority - b.priority;
+            });
+
+        const pct = (value: number) => total > 0 ? (value / total) * 100 : 0;
+
+        return {
+            total,
+            effectiveCount,
+            managedCount,
+            noContactableCount,
+            withoutStateCount,
+            effectiveRate: pct(effectiveCount),
+            managedRate: pct(managedCount),
+            noContactableRate: pct(noContactableCount),
+            withoutStateRate: pct(withoutStateCount),
+            rows,
+        };
+    }, [filteredData]);
+
     const columns = [
         {
             header: 'Fecha',
@@ -464,6 +598,191 @@ const SurveyView = ({
                     </div>
                 </ChartWrapper>
             </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+                <LuxuryKPICard
+                    title="Contactados efectivos"
+                    value={contactCenterMetrics.effectiveCount}
+                    color="bg-emerald-600"
+                    icon={Icons.CheckCircle}
+                    breakdown={[
+                        {
+                            name: 'Tasa efectiva',
+                            value: `${contactCenterMetrics.effectiveRate.toFixed(1)}%`,
+                            secondaryValue: `${contactCenterMetrics.total} casos`,
+                            percentage: contactCenterMetrics.effectiveRate,
+                        },
+                    ]}
+                />
+                <LuxuryKPICard
+                    title="En gestión"
+                    value={contactCenterMetrics.managedCount}
+                    color="bg-blue-600"
+                    icon={Icons.Clock}
+                    breakdown={[
+                        {
+                            name: 'Cobertura parcial',
+                            value: `${contactCenterMetrics.managedRate.toFixed(1)}%`,
+                            secondaryValue: `${contactCenterMetrics.total} casos`,
+                            percentage: contactCenterMetrics.managedRate,
+                        },
+                    ]}
+                />
+                <LuxuryKPICard
+                    title="No contactables"
+                    value={contactCenterMetrics.noContactableCount}
+                    color="bg-rose-600"
+                    icon={Icons.ShieldAlert}
+                    breakdown={[
+                        {
+                            name: 'Base crítica',
+                            value: `${contactCenterMetrics.noContactableRate.toFixed(1)}%`,
+                            secondaryValue: `${contactCenterMetrics.total} casos`,
+                            percentage: contactCenterMetrics.noContactableRate,
+                        },
+                    ]}
+                />
+                <LuxuryKPICard
+                    title="Sin estado"
+                    value={contactCenterMetrics.withoutStateCount}
+                    color="bg-slate-600"
+                    icon={Icons.Info}
+                    breakdown={[
+                        {
+                            name: 'Calidad de base',
+                            value: `${contactCenterMetrics.withoutStateRate.toFixed(1)}%`,
+                            secondaryValue: `${contactCenterMetrics.total} casos`,
+                            percentage: contactCenterMetrics.withoutStateRate,
+                        },
+                    ]}
+                />
+            </div>
+
+            <ChartWrapper
+                title="Control de Contactabilidad"
+                subtitle="Probabilidad de contacto por estado de la columna K"
+            >
+                <div className="grid grid-cols-1 xl:grid-cols-[1.7fr_1fr] gap-6 h-full">
+                    <div className="min-h-[420px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart
+                                data={contactCenterMetrics.rows}
+                                layout="vertical"
+                                margin={{ top: 8, right: 32, left: 24, bottom: 8 }}
+                            >
+                                <CartesianGrid strokeDasharray="3 3" stroke="#E2E8F0" horizontal={false} />
+                                <XAxis
+                                    type="number"
+                                    domain={[0, 100]}
+                                    tickFormatter={(value) => `${value}%`}
+                                    tick={{ fill: '#64748B', fontSize: 11, fontWeight: 800 }}
+                                    axisLine={false}
+                                    tickLine={false}
+                                />
+                                <YAxis
+                                    type="category"
+                                    dataKey="label"
+                                    width={180}
+                                    tick={{ fill: '#0F172A', fontSize: 11, fontWeight: 800 }}
+                                    axisLine={false}
+                                    tickLine={false}
+                                />
+                                <Tooltip
+                                    cursor={{ fill: 'rgba(59,130,246,0.06)' }}
+                                    contentStyle={{
+                                        borderRadius: '18px',
+                                        border: 'none',
+                                        boxShadow: '0 20px 30px rgba(15,23,42,0.10)',
+                                        background: 'rgba(255,255,255,0.96)',
+                                    }}
+                                    formatter={(value: any, _name, props) => {
+                                        const row = props.payload as ContactStateSummary;
+                                        return [`${Number(value).toFixed(1)}%`, `${row.count} casos`];
+                                    }}
+                                    labelFormatter={(label) => `Estado: ${label}`}
+                                />
+                                <Bar dataKey="percentage" radius={[0, 14, 14, 0]} barSize={18}>
+                                    {contactCenterMetrics.rows.map((entry) => (
+                                        <Cell key={entry.label} fill={entry.color} />
+                                    ))}
+                                </Bar>
+                            </BarChart>
+                        </ResponsiveContainer>
+                    </div>
+
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-2 gap-3">
+                            <div className="rounded-3xl border border-emerald-100 bg-emerald-50/70 p-4 shadow-sm">
+                                <p className="text-[8px] font-black uppercase tracking-[0.35em] text-emerald-500">Contacto efectivo</p>
+                                <div className="mt-3 flex items-end justify-between gap-3">
+                                    <span className="text-3xl font-black italic tracking-tighter text-emerald-600">{contactCenterMetrics.effectiveCount}</span>
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-emerald-500">{contactCenterMetrics.effectiveRate.toFixed(1)}%</span>
+                                </div>
+                            </div>
+                            <div className="rounded-3xl border border-blue-100 bg-blue-50/70 p-4 shadow-sm">
+                                <p className="text-[8px] font-black uppercase tracking-[0.35em] text-blue-500">En gestión</p>
+                                <div className="mt-3 flex items-end justify-between gap-3">
+                                    <span className="text-3xl font-black italic tracking-tighter text-blue-600">{contactCenterMetrics.managedCount}</span>
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-blue-500">{contactCenterMetrics.managedRate.toFixed(1)}%</span>
+                                </div>
+                            </div>
+                            <div className="rounded-3xl border border-rose-100 bg-rose-50/70 p-4 shadow-sm">
+                                <p className="text-[8px] font-black uppercase tracking-[0.35em] text-rose-500">No contactables</p>
+                                <div className="mt-3 flex items-end justify-between gap-3">
+                                    <span className="text-3xl font-black italic tracking-tighter text-rose-600">{contactCenterMetrics.noContactableCount}</span>
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-rose-500">{contactCenterMetrics.noContactableRate.toFixed(1)}%</span>
+                                </div>
+                            </div>
+                            <div className="rounded-3xl border border-slate-200 bg-slate-50/80 p-4 shadow-sm">
+                                <p className="text-[8px] font-black uppercase tracking-[0.35em] text-slate-400">Sin estado</p>
+                                <div className="mt-3 flex items-end justify-between gap-3">
+                                    <span className="text-3xl font-black italic tracking-tighter text-slate-700">{contactCenterMetrics.withoutStateCount}</span>
+                                    <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{contactCenterMetrics.withoutStateRate.toFixed(1)}%</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="rounded-[1.75rem] border border-slate-100 bg-white/80 backdrop-blur-xl overflow-hidden shadow-sm">
+                            <div className="px-5 py-4 border-b border-slate-100 bg-white/60">
+                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Tablita operativa</p>
+                                <h4 className="mt-1 text-sm font-black italic tracking-tight text-slate-950">Estados y volumen</h4>
+                            </div>
+                            <div className="max-h-[300px] overflow-auto">
+                                <table className="w-full">
+                                    <thead className="sticky top-0 bg-white/95">
+                                        <tr className="text-left border-b border-slate-100">
+                                            <th className="px-5 py-3 text-[8px] font-black uppercase tracking-widest text-slate-400">Estado</th>
+                                            <th className="px-5 py-3 text-[8px] font-black uppercase tracking-widest text-slate-400">Cant.</th>
+                                            <th className="px-5 py-3 text-[8px] font-black uppercase tracking-widest text-slate-400">%</th>
+                                            <th className="px-5 py-3 text-[8px] font-black uppercase tracking-widest text-slate-400">Clasificación</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody className="divide-y divide-slate-100">
+                                        {contactCenterMetrics.rows.map((row) => (
+                                            <tr key={row.label} className="hover:bg-slate-50/80 transition-colors">
+                                                <td className="px-5 py-3">
+                                                    <div className="flex flex-col gap-1">
+                                                        <span className="text-[10px] font-black uppercase tracking-tight text-slate-900">{row.label}</span>
+                                                        <span className="text-[8px] font-bold uppercase tracking-[0.2em] text-slate-400">{row.action}</span>
+                                                    </div>
+                                                </td>
+                                                <td className="px-5 py-3 text-sm font-black text-slate-700">{row.count}</td>
+                                                <td className="px-5 py-3 text-sm font-black text-slate-700">{row.percentage.toFixed(1)}%</td>
+                                                <td className="px-5 py-3">
+                                                    <StatusBadge
+                                                        status={row.bucket === 'Efectivo' ? 'success' : row.bucket === 'En gestión' ? 'info' : row.bucket === 'No contactable' ? 'error' : 'warning'}
+                                                        label={row.bucket}
+                                                    />
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </ChartWrapper>
 
             <DataTable 
                 title="Detalle de Encuestas y Feedback"

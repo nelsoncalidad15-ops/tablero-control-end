@@ -2,6 +2,7 @@
 /// <reference types="vite/client" />
 import Papa from 'papaparse';
 import { AutoRecord, QualityRecord, SalesQualityRecord, SalesClaimsRecord, DetailedQualityRecord, PostventaKpiRecord, BillingRecord, PCGCRecord, CemOsRecord, InternalPostventaRecord, ActionPlanRecord, CourseGrade, RelatorioItem, CollaboratorContact, CoursePhase } from '../types';
+import { MOCK_DATA } from '../constants';
 import { buildApiUrl } from './apiConfig';
 import { getStoredDashboardPassword } from './apiConfig';
 
@@ -245,6 +246,283 @@ let backendWakePromise: Promise<void> | null = null;
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
+const FRONTEND_ONLY_SHEET_KEYS = new Set([
+    'postventa',
+    'postventa_kpis',
+    'postventa_billing',
+    'internal_postventa',
+    'hr_grades',
+    'hr_relatorio',
+    'hr_contacts',
+    'hr_phases',
+]);
+
+const isFrontendOnlySheetKey = (sheetKey: string) => FRONTEND_ONLY_SHEET_KEYS.has(sheetKey);
+
+const MOCK_POSTVENTA_KPI_DATA: PostventaKpiRecord[] = [
+    {
+        id: 'kpi-1',
+        sucursal: 'Jujuy',
+        mes: 'Enero',
+        anio: 2026,
+        lvs: 4.8,
+        email_validos: 96,
+        tasa_respuesta: 34,
+        dac: 0.12,
+        contrato_mantenimiento: 22,
+        reporte_tecnico: 51,
+        reporte_garantia: 49,
+        ampliacion_trabajo: 55,
+        ppt_diario: 26,
+        conversion_ppt_serv: 63,
+        oudi_servicios: 13,
+        costos_controlables: 78,
+        costo_sueldos: 59,
+        stock_muerto: 11,
+        meses_stock: 2.6,
+        cotizacion_seguros: 12,
+        uodi_repuestos: 8,
+        uodi_posventa: 9,
+        incentivo_calidad: 100,
+        plan_incentivo_posventa: 101,
+        plan_incentivo_repuestos: 121,
+        uops_total: 102,
+    },
+    {
+        id: 'kpi-2',
+        sucursal: 'Salta',
+        mes: 'Febrero',
+        anio: 2026,
+        lvs: 4.6,
+        email_validos: 94,
+        tasa_respuesta: 31,
+        dac: 0.18,
+        contrato_mantenimiento: 20,
+        reporte_tecnico: 47,
+        reporte_garantia: 46,
+        ampliacion_trabajo: 48,
+        ppt_diario: 25,
+        conversion_ppt_serv: 58,
+        oudi_servicios: 12,
+        costos_controlables: 79,
+        costo_sueldos: 58,
+        stock_muerto: 13,
+        meses_stock: 2.9,
+        cotizacion_seguros: 10,
+        uodi_repuestos: 7,
+        uodi_posventa: 8,
+        incentivo_calidad: 98,
+        plan_incentivo_posventa: 99,
+        plan_incentivo_repuestos: 118,
+        uops_total: 97,
+    },
+    {
+        id: 'kpi-3',
+        sucursal: 'Santa Fe',
+        mes: 'Marzo',
+        anio: 2026,
+        lvs: 4.9,
+        email_validos: 97,
+        tasa_respuesta: 36,
+        dac: 0.09,
+        contrato_mantenimiento: 24,
+        reporte_tecnico: 52,
+        reporte_garantia: 50,
+        ampliacion_trabajo: 57,
+        ppt_diario: 27,
+        conversion_ppt_serv: 66,
+        oudi_servicios: 14,
+        costos_controlables: 76,
+        costo_sueldos: 57,
+        stock_muerto: 10,
+        meses_stock: 2.3,
+        cotizacion_seguros: 11,
+        uodi_repuestos: 9,
+        uodi_posventa: 9,
+        incentivo_calidad: 103,
+        plan_incentivo_posventa: 104,
+        plan_incentivo_repuestos: 123,
+        uops_total: 105,
+    },
+];
+
+const MOCK_POSTVENTA_BILLING_DATA: BillingRecord[] = [
+    {
+        id: 'bill-1',
+        nro_mes: 1,
+        mes: 'Enero',
+        sucursal: 'Jujuy',
+        area: 'Taller',
+        objetivo_mensual: 12000000,
+        avance_fecha: 11200000,
+        cumplimiento_fecha_pct: 93.3,
+        cumplimiento_cierre_pct: 96.8,
+        objetivo_diario: 545455,
+        promedio_diario: 509091,
+        desvio_fecha: -800000,
+        dif_dias_operacion: 1,
+        anio: 2026,
+    },
+    {
+        id: 'bill-2',
+        nro_mes: 2,
+        mes: 'Febrero',
+        sucursal: 'Salta',
+        area: 'Venta',
+        objetivo_mensual: 14500000,
+        avance_fecha: 13200000,
+        cumplimiento_fecha_pct: 91.0,
+        cumplimiento_cierre_pct: 95.2,
+        objetivo_diario: 657143,
+        promedio_diario: 600000,
+        desvio_fecha: -1300000,
+        dif_dias_operacion: 2,
+        anio: 2026,
+    },
+    {
+        id: 'bill-3',
+        nro_mes: 3,
+        mes: 'Marzo',
+        sucursal: 'Santa Fe',
+        area: 'Taller',
+        objetivo_mensual: 13900000,
+        avance_fecha: 14150000,
+        cumplimiento_fecha_pct: 101.8,
+        cumplimiento_cierre_pct: 102.1,
+        objetivo_diario: 631818,
+        promedio_diario: 643182,
+        desvio_fecha: 250000,
+        dif_dias_operacion: 0,
+        anio: 2026,
+    },
+];
+
+const MOCK_INTERNAL_POSTVENTA_DATA: InternalPostventaRecord[] = [
+    {
+        id: 'int-1',
+        sucursal: 'Jujuy',
+        tecnicos: 'Equipo A',
+        asesor: 'Mariana',
+        operario: 'Luis',
+        codigo: 'P-001',
+        fecha_inicio: '05/02/2026',
+        fecha_fin: '06/02/2026',
+        mes: 'Febrero',
+        anio: 2026,
+        servicio: 'Service 10k',
+        dominio: 'AA111BB',
+        telefono: '3884000001',
+        email: 'cliente1@example.com',
+        auto: 'Nivus',
+        marca: 'VW',
+        chasis: 'CH001',
+        created_at: '05/02/2026',
+        estado: 'Cerrado',
+        nombre_sucursal: 'Jujuy',
+        cliente_nombre: 'Cliente Uno',
+        servicio_prestado: 4.8,
+        trato_personal: 4.9,
+        organizacion: 4.7,
+        trabajo_taller: 4.6,
+        lavado: 4.8,
+        obs_servicio_prestado: 'OK',
+        obs_trato_personal: 'OK',
+        obs_organizacion: 'OK',
+        obs_trabajo_taller: 'OK',
+        obs_lavado: 'OK',
+        tipo_contacto: 'WhatsApp',
+        obs_tipo_contacto: 'Respondido',
+        observaciones: 'Sin observaciones',
+        obs_observaciones: 'Sin novedades',
+    },
+    {
+        id: 'int-2',
+        sucursal: 'Salta',
+        tecnicos: 'Equipo B',
+        asesor: 'Juan',
+        operario: 'Pedro',
+        codigo: 'P-002',
+        fecha_inicio: '11/02/2026',
+        fecha_fin: '12/02/2026',
+        mes: 'Febrero',
+        anio: 2026,
+        servicio: 'Diagnóstico',
+        dominio: 'BB222CC',
+        telefono: '3874000002',
+        email: 'cliente2@example.com',
+        auto: 'Taos',
+        marca: 'VW',
+        chasis: 'CH002',
+        created_at: '11/02/2026',
+        estado: 'En proceso',
+        nombre_sucursal: 'Salta',
+        cliente_nombre: 'Cliente Dos',
+        servicio_prestado: 4.2,
+        trato_personal: 4.4,
+        organizacion: 4.1,
+        trabajo_taller: 4.0,
+        lavado: 4.3,
+        obs_servicio_prestado: 'Bien',
+        obs_trato_personal: 'Bien',
+        obs_organizacion: 'Bien',
+        obs_trabajo_taller: 'Bien',
+        obs_lavado: 'Bien',
+        tipo_contacto: 'Llamada',
+        obs_tipo_contacto: 'Pendiente',
+        observaciones: 'Requiere seguimiento',
+        obs_observaciones: 'Revisar',
+    },
+];
+
+const MOCK_HR_GRADES_DATA: CourseGrade[] = [
+    { id: 'hrg-1', unidad: 'Jujuy', colaborador: 'Ana Pérez', area: 'Administración', funcion: 'Analista', icf: 92, courses: { induccion: 85, seguridad: 90 } },
+    { id: 'hrg-2', unidad: 'Jujuy', colaborador: 'Luis Gómez', area: 'Taller', funcion: 'Técnico', icf: 88, courses: { induccion: 82, seguridad: 86 } },
+    { id: 'hrg-3', unidad: 'Salta', colaborador: 'Marta Ruiz', area: 'Comercial', funcion: 'Asesora', icf: 95, courses: { induccion: 92, seguridad: 96 } },
+    { id: 'hrg-4', unidad: 'Santa Fe', colaborador: 'Diego Soto', area: 'Posventa', funcion: 'Supervisor', icf: 89, courses: { induccion: 84, seguridad: 88 } },
+];
+
+const MOCK_HR_RELATORIO_DATA: RelatorioItem[] = [
+    { id: 'rel-1', curso: 'Liderazgo', nombre: 'Ana Pérez', unidad: 'Jujuy', area: 'Administración', fechaRegistro: '2026-03-12', referenciaMeses: 'Marzo', clase: 'Clase 1', claseFecha: '2026-03-20', claseHora: '10:00', modalidad: 'Virtual', linkCurso: '' },
+    { id: 'rel-2', curso: 'Seguridad', nombre: 'Luis Gómez', unidad: 'Jujuy', area: 'Taller', fechaRegistro: '2026-03-14', referenciaMeses: 'Marzo', clase: 'Clase 2', claseFecha: '2026-03-22', claseHora: '14:00', modalidad: 'Presencial', linkCurso: '' },
+    { id: 'rel-3', curso: 'Calidad', nombre: 'Marta Ruiz', unidad: 'Salta', area: 'Comercial', fechaRegistro: '2026-03-18', referenciaMeses: 'Marzo', clase: 'Clase 1', claseFecha: '2026-03-25', claseHora: '09:30', modalidad: 'Virtual', linkCurso: '' },
+];
+
+const MOCK_HR_CONTACTS_DATA: CollaboratorContact[] = [
+    { nombre: 'Ana Pérez', telefono: '3884000001' },
+    { nombre: 'Luis Gómez', telefono: '3884000002' },
+    { nombre: 'Marta Ruiz', telefono: '3874000003' },
+];
+
+const MOCK_HR_PHASES_DATA: CoursePhase[] = [
+    { curso: 'Liderazgo', fase: 'Inicial', modalidad: 'Virtual' },
+    { curso: 'Seguridad', fase: 'Intermedia', modalidad: 'Presencial' },
+    { curso: 'Calidad', fase: 'Final', modalidad: 'Virtual' },
+];
+
+const isDirectCsvUrl = (value: string) => /^https?:\/\//i.test(value.trim());
+
+const fetchDirectCsv = async (url: string): Promise<string> => {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), PROXY_REQUEST_TIMEOUT_MS);
+
+    try {
+        const response = await fetch(url, {
+            signal: controller.signal,
+            headers: {
+                'Accept': 'text/csv,application/json,text/plain,*/*',
+            },
+        });
+
+        if (!response.ok) {
+            throw new Error(`No se pudo leer el CSV directo (${response.status} ${response.statusText})`);
+        }
+
+        return await response.text();
+    } finally {
+        clearTimeout(timeoutId);
+    }
+};
+
 const buildRequestHeaders = () => {
     const headers: Record<string, string> = {
         'Accept': 'application/json',
@@ -285,6 +563,11 @@ const wakeBackendIfNeeded = async () => {
 };
 
 const fetchFromProxy = async (sheetKey: string): Promise<string> => {
+    if (isDirectCsvUrl(sheetKey)) {
+        console.log(`[DataService] Fetching direct CSV URL: ${sheetKey}`);
+        return fetchDirectCsv(sheetKey);
+    }
+
     await wakeBackendIfNeeded();
 
     const url = buildApiUrl(`/api/data/${encodeURIComponent(sheetKey)}`);
@@ -344,6 +627,9 @@ const fetchFromProxy = async (sheetKey: string): Promise<string> => {
 
 export const fetchSheetData = async (sheetKey: string): Promise<AutoRecord[]> => {
   try {
+    if (isFrontendOnlySheetKey(sheetKey) && sheetKey === 'postventa') {
+      return MOCK_DATA;
+    }
     const text = await fetchFromProxy(sheetKey);
     return parseAutoCSV(text);
   } catch (error) {
@@ -394,6 +680,9 @@ export const fetchDetailedQualityData = async (sheetKey: string): Promise<Detail
 
 export const fetchPostventaKpiData = async (sheetKey: string): Promise<PostventaKpiRecord[]> => {
     try {
+      if (isFrontendOnlySheetKey(sheetKey) && sheetKey === 'postventa_kpis') {
+        return MOCK_POSTVENTA_KPI_DATA;
+      }
       const text = await fetchFromProxy(sheetKey);
       return parsePostventaKpiCSV(text);
     } catch (error) {
@@ -404,6 +693,9 @@ export const fetchPostventaKpiData = async (sheetKey: string): Promise<Postventa
 
 export const fetchPostventaBillingData = async (sheetKey: string): Promise<BillingRecord[]> => {
     try {
+      if (isFrontendOnlySheetKey(sheetKey) && sheetKey === 'postventa_billing') {
+        return MOCK_POSTVENTA_BILLING_DATA;
+      }
       const text = await fetchFromProxy(sheetKey);
       return parsePostventaBillingCSV(text);
     } catch (error) {
@@ -428,6 +720,9 @@ export const fetchHRGradesData = async (sheetKey: string): Promise<CourseGrade[]
         return [];
     }
     try {
+        if (isFrontendOnlySheetKey(sheetKey) && sheetKey === 'hr_grades') {
+            return MOCK_HR_GRADES_DATA;
+        }
         const text = await fetchFromProxy(sheetKey);
         return parseHRGradesCSV(text);
     } catch (error) {
@@ -442,6 +737,9 @@ export const fetchHRRelatorioData = async (sheetKey: string): Promise<RelatorioI
         return [];
     }
     try {
+        if (isFrontendOnlySheetKey(sheetKey) && sheetKey === 'hr_relatorio') {
+            return MOCK_HR_RELATORIO_DATA;
+        }
         const text = await fetchFromProxy(sheetKey);
         return parseHRRelatorioCSV(text);
     } catch (error) {
@@ -456,6 +754,9 @@ export const fetchHRContactsData = async (sheetKey: string): Promise<Collaborato
         return [];
     }
     try {
+        if (isFrontendOnlySheetKey(sheetKey) && sheetKey === 'hr_contacts') {
+            return MOCK_HR_CONTACTS_DATA;
+        }
         const text = await fetchFromProxy(sheetKey);
         return parseHRContactsCSV(text);
     } catch (error) {
@@ -470,6 +771,9 @@ export const fetchCoursePhasesData = async (sheetKey: string): Promise<CoursePha
         return [];
     }
     try {
+        if (isFrontendOnlySheetKey(sheetKey) && sheetKey === 'hr_phases') {
+            return MOCK_HR_PHASES_DATA;
+        }
         const text = await fetchFromProxy(sheetKey);
         return parseCoursePhasesCSV(text);
     } catch (error) {
@@ -1414,6 +1718,9 @@ const parseActionPlanCSV = (csvText: string): ActionPlanRecord[] => {
 
 export const fetchInternalPostventaData = async (sheetKey: string): Promise<InternalPostventaRecord[]> => {
     try {
+      if (isFrontendOnlySheetKey(sheetKey) && sheetKey === 'internal_postventa') {
+        return MOCK_INTERNAL_POSTVENTA_DATA;
+      }
       const csvText = await fetchFromProxy(sheetKey);
       return parseInternalPostventaCSV(csvText);
     } catch (error) {

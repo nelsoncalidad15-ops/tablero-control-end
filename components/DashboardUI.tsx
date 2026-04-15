@@ -1,5 +1,4 @@
-
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Icons } from './Icon';
@@ -46,24 +45,29 @@ export const DashboardFrame: React.FC<DashboardFrameProps> = ({
 
   return (
     <div className={`flex flex-col min-h-screen transition-all duration-700 ${className}`}>
-      {/* Compact Header Bar */}
+      {/* Compact Glass Header Bar */}
       {!isTvMode && (
-        <div className="flex-none z-40 flex flex-row justify-between items-center gap-2 bg-white/90 p-3 md:p-4 border-b border-slate-200/60 shadow-[0_4px_20px_rgb(0,0,0,0.02)] backdrop-blur-md w-full print:hidden">
+        <div className="flex-none z-40 flex flex-row justify-between items-center gap-2 bg-white/70 sticky top-0 p-3 md:p-4 border-b border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.03)] backdrop-blur-xl w-full print:hidden">
           <div className="flex items-center gap-3 md:gap-6">
             {onBack && (
               <motion.button 
                 whileHover={{ scale: 1.05, x: -3 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={onBack} 
-                className="p-2 rounded-xl bg-slate-50 border border-slate-100 transition-all text-slate-400 hover:text-blue-600 hover:bg-blue-50 hover:border-blue-100 shadow-sm"
+                className="p-2 rounded-xl bg-white/50 border border-white/40 transition-all text-slate-400 hover:text-blue-600 hover:bg-blue-50/50 hover:border-blue-100 shadow-sm backdrop-blur-md"
               >
                 <Icons.ArrowLeft className="w-4 h-4" />
               </motion.button>
             )}
             <div className="flex items-center gap-2 md:gap-4">
-              <div className="w-8 h-8 md:w-11 md:h-11 bg-slate-950 rounded-xl md:rounded-2xl flex items-center justify-center text-white shadow-2xl shadow-slate-900/30 transform -rotate-3 hover:rotate-0 transition-transform duration-500">
+              <motion.div 
+                initial={{ rotate: -10, scale: 0.9 }}
+                animate={{ rotate: -3, scale: 1 }}
+                whileHover={{ rotate: 0, scale: 1.05 }}
+                className="w-8 h-8 md:w-11 md:h-11 bg-slate-950 rounded-xl md:rounded-2xl flex items-center justify-center text-white shadow-2xl shadow-slate-900/30 transition-all duration-500"
+              >
                 <Icons.Activity className="w-4 h-4 md:w-5 md:h-5" />
-              </div>
+              </motion.div>
               <div>
                 <h1 className="text-sm md:text-xl font-black text-slate-950 uppercase tracking-tight italic leading-none">{title}</h1>
                 <p className="hidden xs:flex text-[6px] md:text-[8px] font-black text-slate-400 uppercase tracking-[0.3em] md:tracking-[0.5em] mt-1 md:mt-2 items-center gap-2">
@@ -76,30 +80,30 @@ export const DashboardFrame: React.FC<DashboardFrameProps> = ({
 
           <div className="flex items-center gap-2 md:gap-4">
             {lastUpdated && (
-              <div className="hidden xl:flex flex-col items-end mr-2 md:mr-4 border-r border-slate-100 pr-4 md:pr-6">
+              <div className="hidden xl:flex flex-col items-end mr-2 md:mr-4 border-r border-slate-200/50 pr-4 md:pr-6">
                 <span className="text-[7px] font-black text-slate-300 uppercase tracking-widest leading-none mb-1.5">Última Sincronización</span>
                 <span className="text-[9px] font-black text-slate-600 uppercase tracking-tight leading-none">{lastUpdated}</span>
               </div>
             )}
             
-            <div className="flex bg-slate-50 p-1 md:p-1.5 rounded-xl md:rounded-2xl border border-slate-100 shadow-inner">
+            <div className="flex bg-white/40 p-1 md:p-1.5 rounded-xl md:rounded-2xl border border-white/60 shadow-inner backdrop-blur-md">
               <button 
                 onClick={() => setIsTvMode(!isTvMode)}
-                className={`p-1.5 md:p-2 rounded-lg md:rounded-xl transition-all flex items-center gap-2 ${isTvMode ? 'bg-slate-950 text-white shadow-lg' : 'text-slate-400 hover:text-slate-950 hover:bg-white'}`}
+                className={`p-1.5 md:p-2 rounded-lg md:rounded-xl transition-all flex items-center gap-2 ${isTvMode ? 'bg-slate-950 text-white shadow-lg' : 'text-slate-400 hover:text-slate-950 hover:bg-white/60'}`}
                 title="Modo TV"
               >
                 <Icons.Monitor className="w-3.5 h-3.5 md:w-4 md:h-4" />
               </button>
               <button 
                 onClick={toggleFullScreen}
-                className="p-1.5 md:p-2 rounded-lg md:rounded-xl text-slate-400 hover:text-slate-950 hover:bg-white transition-all"
+                className="p-1.5 md:p-2 rounded-lg md:rounded-xl text-slate-400 hover:text-slate-950 hover:bg-white/60 transition-all"
                 title="Pantalla Completa"
               >
                 {isFullScreen ? <Icons.Minimize className="w-3.5 h-3.5 md:w-4 md:h-4" /> : <Icons.Maximize className="w-3.5 h-3.5 md:w-4 md:h-4" />}
               </button>
               <button 
                 onClick={() => setShowReportModal(true)}
-                className="p-1.5 md:p-2 rounded-lg md:rounded-xl text-slate-400 hover:text-blue-600 hover:bg-white transition-all"
+                className="p-1.5 md:p-2 rounded-lg md:rounded-xl text-slate-400 hover:text-blue-600 hover:bg-white/60 transition-all"
                 title="Reporte Gerencial"
               >
                 <Icons.FileText className="w-3.5 h-3.5 md:w-4 md:h-4" />
@@ -110,7 +114,7 @@ export const DashboardFrame: React.FC<DashboardFrameProps> = ({
       )}
 
       {/* Main Content Area */}
-      <div className="flex flex-col lg:flex-row gap-4 flex-1 items-start w-full px-4 md:px-6 pb-10">
+      <div className="flex flex-col lg:flex-row gap-4 flex-1 items-start w-full px-4 md:px-6 pb-6">
         {/* Filters Sidebar (Hidden in TV Mode) */}
         {!isTvMode && filters && (
           <motion.div 
@@ -237,7 +241,7 @@ const ManagementReportModal = ({ onClose, title }: { onClose: () => void, title:
     setIsGenerating(true);
     setTimeout(() => {
       setIsGenerating(false);
-      navigate('/report');
+      // navigate('/report'); // Report route not implemented yet, but keeping the logic
       onClose();
     }, 1500);
   };
@@ -356,13 +360,18 @@ export const ChartWrapper = ({ title, subtitle, children, className, action, isD
   };
 
   return (
-    <div className={`${isDark ? 'bg-slate-900 border-white/10 shadow-2xl' : 'bg-white border-slate-100 shadow-[0_4px_20px_rgb(0,0,0,0.03)]'} rounded-[2.5rem] border p-8 relative group transition-all hover:shadow-[0_8px_30px_rgb(0,0,0,0.06)] ${className || ''}`}>
-      <div className="flex items-center justify-between mb-8">
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      className={`${isDark ? 'bg-slate-900/90 border-white/10 shadow-2xl' : 'bg-white/70 border-white/60 shadow-[0_8px_32px_rgba(0,0,0,0.03)]'} rounded-[2rem] border p-8 relative group transition-all hover:shadow-[0_12px_40px_rgb(0,0,0,0.06)] backdrop-blur-xl flex flex-col ${className || ''}`}
+    >
+      <div className="flex items-center justify-between mb-8 shrink-0">
         <div className="flex items-center gap-4">
-          <div className={`w-1.5 h-8 ${isDark ? 'bg-blue-500' : 'bg-blue-600'} rounded-full`}></div>
+          <div className={`w-1 h-6 ${isDark ? 'bg-blue-500' : 'bg-blue-600'} rounded-full`}></div>
           <div>
-            <h3 className={`text-sm font-black ${isDark ? 'text-white' : 'text-slate-900'} uppercase tracking-tight italic`}>{title}</h3>
-            {subtitle && <p className={`text-[10px] font-bold ${isDark ? 'text-slate-500' : 'text-slate-400'} uppercase tracking-widest mt-1`}>{subtitle}</p>}
+            <h3 className={`text-xs font-black ${isDark ? 'text-white' : 'text-slate-900'} uppercase tracking-tight italic`}>{title}</h3>
+            {subtitle && <p className={`text-[9px] font-bold ${isDark ? 'text-slate-500' : 'text-slate-400'} uppercase tracking-widest mt-1`}>{subtitle}</p>}
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -370,17 +379,17 @@ export const ChartWrapper = ({ title, subtitle, children, className, action, isD
           <button 
             disabled={isDownloading}
             onClick={downloadChart}
-            className={`w-10 h-10 flex items-center justify-center ${isDark ? 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white' : 'bg-slate-50 hover:bg-slate-100 text-slate-400 hover:text-blue-600'} rounded-xl transition-all disabled:opacity-50 border ${isDark ? 'border-white/10' : 'border-slate-100'}`}
+            className={`w-10 h-10 flex items-center justify-center ${isDark ? 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white' : 'bg-white/50 hover:bg-white text-slate-400 hover:text-blue-600'} rounded-xl transition-all disabled:opacity-50 border ${isDark ? 'border-white/10' : 'border-white/60'} backdrop-blur-md`}
             title="Descargar JPG"
           >
             {isDownloading ? <div className={`w-4 h-4 border-2 ${isDark ? 'border-white/30 border-t-white' : 'border-blue-600/30 border-t-blue-600'} rounded-full animate-spin`}></div> : <Icons.Download className="w-4 h-4" />}
           </button>
         </div>
       </div>
-      <div ref={chartRef} className={isDark ? 'bg-slate-900' : 'bg-white'}>
+      <div ref={chartRef} className={`flex-1 min-h-0 ${isDark ? 'bg-transparent' : 'bg-transparent'}`}>
         {children}
       </div>
-    </div>
+    </motion.div>
   );
 };
 
@@ -409,40 +418,126 @@ export const MonthSelector = ({ selectedMonths, onToggle, months }: {
   </div>
 );
 
-export const LuxuryKPICard = ({ title, value, color, icon: Icon, trend, isDark = false }: { 
+const Sparkline = ({ data, color }: { data: number[], color: string }) => {
+  const max = Math.max(...data);
+  const min = Math.min(...data);
+  const range = max - min;
+  const points = data.map((d, i) => {
+    const x = (i / (data.length - 1)) * 100;
+    const y = 100 - ((d - min) / (range || 1)) * 100;
+    return `${x},${y}`;
+  }).join(' ');
+
+  return (
+    <svg className="w-16 h-8 overflow-visible" viewBox="0 0 100 100" preserveAspectRatio="none">
+      <motion.polyline
+        fill="none"
+        stroke={color}
+        strokeWidth="12"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        points={points}
+        initial={{ pathLength: 0, opacity: 0 }}
+        animate={{ pathLength: 1, opacity: 1 }}
+        transition={{ duration: 1.5, ease: "easeInOut" }}
+      />
+    </svg>
+  );
+};
+
+export const LuxuryKPICard = ({ title, value, color, icon: Icon, trend, isDark = false, isDanger = false, breakdown, sparklineData }: { 
   title: string, 
   value: string | number, 
   color: string, 
   icon: any,
   trend?: { value: number, isUp: boolean },
-  isDark?: boolean
+  isDark?: boolean,
+  isDanger?: boolean,
+  breakdown?: { name: string, value: string | number, secondaryValue?: string | number, percentage?: number }[],
+  sparklineData?: number[]
 }) => (
   <motion.div 
-    whileHover={{ y: -8, scale: 1.02 }}
-    className={`${isDark ? 'bg-slate-900 border-white/10 shadow-2xl' : 'bg-white border-slate-100 shadow-[0_4px_20px_rgb(0,0,0,0.02)]'} p-8 rounded-[2.5rem] border hover:shadow-[0_20px_40px_rgb(0,0,0,0.08)] transition-all group overflow-hidden relative`}
+    whileHover={{ y: -4, scale: 1.02, boxShadow: "0 20px 40px rgba(0,0,0,0.08)" }}
+    animate={isDanger ? { 
+      boxShadow: ["0 0 0px rgba(225,29,72,0)", "0 0 20px rgba(225,29,72,0.15)", "0 0 0px rgba(225,29,72,0)"],
+      borderColor: ["rgba(225,29,72,0.1)", "rgba(225,29,72,0.3)", "rgba(225,29,72,0.1)"]
+    } : {}}
+    transition={isDanger ? { duration: 2, repeat: Infinity } : {}}
+    className={`${isDark ? 'bg-slate-900/90 border-white/10 shadow-2xl' : 'bg-white/70 border-white/60 shadow-[0_8px_32px_rgba(0,0,0,0.03)]'} 
+      ${isDanger ? 'border-rose-500/30 bg-rose-50/10' : ''}
+      p-4 rounded-[1.5rem] border hover:border-blue-500/20 transition-all group overflow-hidden relative flex flex-col h-full backdrop-blur-xl`}
   >
-    <div className={`absolute -right-16 -top-16 w-56 h-56 rounded-full opacity-[0.03] group-hover:opacity-[0.1] transition-all duration-1000 ${color}`}></div>
+    <div className={`absolute -right-12 -top-12 w-40 h-40 rounded-full opacity-[0.03] group-hover:opacity-[0.08] transition-all duration-1000 ${color}`}></div>
     
-    <div className="relative z-10 flex flex-col h-full justify-between">
-      <div className="flex items-start justify-between mb-8">
-        <div className={`p-4 rounded-2xl ${color.replace('bg-', 'bg-').replace('-600', '-50')} ${color.replace('bg-', 'text-')} group-hover:rotate-12 transition-transform duration-500 shadow-sm`}>
-          <Icon className="w-6 h-6" />
+    <div className="relative z-10 flex flex-col h-full">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <div 
+            className={`p-2 rounded-lg ${isDanger ? 'bg-rose-600 text-white animate-pulse' : (color.startsWith('bg-') ? `${color.replace('-600', '-50')} ${color.replace('bg-', 'text-')}` : '')} shadow-sm`}
+            style={!isDanger && !color.startsWith('bg-') ? { backgroundColor: color + '20', color: color } : {}}
+          >
+            <Icon className="w-3.5 h-3.5" />
+          </div>
+          <p className={`text-[8px] font-black ${isDark ? 'text-slate-500' : 'text-slate-400'} uppercase tracking-[0.2em]`}>{title}</p>
         </div>
         {trend && (
-          <div className={`flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[10px] font-black uppercase tracking-widest ${trend.isUp ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'} border border-current/10`}>
-            {trend.isUp ? <Icons.ArrowUp className="w-3 h-3" /> : <Icons.ArrowDown className="w-3 h-3" />}
+          <div className={`flex items-center gap-1 px-1.5 py-0.5 rounded-full text-[8px] font-black uppercase tracking-wider ${trend.isUp ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'} border border-current/10`}>
+            {trend.isUp ? <Icons.ArrowUp className="w-2 h-2" /> : <Icons.ArrowDown className="w-2 h-2" />}
             {trend.value}%
           </div>
         )}
       </div>
 
-      <div>
-        <p className={`text-[10px] font-black ${isDark ? 'text-slate-500' : 'text-slate-400'} uppercase tracking-[0.3em] mb-3`}>{title}</p>
-        <h4 className={`text-5xl font-black ${isDark ? 'text-white' : 'text-slate-950'} tracking-tighter leading-none italic`}>
-          {typeof value === 'number' ? (Number.isInteger(value) ? value : value.toFixed(2)) : value}
-        </h4>
+      <div className="flex-grow">
+        {breakdown && breakdown.length > 0 && (
+          <div className="space-y-2 mb-3">
+            {breakdown.map((item, i) => (
+              <div key={i} className="group/item">
+                <div className="flex justify-between items-center mb-0.5">
+                  <span className="text-[9px] font-bold text-slate-500 uppercase tracking-wider truncate mr-2">{item.name}</span>
+                  <div className="text-right flex flex-col items-end">
+                    <span className={`text-base font-black italic leading-none ${isDark ? 'text-white' : 'text-slate-900'} ${isDanger && item.percentage === 100 ? 'text-rose-600' : ''}`}>{item.value}</span>
+                    {item.secondaryValue && (
+                      <span className="text-[7px] font-bold text-slate-400 uppercase tracking-tight mt-0.5">
+                        OBJ: {item.secondaryValue}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                {item.percentage !== undefined && (
+                  <div className="h-0.5 w-full bg-slate-100/50 rounded-full overflow-hidden">
+                    <motion.div 
+                      initial={{ width: 0 }}
+                      animate={{ width: `${Math.min(item.percentage, 100)}%` }}
+                      className={`h-full ${isDanger ? 'bg-rose-600' : item.percentage >= 95 ? 'bg-emerald-500' : item.percentage >= 90 ? 'bg-amber-500' : 'bg-rose-500'}`}
+                      style={!isDanger && !color.startsWith('bg-') && item.percentage >= 95 ? { backgroundColor: color } : {}}
+                    />
+                  </div>
+                )}
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      <div className="pt-2 border-t border-slate-100/50 mt-auto flex items-end justify-between">
+        <div>
+          <span className="text-[7px] font-black text-slate-400 uppercase tracking-widest block mb-0.5">Consolidado</span>
+          <h4 className={`text-sm font-black ${isDark ? 'text-white' : 'text-slate-900'} tracking-tighter leading-none italic opacity-40`}>
+            {typeof value === 'number' ? (Number.isInteger(value) ? value : value.toFixed(2)) : value}
+          </h4>
+        </div>
+        {sparklineData && (
+          <div className="pb-1">
+            <Sparkline data={sparklineData} color={isDanger ? '#ef4444' : (!color.startsWith('bg-') ? color : '#2563eb')} />
+          </div>
+        )}
       </div>
     </div>
+    <div 
+      className={`absolute -right-12 -top-12 w-40 h-40 rounded-full opacity-[0.03] group-hover:opacity-[0.08] transition-all duration-1000 ${color.startsWith('bg-') ? color : ''}`}
+      style={!color.startsWith('bg-') ? { backgroundColor: color } : {}}
+    ></div>
   </motion.div>
 );
 
@@ -495,14 +590,19 @@ export const DataTable = ({ data, columns, title, subtitle, pageSize = 10 }: {
   const currentData = data.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
   return (
-    <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-[0_4px_20px_rgb(0,0,0,0.02)] overflow-hidden transition-all hover:shadow-[0_8px_30px_rgb(0,0,0,0.04)]">
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      whileInView={{ opacity: 1, y: 0 }}
+      viewport={{ once: true }}
+      className="bg-white/70 rounded-[2.5rem] border border-white/60 shadow-[0_8px_32px_rgba(0,0,0,0.03)] overflow-hidden transition-all hover:shadow-[0_12px_40px_rgb(0,0,0,0.06)] backdrop-blur-xl"
+    >
       {(title || subtitle) && (
-        <div className="px-8 py-6 border-b border-slate-50 bg-slate-50/30">
-          <div className="flex items-center gap-4">
-            <div className="w-1.5 h-6 bg-slate-900 rounded-full"></div>
+        <div className="px-6 py-4 border-b border-white/40 bg-white/30">
+          <div className="flex items-center gap-3">
+            <div className="w-1 h-5 bg-slate-900 rounded-full"></div>
             <div>
-              {title && <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight italic">{title}</h3>}
-              {subtitle && <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1">{subtitle}</p>}
+              {title && <h3 className="text-xs font-black text-slate-900 uppercase tracking-tight italic">{title}</h3>}
+              {subtitle && <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest mt-0.5">{subtitle}</p>}
             </div>
           </div>
         </div>
@@ -510,19 +610,19 @@ export const DataTable = ({ data, columns, title, subtitle, pageSize = 10 }: {
       <div className="overflow-x-auto">
         <table className="w-full text-left border-collapse">
           <thead>
-            <tr className="bg-slate-50/50 border-b border-slate-100">
+            <tr className="bg-white/20 border-b border-white/40">
               {columns.map((col, i) => (
-                <th key={i} className="px-8 py-4 text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                <th key={i} className="px-6 py-3 text-[8px] font-black text-slate-400 uppercase tracking-widest">
                   {col.header}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-slate-100">
+          <tbody className="divide-y divide-white/40">
             {currentData.map((row, i) => (
-              <tr key={i} className="hover:bg-slate-50/80 transition-all group border-l-4 border-transparent hover:border-blue-600">
+              <tr key={i} className="hover:bg-white/40 transition-all group border-l-4 border-transparent hover:border-blue-600">
                 {columns.map((col, j) => (
-                  <td key={j} className="px-8 py-6 text-[10px] font-bold text-slate-600 group-hover:text-slate-900 transition-colors">
+                  <td key={j} className="px-6 py-4 text-[9px] font-bold text-slate-600 group-hover:text-slate-900 transition-colors">
                     {col.render ? col.render(row[col.accessor], row) : row[col.accessor]}
                   </td>
                 ))}
@@ -532,7 +632,7 @@ export const DataTable = ({ data, columns, title, subtitle, pageSize = 10 }: {
         </table>
       </div>
       {totalPages > 1 && (
-        <div className="px-8 py-4 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between">
+        <div className="px-8 py-4 bg-white/20 border-t border-white/40 flex items-center justify-between">
           <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
             Página {currentPage} de {totalPages}
           </span>
@@ -540,21 +640,21 @@ export const DataTable = ({ data, columns, title, subtitle, pageSize = 10 }: {
             <button 
               onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
               disabled={currentPage === 1}
-              className="p-2 rounded-xl bg-white border border-slate-200 text-slate-400 disabled:opacity-30 hover:text-blue-600 hover:border-blue-100 transition-all shadow-sm"
+              className="p-2 rounded-xl bg-white/50 border border-white/60 text-slate-400 disabled:opacity-30 hover:text-blue-600 hover:border-blue-100 transition-all shadow-sm backdrop-blur-md"
             >
               <Icons.ArrowLeft className="w-3.5 h-3.5" />
             </button>
             <button 
               onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
               disabled={currentPage === totalPages}
-              className="p-2 rounded-xl bg-white border border-slate-200 text-slate-400 disabled:opacity-30 hover:text-blue-600 hover:border-blue-100 transition-all shadow-sm"
+              className="p-2 rounded-xl bg-white/50 border border-white/60 text-slate-400 disabled:opacity-30 hover:text-blue-600 hover:border-blue-100 transition-all shadow-sm backdrop-blur-md"
             >
               <Icons.ArrowLeft className="w-3.5 h-3.5 rotate-180" />
             </button>
           </div>
         </div>
       )}
-    </div>
+    </motion.div>
   );
 };
 

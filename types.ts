@@ -427,3 +427,8 @@ export enum LoadingState {
   SUCCESS = 'SUCCESS',
   ERROR = 'ERROR'
 }
+
+export interface LoadingStatus {
+  isLoading: boolean;
+  error: string | null;
+}

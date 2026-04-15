@@ -1,609 +1,595 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
-    BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, 
-    PieChart, Pie, Cell, ComposedChart, Line,
-    ScatterChart, Scatter, LabelList
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  Legend, 
+  ResponsiveContainer,
+  PieChart, 
+  Pie, 
+  Cell,
+  LineChart,
+  Line
 } from 'recharts';
-import { DashboardFrame, LuxuryKPICard, SkeletonLoader, StatusBadge, InsightCard, DataTable, ChartWrapper } from './DashboardUI';
-import { BillingRecord, LoadingState } from '../types';
-import { fetchPostventaBillingData } from '../services/dataService';
-import GaugeChart from './GaugeChart';
+import { motion, AnimatePresence } from 'motion/react';
+import { 
+  DashboardFrame, 
+  LuxuryKPICard, 
+  ChartWrapper, 
+  MonthSelector, 
+  DataTable, 
+  StatusBadge,
+  InsightCard
+} from './DashboardUI';
 import { Icons } from './Icon';
+import { GaugeChart } from './GaugeChart';
+import { ChatBot } from './ChatBot';
+import { fetchPostventaBillingData } from '../services/dataService';
+import { BillingRecord, LoadingStatus } from '../types';
+import { MONTHS, YEARS, BRANCHES, BRANCH_COLORS, DEFAULT_CONFIG } from '../constants';
 
 interface PostventaBillingDashboardProps {
-  sheetUrl: string;
+  sheetUrl?: string;
   onBack?: () => void;
 }
 
-const PostventaBillingDashboard: React.FC<PostventaBillingDashboardProps> = ({ sheetUrl, onBack }) => {
+export const PostventaBillingDashboard: React.FC<PostventaBillingDashboardProps> = ({ sheetUrl, onBack }) => {
   const [data, setData] = useState<BillingRecord[]>([]);
-  const [loading, setLoading] = useState<LoadingState>(LoadingState.IDLE);
-  const [error, setError] = useState<string | null>(null);
-
-  // Filters
-  const [selectedYears, setSelectedYears] = useState<number[]>([]);
+  const [loading, setLoading] = useState<LoadingStatus>({ isLoading: true, error: null });
+  const [selectedYear, setSelectedYear] = useState<string>("2026");
   const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
   const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
   const [selectedAreas, setSelectedAreas] = useState<string[]>([]);
 
+  const normalize = (str: string) => 
+    str.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase().trim();
+
   useEffect(() => {
     const loadData = async () => {
+      setLoading({ isLoading: true, error: null });
       try {
-        setLoading(LoadingState.LOADING);
-        const result = await fetchPostventaBillingData(sheetUrl);
+        const result = await fetchPostventaBillingData(sheetUrl || DEFAULT_CONFIG.sheetUrls.postventa_billing);
         setData(result);
         
+        // Set default year to the latest year in the data
         if (result.length > 0) {
-            const years = Array.from(new Set(result.map(r => r.anio))).sort((a, b) => b - a);
-            const latestYearData = result.filter(r => r.anio === years[0]);
-            const latestMonth = latestYearData.sort((a, b) => b.nro_mes - a.nro_mes)[0]?.mes;
-            
-            if (years.length > 0) setSelectedYears([years[0]]);
-            if (latestMonth) setSelectedMonths([latestMonth]);
-            
-            setSelectedBranches(Array.from(new Set(result.map(r => r.sucursal))));
-            setSelectedAreas(Array.from(new Set(result.map(r => r.area))));
+          const years = Array.from(new Set(result.map(item => item.anio?.toString()))).filter(y => y && y !== '0').sort();
+          if (years.length > 0) {
+            setSelectedYear(years[years.length - 1]!.toString());
+          }
         }
-        setError(null);
-        setLoading(LoadingState.SUCCESS);
+        
+        setLoading({ isLoading: false, error: null });
       } catch (err) {
-        setError("Error al cargar los datos de facturación.");
-        setLoading(LoadingState.ERROR);
+        setLoading({ isLoading: false, error: 'Error al cargar los datos de facturación.' });
       }
     };
     loadData();
-  }, [sheetUrl]);
+  }, []);
 
-  const monthOrder = [
-    "Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio",
-    "Julio", "Agosto", "Septiembre", "Octubre", "Noviembre", "Diciembre"
-  ];
+  const availableYears = useMemo(() => {
+    const years = Array.from(new Set(data.map(item => item.anio?.toString()))).filter(y => y && y !== '0').sort();
+    return years.length > 0 ? years : YEARS;
+  }, [data]);
 
-  const uniqueValues = useMemo(() => {
-    return {
-      years: Array.from(new Set(data.map(r => r.anio))).sort((a, b) => b - a),
-      months: monthOrder.filter(m => data.some(r => r.mes === m)),
-      branches: Array.from(new Set(data.map(r => r.sucursal))).sort(),
-      areas: Array.from(new Set(data.map(r => r.area))).sort()
-    };
+  const areas = useMemo(() => {
+    const map = new Map<string, string>();
+    data.forEach(item => {
+      if (item.area) {
+        const norm = normalize(item.area);
+        if (!map.has(norm)) {
+          map.set(norm, item.area);
+        }
+      }
+    });
+    return Array.from(map.values()).sort();
   }, [data]);
 
   const filteredData = useMemo(() => {
-    return data.filter(r => 
-      (selectedYears.length === 0 || selectedYears.includes(r.anio)) &&
-      (selectedMonths.length === 0 || selectedMonths.includes(r.mes)) &&
-      (selectedBranches.length === 0 || selectedBranches.includes(r.sucursal)) &&
-      (selectedAreas.length === 0 || selectedAreas.includes(r.area))
-    );
-  }, [data, selectedYears, selectedMonths, selectedBranches, selectedAreas]);
+    return data.filter(item => {
+      const yearMatch = item.anio?.toString() === selectedYear;
+      const monthMatch = selectedMonths.length === 0 || selectedMonths.some(m => m.toLowerCase() === item.mes?.toLowerCase());
+      
+      // Ensure we only include branches that are in our BRANCHES constant
+      const isAllowedBranch = BRANCHES.includes(item.sucursal);
+      const branchMatch = selectedBranches.length === 0 
+        ? isAllowedBranch 
+        : selectedBranches.includes(item.sucursal);
+        
+      const areaMatch = selectedAreas.length === 0 || selectedAreas.some(a => normalize(item.area) === normalize(a));
+      return yearMatch && monthMatch && branchMatch && areaMatch;
+    });
+  }, [data, selectedYear, selectedMonths, selectedBranches, selectedAreas]);
 
-  const toggleFilter = (list: any[], setList: React.Dispatch<React.SetStateAction<any[]>>, val: any) => {
-    if (list.includes(val)) {
-      setList(list.filter(item => item !== val));
-    } else {
-      setList([...list, val]);
-    }
-  };
-
-  const stats = useMemo(() => {
-    const totalObj = filteredData.reduce((acc, r) => acc + r.objetivo_mensual, 0);
-    const totalAvance = filteredData.reduce((acc, r) => acc + r.avance_fecha, 0);
-    const avgCumplimiento = totalObj > 0 ? (totalAvance / totalObj) * 100 : 0;
+  // Financial KPI Calculations
+  const kpis = useMemo(() => {
+    const totalFacturacion = filteredData.reduce((sum, item) => sum + (item.avance_fecha || 0), 0);
+    const totalObjetivo = filteredData.reduce((sum, item) => sum + (item.objetivo_mensual || 0), 0);
+    const totalDesvio = filteredData.reduce((sum, item) => sum + (item.desvio_fecha || 0), 0);
+    const totalPromedioDiario = filteredData.reduce((sum, item) => sum + (item.promedio_diario || 0), 0);
+    const totalObjetivoDiario = totalObjetivo / 22; // Assuming 22 working days
     
-    const branchStats: Record<string, { obj: number, avance: number, cumplimiento: number }> = {};
-    selectedBranches.forEach(branch => {
-      const branchData = filteredData.filter(r => r.sucursal === branch);
-      const obj = branchData.reduce((acc, r) => acc + r.objetivo_mensual, 0);
-      const avance = branchData.reduce((acc, r) => acc + r.avance_fecha, 0);
-      branchStats[branch] = {
-        obj,
-        avance,
-        cumplimiento: obj > 0 ? (avance / obj) * 100 : 0
-      };
+    // Generate sparkline data (last 6 months trend)
+    const months = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+    const currentMonthIdx = new Date().getMonth();
+    const trendData = months.slice(Math.max(0, currentMonthIdx - 5), currentMonthIdx + 1).map(m => {
+      return data.filter(d => d.mes?.toLowerCase() === m.toLowerCase() && d.anio?.toString() === selectedYear)
+                 .reduce((sum, d) => sum + (d.avance_fecha || 0), 0);
     });
 
-    return { totalObj, totalAvance, avgCumplimiento, branchStats };
-  }, [filteredData, selectedBranches]);
-
-  const branchComparisonData = useMemo(() => {
-    const branches = Array.from(new Set(filteredData.map(r => r.sucursal)));
-    return branches.map(branch => {
-      const branchData = filteredData.filter(r => r.sucursal === branch);
-      const obj = branchData.reduce((acc, r) => acc + r.objetivo_mensual, 0);
-      const avance = branchData.reduce((acc, r) => acc + r.avance_fecha, 0);
+    // Breakdown by branch - Ensure all selected branches are included
+    const branchesToInclude = selectedBranches.length > 0 ? selectedBranches : Array.from(new Set(data.map(d => d.sucursal))).filter(Boolean);
+    
+    const branchBreakdown = branchesToInclude.map(branch => {
+      const branchData = filteredData.filter(d => d.sucursal === branch);
+      const facturacion = branchData.reduce((sum, d) => sum + (d.avance_fecha || 0), 0);
+      const objetivo = branchData.reduce((sum, d) => sum + (d.objetivo_mensual || 0), 0);
+      const desvio = branchData.reduce((sum, d) => sum + (d.desvio_fecha || 0), 0);
+      const promedio = branchData.reduce((sum, d) => sum + (d.promedio_diario || 0), 0);
+      const objetivoDiario = objetivo / 22;
+      const cumplimiento = branchData.length > 0 
+        ? branchData.reduce((sum, d) => sum + (d.cumplimiento_fecha_pct || 0), 0) / branchData.length 
+        : 0;
       return {
         name: branch,
-        Objetivo: obj,
-        Avance: avance,
-        Cumplimiento: obj > 0 ? (avance / obj) * 100 : 0
+        facturacion,
+        objetivo,
+        desvio,
+        promedio,
+        objetivoDiario,
+        cumplimiento
       };
-    }).sort((a, b) => b.Avance - a.Avance);
-  }, [filteredData]);
+    }).sort((a, b) => b.objetivo - a.objetivo);
 
-  const areaComparisonData = useMemo(() => {
-    const areas = Array.from(new Set(filteredData.map(r => r.area)));
-    return areas.map(area => {
-      const areaData = filteredData.filter(r => r.area === area);
-      const avance = areaData.reduce((acc, r) => acc + r.avance_fecha, 0);
-      return { name: area, Avance: avance };
-    });
-  }, [filteredData]);
+    const totalCumplimiento = filteredData.length > 0
+      ? filteredData.reduce((sum, d) => sum + (d.cumplimiento_fecha_pct || 0), 0) / filteredData.length
+      : 0;
 
-  const BRANCH_COLORS: Record<string, string> = {
-    'Jujuy': '#2563EB',
-    'Salta': '#1E3A8A',
-    'Express': '#10B981',
-    'Taller Movil': '#F59E0B',
-    'Tartagal': '#EF4444',
-    'Santa Fe': '#8B5CF6',
-    'Movil': '#F59E0B'
-  };
+    return {
+      facturacion: totalFacturacion,
+      objetivo: totalObjetivo,
+      desvio: totalDesvio,
+      promedio: totalPromedioDiario,
+      objetivoDiario: totalObjetivoDiario,
+      cumplimiento: totalCumplimiento,
+      branchBreakdown,
+      trendData
+    };
+  }, [filteredData, data, selectedYear]);
 
-  const getDefaultColor = (idx: number) => ['#0f172a', '#00B0F0', '#10b981', '#f59e0b', '#8b5cf6', '#ec4899'][idx % 6];
+  // Monthly Billing Chart Data by Branch (Always Annual)
+  const branchMonthlyData = useMemo(() => {
+    const months = [
+      'ENERO', 'FEBRERO', 'MARZO', 'ABRIL', 'MAYO', 'JUNIO', 
+      'JULIO', 'AGOSTO', 'SEPTIEMBRE', 'OCTUBRE', 'NOVIEMBRE', 'DICIEMBRE'
+    ];
+    
+    const branchesToRender = selectedBranches.length > 0 ? selectedBranches : BRANCHES;
 
-  const annualComplianceData = useMemo(() => {
-    const months = monthOrder;
-    return months.map(month => {
-      const entry: any = { name: month.substring(0, 3) };
-      
-      const monthData = data.filter(r => 
-        r.mes === month && 
-        (selectedYears.length === 0 || selectedYears.includes(r.anio))
-      );
-
-      selectedBranches.forEach(branch => {
-        const branchMonthData = monthData.filter(r => r.sucursal === branch);
-        const obj = branchMonthData.reduce((acc, r) => acc + r.objetivo_mensual, 0);
-        const avance = branchMonthData.reduce((acc, r) => acc + r.avance_fecha, 0);
-        entry[branch] = obj > 0 ? (avance / obj) * 100 : 0;
+    const results = branchesToRender.map(branch => {
+      const branchData = months.map((m, index) => {
+        const monthData = data.filter(d => 
+          d.sucursal === branch &&
+          (d.nro_mes === index + 1 || d.mes === m) && 
+          d.anio?.toString() === selectedYear && 
+          (selectedAreas.length === 0 || selectedAreas.some(a => normalize(d.area) === normalize(a)))
+        );
+        return {
+          name: m.substring(0, 3),
+          fullName: m,
+          facturacion: monthData.reduce((sum, d) => sum + (d.avance_fecha || 0), 0),
+          isStudyMonth: selectedMonths.includes(m)
+        };
       });
-
-      return entry;
+      return { branch, data: branchData };
     });
-  }, [data, selectedYears, selectedBranches]);
 
-  const formatCurrency = (val: number) => 
-    new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(val);
+    return results
+      .filter(b => b.data.some(d => d.facturacion > 0))
+      .sort((a, b) => {
+        const totalA = a.data.reduce((sum, d) => sum + d.facturacion, 0);
+        const totalB = b.data.reduce((sum, d) => sum + d.facturacion, 0);
+        return totalB - totalA;
+      });
+  }, [data, selectedYear, selectedMonths, selectedBranches, selectedAreas]);
 
-  const getComplianceColor = (val: number) => {
-    if (val < 90) return 'bg-rose-500';
-    if (val < 95) return 'bg-amber-500';
-    return 'bg-emerald-500';
+  const formatCurrency = (value: number, inMillions: boolean = true) => {
+    if (inMillions) {
+      const millions = value / 1000000;
+      return new Intl.NumberFormat('es-AR', { 
+        style: 'currency', 
+        currency: 'ARS', 
+        maximumFractionDigits: 1 
+      }).format(millions) + 'M';
+    }
+    return new Intl.NumberFormat('es-AR', { 
+      style: 'currency', 
+      currency: 'ARS', 
+      maximumFractionDigits: 0 
+    }).format(value);
   };
 
-  // if (loading === LoadingState.LOADING) return <SkeletonLoader />;
+  const toggleMonth = (month: string) => {
+    setSelectedMonths(prev => 
+      prev.includes(month) ? prev.filter(m => m !== month) : [...prev, month]
+    );
+  };
 
-  if (error) return (
-    <div className="bg-rose-50 border border-rose-100 text-rose-700 p-8 rounded-[2.5rem] flex items-center gap-6 max-w-2xl mx-auto mt-12">
-        <div className="p-4 bg-rose-100 rounded-2xl">
-          <Icons.AlertTriangle className="w-8 h-8" />
-        </div>
-        <div>
-            <h3 className="font-black uppercase tracking-tight text-lg">Error de Conexión</h3>
-            <p className="text-sm font-bold opacity-70">{error}</p>
-        </div>
-    </div>
-  );
+  const toggleBranch = (branch: string) => {
+    setSelectedBranches(prev => 
+      prev.includes(branch) ? prev.filter(b => b !== branch) : [...prev, branch]
+    );
+  };
 
-  const filters = (
-    <div className="space-y-6">
-      <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 p-6">
-        <h3 className="font-black text-[10px] text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-          <Icons.Calendar className="w-3 h-3 text-blue-500" />
-          Año
-        </h3>
-        <div className="flex flex-wrap gap-2">
-          {uniqueValues.years.map(year => (
-            <button
-              key={year}
-              onClick={() => toggleFilter(selectedYears, setSelectedYears, year)}
-              className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all ${
-                selectedYears.includes(year)
-                ? 'bg-slate-950 text-white shadow-lg shadow-slate-900/20'
-                : 'bg-white text-slate-400 border border-slate-100 hover:border-slate-300'
-              }`}
+  const toggleArea = (area: string) => {
+    const normArea = normalize(area);
+    setSelectedAreas(prev => 
+      prev.some(a => normalize(a) === normArea) 
+        ? prev.filter(a => normalize(a) !== normArea) 
+        : [...prev, area]
+    );
+  };
+  const horizontalFilters = (
+    <motion.div 
+      initial={{ opacity: 0, y: -20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="bg-white/70 p-6 rounded-[2rem] border border-white/60 shadow-[0_8px_32px_rgba(0,0,0,0.03)] backdrop-blur-xl mb-6"
+    >
+      <div className="flex flex-col gap-6">
+        {/* Top Row: Year, Branches, Areas */}
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+          {/* Year */}
+          <div className="space-y-3">
+            <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+              <Icons.Calendar className="w-3 h-3" /> Año
+            </span>
+            <div className="flex gap-1 bg-white/40 p-1 rounded-xl w-fit border border-white/60 shadow-inner">
+              {availableYears.map(y => (
+                <button 
+                  key={y}
+                  onClick={() => setSelectedYear(y.toString())}
+                  className={`px-5 py-1.5 rounded-lg text-[10px] font-black transition-all ${selectedYear === y.toString() ? 'bg-slate-950 text-white shadow-md' : 'text-slate-400 hover:text-slate-600'}`}
+                >
+                  {y}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Branches */}
+          <div className="space-y-3">
+            <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+              <Icons.MapPin className="w-3 h-3" /> Sucursales
+            </span>
+            <div className="flex flex-wrap gap-1.5">
+              <button 
+                onClick={() => setSelectedBranches([])}
+                className={`px-3 py-1.5 rounded-lg text-[9px] font-black transition-all border ${selectedBranches.length === 0 ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white/50 text-slate-400 border-white/60 hover:border-slate-200'}`}
+              >
+                TODAS
+              </button>
+              {BRANCHES.map(b => (
+                <button 
+                  key={b}
+                  onClick={() => toggleBranch(b)}
+                  className={`px-3 py-1.5 rounded-lg text-[9px] font-black transition-all border ${selectedBranches.includes(b) ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white/50 text-slate-400 border-white/60 hover:border-slate-200'}`}
+                >
+                  {b}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Areas */}
+          <div className="space-y-3">
+            <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+              <Icons.Briefcase className="w-3 h-3" /> Áreas
+            </span>
+            <div className="flex flex-wrap gap-1.5">
+              <button 
+                onClick={() => setSelectedAreas([])}
+                className={`px-3 py-1.5 rounded-lg text-[9px] font-black transition-all border ${selectedAreas.length === 0 ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white/50 text-slate-400 border-white/60 hover:border-slate-200'}`}
+              >
+                TODAS
+              </button>
+              {areas.map(a => (
+                <button 
+                  key={a}
+                  onClick={() => toggleArea(a)}
+                  className={`px-3 py-1.5 rounded-lg text-[9px] font-black transition-all border ${selectedAreas.some(sa => normalize(sa) === normalize(a)) ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white/50 text-slate-400 border-white/60 hover:border-slate-200'}`}
+                >
+                  {a.replace('Facturación ', '')}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Row: Months */}
+        <div className="space-y-3 pt-5 border-t border-white/40">
+          <span className="text-[8px] font-black text-slate-400 uppercase tracking-[0.2em] flex items-center gap-2">
+            <Icons.Clock className="w-3 h-3" /> Meses
+          </span>
+          <div className="flex flex-wrap gap-1.5">
+            <button 
+              onClick={() => setSelectedMonths([])}
+              className={`px-4 py-1.5 rounded-lg text-[9px] font-black transition-all border ${selectedMonths.length === 0 ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white/50 text-slate-400 border-white/60 hover:border-slate-200'}`}
             >
-              {year}
+              ANUAL
             </button>
-          ))}
+            {MONTHS.map(m => (
+              <button 
+                key={m}
+                onClick={() => toggleMonth(m)}
+                className={`px-4 py-1.5 rounded-lg text-[9px] font-black transition-all border ${selectedMonths.includes(m) ? 'bg-blue-600 text-white border-blue-600 shadow-sm' : 'bg-white/50 text-slate-400 border-white/60 hover:border-slate-200'}`}
+              >
+                {m.charAt(0) + m.slice(1, 3).toLowerCase()}
+              </button>
+            ))}
+          </div>
         </div>
       </div>
-
-      <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 p-6">
-        <h3 className="font-black text-[10px] text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-          <Icons.MapPin className="w-3 h-3 text-emerald-500" />
-          Sucursales
-        </h3>
-        <div className="space-y-2">
-          {uniqueValues.branches.map(branch => (
-            <label key={branch} className="flex items-center gap-3 group cursor-pointer p-2 rounded-xl hover:bg-slate-50 transition-colors">
-              <div className="relative flex items-center">
-                <input 
-                  type="checkbox"
-                  checked={selectedBranches.includes(branch)}
-                  onChange={() => toggleFilter(selectedBranches, setSelectedBranches, branch)}
-                  className="peer appearance-none w-5 h-5 border-2 border-slate-100 rounded-lg checked:bg-slate-950 checked:border-slate-950 transition-all"
-                />
-                <Icons.Check className="absolute w-3 h-3 text-white opacity-0 peer-checked:opacity-100 left-1 transition-opacity" />
-              </div>
-              <span className="text-[10px] font-black text-slate-500 group-hover:text-slate-950 transition-colors uppercase tracking-tight">{branch}</span>
-            </label>
-          ))}
-        </div>
-      </div>
-
-      <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 p-6">
-        <h3 className="font-black text-[10px] text-slate-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-          <Icons.Layers className="w-3 h-3 text-indigo-500" />
-          Áreas
-        </h3>
-        <div className="space-y-2">
-          {uniqueValues.areas.map(area => (
-            <label key={area} className="flex items-center gap-3 group cursor-pointer p-2 rounded-xl hover:bg-slate-50 transition-colors">
-              <div className="relative flex items-center">
-                <input 
-                  type="checkbox"
-                  checked={selectedAreas.includes(area)}
-                  onChange={() => toggleFilter(selectedAreas, setSelectedAreas, area)}
-                  className="peer appearance-none w-5 h-5 border-2 border-slate-100 rounded-lg checked:bg-slate-950 checked:border-slate-950 transition-all"
-                />
-                <Icons.Check className="absolute w-3 h-3 text-white opacity-0 peer-checked:opacity-100 left-1 transition-opacity" />
-              </div>
-              <span className="text-[10px] font-black text-slate-500 group-hover:text-slate-950 transition-colors uppercase tracking-tight">{area}</span>
-            </label>
-          ))}
-        </div>
-      </div>
-    </div>
+    </motion.div>
   );
 
   return (
-    <DashboardFrame
-      title="Facturación Postventa"
-      subtitle="Intelligence Dashboard"
-      lastUpdated={new Date().toLocaleTimeString()}
-      filters={null}
-      isLoading={loading === LoadingState.LOADING}
+    <DashboardFrame 
+      title="Facturación Posventa" 
+      subtitle="Análisis de Ingresos y Objetivos"
       onBack={onBack}
-      onExport={() => alert('Exportando reporte de facturación...')}
+      isLoading={loading.isLoading}
+      lastUpdated="23/03/2026 12:15"
     >
-      <div className="space-y-8 pb-20">
-        {/* Sticky Filter Bar - Refined UI */}
-        <div className="sticky top-[80px] z-30 -mx-6 px-10 py-4 bg-white/80 backdrop-blur-xl border-b border-slate-200/60 mb-8 shadow-sm transition-all">
-          <div className="max-w-[1600px] mx-auto flex flex-col gap-4">
-            {/* Years Filter */}
-            <div className="flex items-center gap-6 overflow-x-auto no-scrollbar pb-1">
-              <div className="flex items-center gap-2 min-w-[80px]">
-                <Icons.Calendar className="w-3.5 h-3.5 text-slate-400" />
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Año:</span>
-              </div>
-              <div className="flex gap-2">
-                {uniqueValues.years.map(year => (
-                  <button
-                    key={year}
-                    onClick={() => toggleFilter(selectedYears, setSelectedYears, year)}
-                    className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border ${
-                      selectedYears.includes(year)
-                      ? 'bg-slate-950 text-white border-slate-950 shadow-lg shadow-slate-900/20 scale-105'
-                      : 'bg-white text-slate-400 border-slate-100 hover:border-slate-300'
-                    }`}
-                  >
-                    {year}
-                  </button>
-                ))}
-              </div>
-            </div>
+      {horizontalFilters}
 
-            {/* Months Filter */}
-            <div className="flex items-center gap-6 overflow-x-auto no-scrollbar pb-1">
-              <div className="flex items-center gap-2 min-w-[80px]">
-                <Icons.Clock className="w-3.5 h-3.5 text-slate-400" />
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Mes:</span>
-              </div>
-              <div className="flex gap-2">
-                {monthOrder.map(month => {
-                  const hasData = uniqueValues.months.includes(month);
-                  const isSelected = selectedMonths.includes(month);
-                  return (
-                    <button
-                      key={month}
-                      disabled={!hasData}
-                      onClick={() => toggleFilter(selectedMonths, setSelectedMonths, month)}
-                      className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border ${
-                        !hasData ? 'opacity-20 cursor-not-allowed' :
-                        isSelected ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-200 scale-105' : 'bg-white text-slate-400 border-slate-100 hover:bg-slate-50 hover:border-slate-300'
-                      }`}
-                    >
-                      {month}
-                    </button>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Branches Filter */}
-            <div className="flex items-center gap-6 overflow-x-auto no-scrollbar pb-1">
-              <div className="flex items-center gap-2 min-w-[80px]">
-                <Icons.MapPin className="w-3.5 h-3.5 text-slate-400" />
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Sucursal:</span>
-              </div>
-              <div className="flex gap-2">
-                {uniqueValues.branches.map(branch => (
-                  <button
-                    key={branch}
-                    onClick={() => toggleFilter(selectedBranches, setSelectedBranches, branch)}
-                    className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border ${
-                      selectedBranches.includes(branch)
-                      ? 'bg-emerald-600 text-white border-emerald-600 shadow-lg shadow-emerald-200 scale-105'
-                      : 'bg-white text-slate-400 border-slate-100 hover:border-slate-300'
-                    }`}
-                  >
-                    {branch}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            {/* Areas Filter */}
-            <div className="flex items-center gap-6 overflow-x-auto no-scrollbar">
-              <div className="flex items-center gap-2 min-w-[80px]">
-                <Icons.Layers className="w-3.5 h-3.5 text-slate-400" />
-                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Área:</span>
-              </div>
-              <div className="flex gap-2">
-                {uniqueValues.areas.map(area => (
-                  <button
-                    key={area}
-                    onClick={() => toggleFilter(selectedAreas, setSelectedAreas, area)}
-                    className={`px-5 py-2.5 rounded-xl text-[10px] font-black uppercase tracking-widest transition-all whitespace-nowrap border ${
-                      selectedAreas.includes(area)
-                      ? 'bg-indigo-600 text-white border-indigo-600 shadow-lg shadow-indigo-200 scale-105'
-                      : 'bg-white text-slate-400 border-slate-100 hover:border-slate-300'
-                    }`}
-                  >
-                    {area}
-                  </button>
-                ))}
-              </div>
-            </div>
-          </div>
+      {filteredData.length === 0 && !loading.isLoading ? (
+        <div className="bg-white p-12 rounded-[2.5rem] border border-slate-100 shadow-sm text-center">
+          <Icons.Search className="w-12 h-12 text-slate-200 mx-auto mb-4" />
+          <h3 className="text-xl font-black text-slate-900 mb-2">No se encontraron datos</h3>
+          <p className="text-slate-500 text-sm">Prueba ajustando los filtros de año, sucursal o área.</p>
         </div>
-
-        {/* KPIs */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8">
-          {/* Objetivo Mensual Card */}
-          <div className="bg-white rounded-[3rem] shadow-sm border border-slate-100 p-8 flex flex-col group relative overflow-hidden transition-all hover:shadow-xl">
-            <div className="absolute top-0 left-0 w-full h-1 bg-slate-950"></div>
-            <div className="flex items-center justify-between mb-6">
-              <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center text-slate-950 group-hover:scale-110 transition-transform">
-                <Icons.Target className="w-6 h-6" />
-              </div>
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">Objetivo Mensual</span>
-            </div>
-            <div className="space-y-4 flex-1 overflow-y-auto max-h-[150px] pr-2 no-scrollbar">
-              {selectedBranches.map(b => (
-                <div key={b} className="flex justify-between items-center border-b border-slate-50 pb-2">
-                  <span className="text-[10px] font-black text-slate-500 uppercase">{b}</span>
-                  <span className="text-xl font-black text-slate-950 italic">
-                    {formatCurrency(stats.branchStats[b]?.obj || 0)}
-                  </span>
-                </div>
-              ))}
-            </div>
-            {selectedBranches.length > 1 && (
-              <div className="mt-4 pt-4 border-t border-slate-100 flex justify-between items-center">
-                <span className="text-[9px] font-black text-slate-900 uppercase">Total</span>
-                <span className="text-2xl font-black text-slate-950 italic">{formatCurrency(stats.totalObj)}</span>
-              </div>
-            )}
+      ) : (
+        <>
+          {/* Financial KPIs */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-6">
+            <LuxuryKPICard 
+              title="Objetivo Facturación" 
+              value={formatCurrency(kpis.objetivo)} 
+              color="bg-slate-800" 
+              icon={Icons.Target}
+              sparklineData={kpis.trendData.map(v => v * 1.1)} // Mock target trend
+              breakdown={kpis.branchBreakdown.map(b => ({ name: b.name, value: formatCurrency(b.objetivo) }))}
+            />
+            <LuxuryKPICard 
+              title="Avance a Fecha" 
+              value={formatCurrency(kpis.facturacion)} 
+              color="bg-blue-600" 
+              icon={Icons.DollarSign}
+              sparklineData={kpis.trendData}
+              breakdown={kpis.branchBreakdown.map(b => ({ 
+                name: b.name, 
+                value: formatCurrency(b.facturacion)
+              }))}
+            />
+            <LuxuryKPICard 
+              title="Desvío a Fecha" 
+              value={formatCurrency(kpis.desvio)} 
+              color={kpis.desvio < 0 ? 'bg-rose-600' : 'bg-emerald-600'} 
+              icon={Icons.AlertTriangle}
+              isDark={kpis.desvio < 0}
+              isDanger={kpis.desvio < 0}
+              sparklineData={kpis.trendData.map(v => v * 0.1 * (Math.random() > 0.5 ? 1 : -1))}
+              breakdown={kpis.branchBreakdown.map(b => ({ 
+                name: b.name, 
+                value: formatCurrency(b.desvio)
+              }))}
+            />
           </div>
 
-          {/* Avance a la Fecha Card */}
-          <div className="bg-white rounded-[3rem] shadow-sm border border-slate-100 p-8 flex flex-col group relative overflow-hidden transition-all hover:shadow-xl">
-            <div className="absolute top-0 left-0 w-full h-1 bg-blue-600"></div>
-            <div className="flex items-center justify-between mb-6">
-              <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 group-hover:scale-110 transition-transform">
-                <Icons.TrendingUp className="w-6 h-6" />
-              </div>
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">Avance a la Fecha</span>
+      {/* Gauges Section */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4">
+        {kpis.branchBreakdown.map((branch, idx) => (
+          <div key={idx} className="bg-slate-950 rounded-[2rem] p-6 shadow-2xl relative overflow-hidden flex items-center justify-between group border border-white/5">
+            <div className="relative z-10">
+              <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-2">Cumplimiento {branch.name}</p>
+              <h4 className={`text-4xl font-black tracking-tighter italic leading-none ${
+                branch.cumplimiento * 100 >= 95 ? 'text-emerald-500' : branch.cumplimiento * 100 >= 90 ? 'text-amber-500' : 'text-rose-500'
+              }`}>
+                {Math.round(branch.cumplimiento * 100)}%
+              </h4>
             </div>
-            <div className="space-y-4 flex-1 overflow-y-auto max-h-[150px] pr-2 no-scrollbar">
-              {selectedBranches.map(b => (
-                <div key={b} className="flex justify-between items-center border-b border-slate-50 pb-2">
-                  <span className="text-[10px] font-black text-slate-500 uppercase">{b}</span>
-                  <span className="text-xl font-black text-slate-950 italic">
-                    {formatCurrency(stats.branchStats[b]?.avance || 0)}
-                  </span>
-                </div>
-              ))}
+            <div className="w-20 h-20 relative z-10">
+              <GaugeChart 
+                value={branch.cumplimiento * 100} 
+                color={branch.cumplimiento * 100 >= 95 ? '#10b981' : branch.cumplimiento * 100 >= 90 ? '#f59e0b' : '#ef4444'}
+              />
             </div>
-            {selectedBranches.length > 1 && (
-              <div className="mt-4 pt-4 border-t border-slate-100 flex justify-between items-center">
-                <span className="text-[9px] font-black text-slate-900 uppercase">Total</span>
-                <span className="text-2xl font-black text-blue-600 italic">{formatCurrency(stats.totalAvance)}</span>
-              </div>
-            )}
           </div>
-          
-          {/* Enhanced Compliance Gauge Card */}
-          <div className="bg-slate-900 rounded-[3rem] shadow-2xl border border-slate-800 p-8 flex flex-col group relative overflow-hidden transition-all hover:shadow-blue-900/20">
-            <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-blue-500 to-indigo-500"></div>
-            <div className="flex items-center justify-between mb-6">
-              <div className="w-12 h-12 rounded-2xl bg-white/10 flex items-center justify-center text-blue-400 group-hover:scale-110 transition-transform">
-                <Icons.Activity className="w-6 h-6" />
-              </div>
-              <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em]">% Cumplimiento Actual</span>
+        ))}
+        {/* Global Gauge if multiple branches selected */}
+        {kpis.branchBreakdown.length > 1 && (
+          <div className="bg-slate-900 rounded-[2rem] p-6 shadow-2xl relative overflow-hidden flex items-center justify-between group border border-blue-500/20">
+            <div className="relative z-10">
+              <p className="text-[10px] font-black text-blue-400/60 uppercase tracking-[0.3em] mb-2">Cumplimiento Total</p>
+              <h4 className={`text-4xl font-black tracking-tighter italic leading-none ${
+                kpis.cumplimiento * 100 >= 95 ? 'text-emerald-500' : kpis.cumplimiento * 100 >= 90 ? 'text-amber-500' : 'text-rose-500'
+              }`}>
+                {Math.round(kpis.cumplimiento * 100)}%
+              </h4>
             </div>
-            
-            <div className={`grid ${selectedBranches.length > 1 ? 'grid-cols-2' : 'grid-cols-1'} gap-4 flex-1 overflow-y-auto max-h-[200px] pr-2 custom-scrollbar`}>
-              {selectedBranches.map(b => (
-                <div key={b} className="flex flex-col items-center justify-center p-2 bg-white/5 rounded-2xl border border-white/5 shadow-sm">
-                  <div className="w-full h-20">
-                    <GaugeChart value={stats.branchStats[b]?.cumplimiento || 0} label="" />
-                  </div>
-                  <div className="mt-1 text-center">
-                    <p className="text-[8px] font-black text-slate-400 uppercase truncate w-full px-1">{b}</p>
-                    <p className="text-xs font-black text-white italic">{(stats.branchStats[b]?.cumplimiento || 0).toFixed(1)}%</p>
-                  </div>
-                </div>
-              ))}
+            <div className="w-20 h-20 relative z-10">
+              <GaugeChart 
+                value={kpis.cumplimiento * 100} 
+                color={kpis.cumplimiento * 100 >= 95 ? '#10b981' : kpis.cumplimiento * 100 >= 90 ? '#f59e0b' : '#ef4444'}
+              />
             </div>
+          </div>
+        )}
+      </div>
 
-            {selectedBranches.length > 1 && (
-              <div className="mt-4 pt-4 border-t border-white/10 flex justify-between items-center">
-                <span className="text-[9px] font-black text-slate-400 uppercase">Promedio</span>
-                <span className="text-2xl font-black text-white italic">{stats.avgCumplimiento.toFixed(1)}%</span>
-              </div>
-            )}
-            {selectedBranches.length === 1 && (
-              <div className="mt-4 text-center">
-                <p className="text-4xl font-black text-white italic">{stats.avgCumplimiento.toFixed(1)}%</p>
-              </div>
-            )}
-          </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-8 mt-4">
+        <div className="lg:col-start-2">
+          <LuxuryKPICard 
+            title="Objetivo Diario" 
+            value={formatCurrency(kpis.objetivoDiario, false)} 
+            color="bg-slate-700" 
+            icon={Icons.Target}
+            sparklineData={[50, 60, 55, 70, 65, 80]}
+            breakdown={kpis.branchBreakdown.map(b => ({ name: b.name, value: formatCurrency(b.objetivoDiario, false) }))}
+          />
         </div>
+        <div>
+          <LuxuryKPICard 
+            title="Promedio Diario" 
+            value={formatCurrency(kpis.promedio, false)} 
+            color="bg-emerald-600" 
+            icon={Icons.Activity}
+            sparklineData={kpis.trendData.map(v => v / 22)}
+            breakdown={kpis.branchBreakdown.map(b => ({ 
+              name: b.name, 
+              value: formatCurrency(b.promedio, false)
+            }))}
+          />
+        </div>
+      </div>
 
-        {/* Charts Section */}
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-10">
-          <ChartWrapper title="Tendencia de Cumplimiento Anual" subtitle="Evolución porcentual por mes y sucursal">
-            <div className="h-[300px]">
+      {/* Central Visualization: Charts Section */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        {branchMonthlyData.map(({ branch, data: branchData }, idx) => (
+          <ChartWrapper 
+            key={idx}
+            title={`Performance Mensual: ${branch}`} 
+            subtitle="Comparativa de ingresos anual (M$)"
+          >
+            <div className="h-[350px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={annualComplianceData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
+                <BarChart data={branchData} margin={{ top: 20, right: 30, left: 20, bottom: 20 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'black', fill: '#94a3b8'}} />
-                  <YAxis axisLine={false} tickLine={false} tickFormatter={(val) => `${val}%`} tick={{fontSize: 10, fontWeight: 'black', fill: '#94a3b8'}} />
-                  <Tooltip 
-                    contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.25)', padding: '20px' }}
-                    formatter={(val: any) => [`${val.toFixed(1)}%`, 'Cumplimiento']}
+                  <XAxis 
+                    dataKey="name" 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fontSize: 10, fontWeight: 900, fill: '#64748b' }} 
+                    dy={10}
                   />
-                  <Legend verticalAlign="top" height={36} iconType="circle" wrapperStyle={{fontSize: '10px', fontWeight: 'black', textTransform: 'uppercase', paddingBottom: '20px'}} />
-                  {selectedBranches.map((branch, index) => (
-                    <Bar 
-                      key={branch} 
-                      dataKey={branch} 
-                      name={branch}
-                      fill={BRANCH_COLORS[branch] || getDefaultColor(index)} 
-                      radius={[4, 4, 0, 0]} 
-                      barSize={selectedBranches.length > 3 ? 8 : 15} 
-                    />
-                  ))}
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
-          </ChartWrapper>
-
-          <div className="bg-white rounded-[3rem] shadow-sm border border-slate-100 p-10">
-            <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight italic mb-10">Rendimiento por Sucursal</h3>
-            <div className="h-[400px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={branchComparisonData} margin={{ top: 40, right: 30, left: 20, bottom: 20 }}>
-                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'black', fill: '#94a3b8'}} />
-                  <YAxis axisLine={false} tickLine={false} tickFormatter={(val) => `$${val/1000000}M`} tick={{fontSize: 10, fontWeight: 'black', fill: '#94a3b8'}} />
-                  <Tooltip 
-                    contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.25)', padding: '20px' }}
-                    formatter={(val: any) => formatCurrency(val)}
+                  <YAxis 
+                    axisLine={false} 
+                    tickLine={false} 
+                    tick={{ fontSize: 10, fontWeight: 900, fill: '#64748b' }} 
+                    tickFormatter={(val) => `$${(val / 1000000).toFixed(0)}M`}
                   />
-                  <Bar dataKey="Avance" radius={[12, 12, 0, 0]} barSize={60}>
-                    {branchComparisonData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={['#0f172a', '#00B0F0', '#10b981', '#f59e0b'][index % 4]} />
+                  <Tooltip 
+                    cursor={{ fill: '#f8fafc' }}
+                    contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)', padding: '20px' }}
+                    formatter={(value: number) => formatCurrency(value)}
+                  />
+                  <Bar 
+                    dataKey="facturacion" 
+                    name="Facturación" 
+                    radius={[10, 10, 0, 0]}
+                    label={{ 
+                      position: 'top', 
+                      fill: '#1e293b', 
+                      fontSize: 10, 
+                      fontWeight: 900, 
+                      formatter: (v: number) => `$${(v / 1000000).toFixed(1)}M` 
+                    }}
+                  >
+                    {branchData.map((entry, index) => (
+                      <Cell 
+                        key={`cell-${index}`} 
+                        fill={entry.isStudyMonth ? '#2563eb' : '#e2e8f0'} 
+                        fillOpacity={entry.isStudyMonth ? 1 : 0.6}
+                      />
                     ))}
-                    <LabelList 
-                      dataKey="Avance" 
-                      position="top" 
-                      content={(props: any) => {
-                        const { x, y, width, value } = props;
-                        return (
-                          <text x={x + width / 2} y={y - 15} fill="#64748b" fontSize={10} fontWeight="black" textAnchor="middle">
-                            {formatCurrency(value)}
-                          </text>
-                        );
-                      }}
-                    />
                   </Bar>
                 </BarChart>
               </ResponsiveContainer>
             </div>
-          </div>
-
-          <div className="bg-white rounded-[3rem] shadow-sm border border-slate-100 p-10">
-            <h3 className="text-sm font-black text-slate-900 uppercase tracking-tight italic mb-10">Distribución por Área</h3>
-            <div className="h-[400px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <PieChart>
-                  <Pie
-                    data={areaComparisonData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={80}
-                    outerRadius={120}
-                    paddingAngle={5}
-                    dataKey="Avance"
-                    label={({ name, value, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                  >
-                    {areaComparisonData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={['#0f172a', '#00B0F0', '#10b981', '#f59e0b'][index % 4]} stroke="none" />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgb(0 0 0 / 0.25)' }}
-                    formatter={(val: any) => formatCurrency(val)}
-                  />
-                  <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{fontSize: '10px', fontWeight: 'black', textTransform: 'uppercase', paddingTop: '20px'}} />
-                </PieChart>
-              </ResponsiveContainer>
-            </div>
-          </div>
-        </div>
-
-        {/* Detailed Table */}
-        <DataTable 
-          title="Detalle de Gestión"
-          subtitle="Análisis granular de operaciones"
-          data={filteredData}
-          columns={[
-            { 
-              header: 'Sucursal / Área', 
-              accessor: 'sucursal',
-              render: (val: string, row: BillingRecord) => (
-                <div>
-                  <div className="font-black text-slate-900 uppercase text-sm tracking-tight">{val}</div>
-                  <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mt-1 opacity-60">{row.area}</div>
-                </div>
-              )
-            },
-            { 
-              header: 'Objetivo', 
-              accessor: 'objetivo_mensual', 
-              render: (val: number) => <span className="text-sm font-bold text-slate-500 font-mono">{formatCurrency(val)}</span>
-            },
-            { 
-              header: 'Avance', 
-              accessor: 'avance_fecha', 
-              render: (val: number) => <span className="text-sm font-black text-slate-900 font-mono">{formatCurrency(val)}</span>
-            },
-            { 
-              header: 'Cumplimiento', 
-              accessor: 'cumplimiento_fecha_pct', 
-              render: (val: number) => (
-                <div className="flex flex-col items-center gap-2">
-                  <StatusBadge 
-                    status={val >= 95 ? 'success' : val >= 90 ? 'warning' : 'error'} 
-                    label={`${val.toFixed(1)}%`} 
-                  />
-                  <div className="w-24 h-1 bg-slate-100 rounded-full overflow-hidden">
-                    <div 
-                      className={`h-full rounded-full ${val >= 95 ? 'bg-emerald-500' : val >= 90 ? 'bg-amber-500' : 'bg-rose-500'}`}
-                      style={{ width: `${Math.min(val, 100)}%` }}
-                    ></div>
-                  </div>
-                </div>
-              )
-            }
-          ]}
-          pageSize={10}
-        />
+          </ChartWrapper>
+        ))}
       </div>
+
+      {/* Detailed Billing Table */}
+      <DataTable 
+        title="Detalle de Facturación"
+        subtitle="Desglose por sucursal, área y cumplimiento"
+        data={filteredData}
+        columns={[
+          { header: 'Sucursal', accessor: 'sucursal' },
+          { header: 'Área', accessor: 'area' },
+          { header: 'Mes', accessor: 'mes' },
+          { 
+            header: 'Objetivo', 
+            accessor: 'objetivo_mensual',
+            render: (val) => <span className="text-slate-500">{formatCurrency(val)}</span>
+          },
+          { 
+            header: 'Avance', 
+            accessor: 'avance_fecha',
+            render: (val) => <span className="font-black text-slate-900">{formatCurrency(val)}</span>
+          },
+          { 
+            header: 'Desvío', 
+            accessor: 'desvio_fecha',
+            render: (val) => {
+              const numVal = parseFloat(val?.toString()) || 0;
+              const color = numVal < -1000000 ? 'text-rose-600 bg-rose-50' : numVal < -500000 ? 'text-amber-600 bg-amber-50' : 'text-emerald-600 bg-emerald-50';
+              return (
+                <span className={`px-3 py-1 rounded-lg font-black italic ${color}`}>
+                  {formatCurrency(val)}
+                </span>
+              );
+            }
+          },
+          { 
+            header: 'Prom. Diario', 
+            accessor: 'promedio_diario',
+            render: (val) => <span className="font-bold text-slate-600">{formatCurrency(val, false)}</span>
+          },
+          { 
+            header: 'Cumplimiento', 
+            accessor: 'cumplimiento_fecha_pct',
+            render: (val) => {
+              const numVal = parseFloat(val?.toString().replace('%', '').replace(',', '.')) || 0;
+              const displayVal = Math.round(numVal * 100);
+              return (
+                <div className="flex items-center gap-2">
+                  <span className={`font-black italic ${displayVal >= 95 ? 'text-emerald-600' : displayVal >= 90 ? 'text-amber-600' : 'text-rose-600'}`}>
+                    {displayVal}%
+                  </span>
+                  <div className={`w-1.5 h-1.5 rounded-full ${displayVal >= 95 ? 'bg-emerald-500' : displayVal >= 90 ? 'bg-amber-500' : 'bg-rose-500'}`}></div>
+                </div>
+              );
+            }
+          },
+          { 
+            header: 'Estado', 
+            accessor: 'cumplimiento_fecha_pct',
+            render: (val) => {
+              const numVal = parseFloat(val?.toString().replace('%', '').replace(',', '.')) || 0;
+              const displayVal = Math.round(numVal * 100);
+              if (displayVal >= 95) return <StatusBadge status="success" label="En Meta" />;
+              if (displayVal >= 90) return <StatusBadge status="warning" label="Alerta" />;
+              return <StatusBadge status="error" label="Crítico" />;
+            }
+          }
+        ]}
+      />
+
+        </>
+      )}
+
+      <ChatBot context={`Estás viendo el Dashboard de Facturación de Posventa de Autosol. 
+        Facturación Total: ${formatCurrency(kpis.facturacion)}. 
+        Objetivo Total: ${formatCurrency(kpis.objetivo)}. 
+        Cumplimiento Global: ${(kpis.cumplimiento || 0).toFixed(1)}%. 
+        Sucursales Seleccionadas: ${selectedBranches.length > 0 ? selectedBranches.join(', ') : 'Todas'}.
+        Áreas Seleccionadas: ${selectedAreas.length > 0 ? selectedAreas.join(', ') : 'Todas'}.`} 
+      />
     </DashboardFrame>
   );
 };

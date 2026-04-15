@@ -1,6 +1,10 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
+import path from 'path';
+import { fileURLToPath } from 'url';
+
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
 // https://vitejs.dev/config/
 export default defineConfig(({ command }) => ({
@@ -27,6 +31,9 @@ export default defineConfig(({ command }) => ({
   server: {
     port: 3000,
     host: '0.0.0.0',
+    fs: {
+      allow: [path.resolve(__dirname, '..')],
+    },
   },
   base: '/tablero-control-end/',
 }));

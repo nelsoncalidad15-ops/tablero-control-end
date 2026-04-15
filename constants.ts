@@ -42,6 +42,46 @@ export const MONTHS = [
 
 export const YEARS = [2024, 2025, 2026];
 
+export const BRANCHES = ["Salta", "Jujuy", "Express", "MOVIL", "Santa Fe", "Tartagal"];
+
+export const BRANCH_COLORS = {
+  "Salta": "#ef4444",
+  "Jujuy": "#3b82f6",
+  "Express": "#6366f1",
+  "MOVIL": "#f59e0b",
+  "Santa Fe": "#10b981",
+  "Tartagal": "#ec4899",
+  "TODAS": "#0f172a"
+};
+
+export const KPI_DEFS = [
+  { id: 'lvs', name: 'LVS', target: 4.8, unit: '', direction: 'up' },
+  { id: 'email_validos', name: 'Emails Válidos', target: 95, unit: '%', direction: 'up' },
+  { id: 'tasa_respuesta', name: 'Tasa Respuesta', target: 30, unit: '%', direction: 'up' },
+  { id: 'dac', name: 'DAC', target: 0.2, unit: '%', direction: 'down' },
+  { id: 'contrato_mantenimiento', name: 'Contrato Mant.', target: 20, unit: 'un', direction: 'up' },
+  { id: 'reporte_tecnico', name: 'Reporte Técnico', target: 48, unit: 'un', direction: 'up' },
+  { id: 'reporte_garantia', name: 'Reporte Garantía', target: 48, unit: 'un', direction: 'up' },
+  { id: 'ampliacion_trabajo', name: 'Ampliación Trab.', target: 50, unit: '%', direction: 'up' },
+  { id: 'ppt_diario', name: 'PPT Diario', target: 26, unit: 'un', direction: 'up' },
+  { id: 'conversion_ppt_serv', name: 'Conv. PPT/Serv', target: 60, unit: '%', direction: 'up' },
+  { id: 'oudi_servicios', name: 'OUDI Servicios', target: 12, unit: '%', direction: 'up' },
+  { id: 'grado_ocupacion', name: 'Grado Ocupación', target: 95, unit: '%', direction: 'up' },
+  { id: 'productividad', name: 'Productividad', target: 97, unit: '%', direction: 'up' },
+  { id: 'costos_controlables', name: 'Costos Contr.', target: 80, unit: '%', direction: 'down' },
+  { id: 'costo_sueldos', name: 'Costo Sueldos', target: 60, unit: '%', direction: 'down' },
+  { id: 'stock_muerto', name: 'Stock Muerto', target: 15, unit: '%', direction: 'down' },
+  { id: 'meses_stock', name: 'Meses Stock', target: 3, unit: 'm', direction: 'down' },
+  { id: 'cotizacion_seguros', name: 'Cotiz. Seguros', target: 10, unit: '%', direction: 'up' },
+  { id: 'uodi_repuestos', name: 'UODI Repuestos', target: 7, unit: '%', direction: 'up' },
+  { id: 'margen_bruto_primario', name: 'Margen Bruto', target: 23, unit: '%', direction: 'up' },
+  { id: 'uodi_posventa', name: 'UODI Posventa', target: 7, unit: '%', direction: 'up' },
+  { id: 'incentivo_calidad', name: 'Inc. Calidad', target: 100, unit: '%', direction: 'up' },
+  { id: 'plan_incentivo_posventa', name: 'Plan Inc. Posv.', target: 100, unit: '%', direction: 'up' },
+  { id: 'plan_incentivo_repuestos', name: 'Plan Inc. Rep.', target: 120, unit: '%', direction: 'up' },
+  { id: 'uops_total', name: 'UOPS Total', target: 100, unit: '%', direction: 'up' },
+];
+
 export const AREAS: AreaConfig[] = [
   { 
     id: 'postventa', 

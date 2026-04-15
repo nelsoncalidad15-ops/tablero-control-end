@@ -442,6 +442,42 @@ const SurveyView = ({
         ];
     }, [filteredData]);
 
+    function inferContactState(row: SalesQualityRecord): ContactStateDefinition {
+        const hasEffectiveContact = !!(row.fecha_contacto_efectivo || row.fecha_respuesta_wpp);
+        const hasFollowUp = !!(row.fecha_1_llamado || row.fecha_2_llamado || row.fecha_3_llamado || row.fecha_envio_wpp);
+        const rawState = row.estado || '';
+
+        if (!rawState && hasEffectiveContact) {
+            return { ...CONTACT_STATE_DEFINITIONS[1], label: 'Contactado' };
+        }
+        if (!rawState && hasFollowUp) {
+            return {
+                label: 'Pendiente de clasificar',
+                bucket: 'Recuperable',
+                color: '#3B82F6',
+                contacted: false,
+                action: 'Revisar estado en base',
+                priority: 95,
+            };
+        }
+
+        const resolved = resolveContactState(rawState);
+        if (resolved.bucket === 'Sin dato' && hasEffectiveContact) {
+            return { ...CONTACT_STATE_DEFINITIONS[1], label: 'Contactado' };
+        }
+        if (resolved.bucket === 'Sin dato' && hasFollowUp) {
+            return {
+                label: rawState?.trim() || 'Pendiente de clasificar',
+                bucket: 'Recuperable',
+                color: '#3B82F6',
+                contacted: false,
+                action: 'Revisar estado en base',
+                priority: 96,
+            };
+        }
+        return resolved;
+    }
+
     const contactCenterMetrics = useMemo(() => {
         const contactStateMap = new Map<string, ContactStateSummary>();
         let effectiveCount = 0;
@@ -494,42 +530,6 @@ const SurveyView = ({
             rows,
         };
     }, [filteredData]);
-
-    const inferContactState = (row: SalesQualityRecord): ContactStateDefinition => {
-        const hasEffectiveContact = !!(row.fecha_contacto_efectivo || row.fecha_respuesta_wpp);
-        const hasFollowUp = !!(row.fecha_1_llamado || row.fecha_2_llamado || row.fecha_3_llamado || row.fecha_envio_wpp);
-        const rawState = row.estado || '';
-
-        if (!rawState && hasEffectiveContact) {
-            return { ...CONTACT_STATE_DEFINITIONS[1], label: 'Contactado' } as ContactStateDefinition;
-        }
-        if (!rawState && hasFollowUp) {
-            return {
-                label: 'Pendiente de clasificar',
-                bucket: 'Recuperable',
-                color: '#3B82F6',
-                contacted: false,
-                action: 'Revisar estado en base',
-                priority: 95,
-            } as ContactStateDefinition;
-        }
-
-        const resolved = resolveContactState(rawState);
-        if (resolved.bucket === 'Sin dato' && hasEffectiveContact) {
-            return { ...CONTACT_STATE_DEFINITIONS[1], label: 'Contactado' } as ContactStateDefinition;
-        }
-        if (resolved.bucket === 'Sin dato' && hasFollowUp) {
-            return {
-                label: rawState?.trim() || 'Pendiente de clasificar',
-                bucket: 'Recuperable',
-                color: '#3B82F6',
-                contacted: false,
-                action: 'Revisar estado en base',
-                priority: 96,
-            } as ContactStateDefinition;
-        }
-        return resolved;
-    };
 
     const columns = [
         {

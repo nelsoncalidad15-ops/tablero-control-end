@@ -244,7 +244,7 @@ const normalizeSaleType = (type: string) => {
     return raw;
 };
 
-type ContactBucket = 'Efectivo' | 'En gestión' | 'No contactable' | 'Sin dato';
+type ContactBucket = 'Efectivo' | 'Recuperable' | 'No contactable' | 'Sin dato';
 
 interface ContactStateDefinition {
     label: string;
@@ -273,9 +273,9 @@ const normalizeContactStateKey = (value: string) => {
 const CONTACT_STATE_DEFINITIONS: ContactStateDefinition[] = [
     { label: 'RECONTACTADO', bucket: 'Efectivo', color: '#0F766E', contacted: true, action: 'Seguimiento confirmado', priority: 1 },
     { label: 'Contactado', bucket: 'Efectivo', color: '#10B981', contacted: true, action: 'Contacto exitoso', priority: 2 },
-    { label: 'Envío por WSP', bucket: 'En gestión', color: '#3B82F6', contacted: false, action: 'Esperar respuesta', priority: 3 },
-    { label: 'Llamar luego', bucket: 'En gestión', color: '#6366F1', contacted: false, action: 'Reprogramar llamada', priority: 4 },
-    { label: 'Buzón de voz', bucket: 'En gestión', color: '#8B5CF6', contacted: false, action: 'Reintento telefónico', priority: 5 },
+    { label: 'Envío por WSP', bucket: 'Recuperable', color: '#3B82F6', contacted: false, action: 'Esperar respuesta', priority: 3 },
+    { label: 'Llamar luego', bucket: 'Recuperable', color: '#6366F1', contacted: false, action: 'Reprogramar llamada', priority: 4 },
+    { label: 'Buzón de voz', bucket: 'Recuperable', color: '#8B5CF6', contacted: false, action: 'Reintento telefónico', priority: 5 },
     { label: 'No contactado', bucket: 'No contactable', color: '#F43F5E', contacted: false, action: 'Sin respuesta efectiva', priority: 6 },
     { label: 'No se Encuesta', bucket: 'No contactable', color: '#E11D48', contacted: false, action: 'Base sin encuestar', priority: 7 },
     { label: 'Número Incorrecto', bucket: 'No contactable', color: '#FB7185', contacted: false, action: 'Depurar contacto', priority: 8 },
@@ -450,20 +450,20 @@ const SurveyView = ({
         let withoutStateCount = 0;
 
         filteredData.forEach((row: SalesQualityRecord) => {
-            const resolved = resolveContactState(row.estado || '');
+            const resolved = inferContactState(row);
             const key = resolved.label;
-            const current = contactStateMap.get(key) || {
+            const current: ContactStateSummary = contactStateMap.get(key) || {
                 ...resolved,
                 rawKey: normalizeContactStateKey(key),
                 count: 0,
                 percentage: 0,
-            };
+            } as ContactStateSummary;
 
             current.count += 1;
             contactStateMap.set(key, current);
 
             if (resolved.bucket === 'Efectivo') effectiveCount += 1;
-            else if (resolved.bucket === 'En gestión') managedCount += 1;
+            else if (resolved.contacted || resolved.bucket === 'Recuperable') managedCount += 1;
             else if (resolved.bucket === 'No contactable') noContactableCount += 1;
             else withoutStateCount += 1;
         });
@@ -494,6 +494,42 @@ const SurveyView = ({
             rows,
         };
     }, [filteredData]);
+
+    const inferContactState = (row: SalesQualityRecord): ContactStateDefinition => {
+        const hasEffectiveContact = !!(row.fecha_contacto_efectivo || row.fecha_respuesta_wpp);
+        const hasFollowUp = !!(row.fecha_1_llamado || row.fecha_2_llamado || row.fecha_3_llamado || row.fecha_envio_wpp);
+        const rawState = row.estado || '';
+
+        if (!rawState && hasEffectiveContact) {
+            return { ...CONTACT_STATE_DEFINITIONS[1], label: 'Contactado' } as ContactStateDefinition;
+        }
+        if (!rawState && hasFollowUp) {
+            return {
+                label: 'Pendiente de clasificar',
+                bucket: 'Recuperable',
+                color: '#3B82F6',
+                contacted: false,
+                action: 'Revisar estado en base',
+                priority: 95,
+            } as ContactStateDefinition;
+        }
+
+        const resolved = resolveContactState(rawState);
+        if (resolved.bucket === 'Sin dato' && hasEffectiveContact) {
+            return { ...CONTACT_STATE_DEFINITIONS[1], label: 'Contactado' } as ContactStateDefinition;
+        }
+        if (resolved.bucket === 'Sin dato' && hasFollowUp) {
+            return {
+                label: rawState?.trim() || 'Pendiente de clasificar',
+                bucket: 'Recuperable',
+                color: '#3B82F6',
+                contacted: false,
+                action: 'Revisar estado en base',
+                priority: 96,
+            } as ContactStateDefinition;
+        }
+        return resolved;
+    };
 
     const columns = [
         {
@@ -615,7 +651,7 @@ const SurveyView = ({
                     ]}
                 />
                 <LuxuryKPICard
-                    title="En gestión"
+                    title="Recuperable"
                     value={contactCenterMetrics.managedCount}
                     color="bg-blue-600"
                     icon={Icons.Clock}
@@ -720,7 +756,7 @@ const SurveyView = ({
                                 </div>
                             </div>
                             <div className="rounded-3xl border border-blue-100 bg-blue-50/70 p-4 shadow-sm">
-                                <p className="text-[8px] font-black uppercase tracking-[0.35em] text-blue-500">En gestión</p>
+                                <p className="text-[8px] font-black uppercase tracking-[0.35em] text-blue-500">Recuperable</p>
                                 <div className="mt-3 flex items-end justify-between gap-3">
                                     <span className="text-3xl font-black italic tracking-tighter text-blue-600">{contactCenterMetrics.managedCount}</span>
                                     <span className="text-[10px] font-black uppercase tracking-widest text-blue-500">{contactCenterMetrics.managedRate.toFixed(1)}%</span>
@@ -770,7 +806,7 @@ const SurveyView = ({
                                                 <td className="px-5 py-3 text-sm font-black text-slate-700">{row.percentage.toFixed(1)}%</td>
                                                 <td className="px-5 py-3">
                                                     <StatusBadge
-                                                        status={row.bucket === 'Efectivo' ? 'success' : row.bucket === 'En gestión' ? 'info' : row.bucket === 'No contactable' ? 'error' : 'warning'}
+                                                        status={row.bucket === 'No contactable' ? 'error' : row.contacted ? 'success' : 'info'}
                                                         label={row.bucket}
                                                     />
                                                 </td>

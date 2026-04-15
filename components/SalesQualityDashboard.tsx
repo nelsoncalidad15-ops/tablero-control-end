@@ -330,6 +330,7 @@ const resolveContactState = (rawValue: string): ContactStateDefinition => {
 // 1. SURVEY DASHBOARD (The original view)
 const SurveyView = ({ 
     filteredData, 
+    contactData,
     loadingState, 
     selectedMonths, setSelectedMonths, 
     selectedBranches, toggleBranch, availableBranches,
@@ -375,8 +376,10 @@ const SurveyView = ({
         app: calculateYesNo('app_mi_vw')
     }), [filteredData]);
 
+    const contactSourceData = contactData || filteredData;
+
     const contactMetrics = useMemo(() => {
-        let totalRows = filteredData.length;
+        let totalRows = contactSourceData.length;
         let contactedEffective = 0;
         let effectiveViaWpp = 0;
         let effectiveOn1st = 0;
@@ -386,24 +389,12 @@ const SurveyView = ({
         let onTime = 0;
         let late = 0;
     
-        filteredData.forEach((d: SalesQualityRecord) => {
+        contactSourceData.forEach((d: SalesQualityRecord) => {
             const status = d.estado ? d.estado.trim() : 'Sin Estado';
             statusCounts[status] = (statusCounts[status] || 0) + 1;
             const normalizedStatus = status.toLowerCase();
-            const hasDate1stCall = d.fecha_1_llamado && d.fecha_1_llamado.length > 5;
-            const hasDate2ndCall = d.fecha_2_llamado && d.fecha_2_llamado.length > 5;
-            const hasDate3rdCall = d.fecha_3_llamado && d.fecha_3_llamado.length > 5;
-            const hasWppResponse = d.fecha_respuesta_wpp && d.fecha_respuesta_wpp.length > 5;
-            
             if (normalizedStatus === 'contactado' || normalizedStatus === 'recontactado') {
                 contactedEffective++;
-            }
-    
-            if (hasWppResponse) effectiveViaWpp++;
-            else {
-                if (hasDate3rdCall) effectiveOn3rd++;
-                else if (hasDate2ndCall) effectiveOn2nd++;
-                else if (hasDate1stCall) effectiveOn1st++;
             }
     
             const deliveryDate = parseDateString(d.fecha_entrega);
@@ -440,7 +431,7 @@ const SurveyView = ({
             { subject: 'Trámites Adm.', A: calculateAverage('explicacion_tramites'), fullMark: 5 },
             { subject: 'Plazo Entrega', A: calculateAverage('plazo_entrega'), fullMark: 5 },
         ];
-    }, [filteredData]);
+    }, [contactSourceData]);
 
     function inferContactState(row: SalesQualityRecord): ContactStateDefinition {
         const hasEffectiveContact = !!(row.fecha_contacto_efectivo || row.fecha_respuesta_wpp || row.fecha_recontacto);
@@ -1278,6 +1269,14 @@ const SalesQualityDashboard: React.FC<SalesQualityDashboardProps> = ({ onBack, i
     });
   }, [surveyData, selectedMonths, surveyBranches, osFilter, selectedSaleTypes, selectedVendedor, selectedAdministrativo]);
 
+  const contactCenterData = useMemo(() => {
+    return surveyData.filter((item: SalesQualityRecord) => {
+      const matchMonth = selectedMonths.length === 0 || selectedMonths.includes(item.mes);
+      const matchBranch = surveyBranches.length === 0 || surveyBranches.includes(item.sucursal);
+      return matchMonth && matchBranch;
+    });
+  }, [surveyData, selectedMonths, surveyBranches]);
+
   const filteredClaimsData = useMemo(() => {
     return claimsData.filter((item: SalesClaimsRecord) => {
         const matchMonth = selectedMonths.length === 0 || selectedMonths.includes(item.mes);
@@ -1543,6 +1542,7 @@ const SalesQualityDashboard: React.FC<SalesQualityDashboardProps> = ({ onBack, i
                 <SurveyView 
                     data={surveyData}
                     filteredData={filteredSurveyData}
+                    contactData={contactCenterData}
                     loadingState={loadingState}
                     selectedMonths={selectedMonths}
                     setSelectedMonths={setSelectedMonths}

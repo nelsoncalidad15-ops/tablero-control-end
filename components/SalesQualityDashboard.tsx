@@ -587,6 +587,48 @@ const SurveyView = ({
         };
     }, [filteredData]);
 
+    const contactCenterChartRows = useMemo(() => {
+        const normalizedWhatsapp = (label: string) => {
+            const normalized = normalizeContactStateKey(label);
+            return normalized.includes('whatsapp') || normalized.includes('wsp') || normalized.includes('wpp');
+        };
+
+        const combinedEffective = contactCenterMetrics.rows
+            .filter((row) => normalizeContactStateKey(row.label) === 'contactado' || normalizedWhatsapp(row.label))
+            .reduce((acc, row) => {
+                acc.count += row.count;
+                return acc;
+            }, {
+                label: 'Contactado + WhatsApp',
+                rawKey: 'contactado whatsapp',
+                count: 0,
+                percentage: 0,
+                bucket: 'Efectivo' as const,
+                color: '#10B981',
+                contacted: true,
+                action: 'Contacto exitoso + WhatsApp',
+                priority: 0,
+            } as ContactStateSummary);
+
+        const otherRows = contactCenterMetrics.rows.filter((row) => {
+            const normalizedLabel = normalizeContactStateKey(row.label);
+            return normalizedLabel !== 'contactado' && !normalizedWhatsapp(row.label);
+        });
+
+        const total = contactCenterMetrics.total || 0;
+        const chartRows = [
+            combinedEffective,
+            ...otherRows,
+        ]
+            .map((row) => ({
+                ...row,
+                percentage: total > 0 ? (row.count / total) * 100 : 0,
+            }))
+            .sort((a, b) => b.count - a.count);
+
+        return chartRows;
+    }, [contactCenterMetrics]);
+
     const columns = [
         {
             header: 'Fecha',
@@ -758,7 +800,7 @@ const SurveyView = ({
                     <div className="min-h-[420px]">
                         <ResponsiveContainer width="100%" height="100%">
                             <BarChart
-                                data={contactCenterMetrics.rows}
+                                data={contactCenterChartRows}
                                 layout="vertical"
                                 margin={{ top: 8, right: 32, left: 24, bottom: 8 }}
                             >
@@ -794,7 +836,7 @@ const SurveyView = ({
                                     labelFormatter={(label) => `Estado: ${label}`}
                                 />
                                 <Bar dataKey="percentage" radius={[0, 14, 14, 0]} barSize={18}>
-                                    {contactCenterMetrics.rows.map((entry) => (
+                                    {contactCenterChartRows.map((entry) => (
                                         <Cell key={entry.label} fill={entry.color} />
                                     ))}
                                 </Bar>

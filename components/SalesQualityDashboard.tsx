@@ -111,6 +111,69 @@ const MiniDonut = ({ yes, no, title }: { yes: number, no: number, title: string 
     );
 };
 
+const TripleDonut = ({
+    title,
+    subtitle,
+    data,
+}: {
+    title: string;
+    subtitle: string;
+    data: Array<{ name: string; value: number; fill: string }>;
+}) => {
+    const total = data.reduce((acc, item) => acc + item.value, 0);
+
+    return (
+        <div className="bg-white/40 backdrop-blur-sm p-4 rounded-3xl border border-white/50 flex flex-col items-center group hover:bg-white/60 transition-all shadow-sm">
+            <div className="h-36 w-36 relative">
+                <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                        <Pie
+                            data={data}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={42}
+                            outerRadius={58}
+                            dataKey="value"
+                            stroke="none"
+                            paddingAngle={3}
+                        >
+                            {data.map((entry) => (
+                                <Cell key={entry.name} fill={entry.fill} />
+                            ))}
+                        </Pie>
+                        <Tooltip
+                            contentStyle={{
+                                borderRadius: '12px',
+                                border: 'none',
+                                boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)',
+                            }}
+                            formatter={(value: any, name: any) => [`${value} respuestas`, name]}
+                        />
+                    </PieChart>
+                </ResponsiveContainer>
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    <span className="text-xl font-black text-slate-900 tracking-tighter">{total}</span>
+                    <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">MUESTRA</span>
+                </div>
+            </div>
+            <div className="mt-3 text-center w-full">
+                <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1 group-hover:text-slate-600 transition-colors">
+                    {title}
+                </h4>
+                <p className="text-[8px] font-bold uppercase tracking-[0.22em] text-slate-400 mb-3">{subtitle}</p>
+                <div className="grid grid-cols-3 gap-2">
+                    {data.map((entry) => (
+                        <div key={entry.name} className="flex flex-col items-center rounded-2xl bg-white/60 border border-slate-100 px-2 py-2">
+                            <span className="text-xs font-black" style={{ color: entry.fill }}>{entry.value}</span>
+                            <span className="text-[8px] font-bold text-slate-400 uppercase text-center leading-tight">{entry.name}</span>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        </div>
+    );
+};
+
 const DeliveryCircles = ({ data }: { data: any[] }) => {
     return (
         <div className="grid grid-cols-2 gap-4 h-full py-2">
@@ -384,13 +447,31 @@ const SurveyView = ({
         return { yes, no };
     };
 
+    const calculateThreeChoice = (key: keyof SalesQualityRecord) => {
+        let yes = 0;
+        let no = 0;
+        let notNecessary = 0;
+
+        filteredData.forEach((d: any) => {
+            const raw = String(d[key] ?? '').toLowerCase().trim();
+            if (!raw || raw === '(vacío)' || raw === '(vacio)' || raw === '-') return;
+
+            const normalized = raw.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+            if (normalized === 'si') yes++;
+            else if (normalized.includes('no, no era necesario') || normalized.includes('no era necesario')) notNecessary++;
+            else if (normalized === 'no') no++;
+        });
+
+        return { yes, no, notNecessary };
+    };
+
     const metrics = useMemo(() => ({
         general: calculateAverageStats('cem_general'),
         trato: calculateAverageStats('cem_trato'),
         organizacion: calculateAverageStats('cem_organizacion'),
         asesoramiento: calculateAverageStats('cem_asesoramiento'),
         nps: calculateAverageStats('nps'),
-        pruebaManejo: calculateYesNo('prueba_manejo'),
+        pruebaManejo: calculateThreeChoice('prueba_manejo'),
         financiacion: calculateYesNo('ofrecimiento_financiacion'),
         usados: calculateYesNo('toma_usados'),
         cle: calculateYesNo('contacto_entrega'),
@@ -718,7 +799,15 @@ const SurveyView = ({
                     className="xl:col-span-3"
                 >
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 py-4">
-                        <MiniDonut yes={metrics.pruebaManejo.yes} no={metrics.pruebaManejo.no} title="Prueba de Manejo" />
+                        <TripleDonut
+                            title="Prueba de Manejo"
+                            subtitle="Columna AH"
+                            data={[
+                                { name: 'Si', value: metrics.pruebaManejo.yes, fill: '#10B981' },
+                                { name: 'No', value: metrics.pruebaManejo.no, fill: '#F43F5E' },
+                                { name: 'No, no era necesario', value: metrics.pruebaManejo.notNecessary, fill: '#8B5CF6' },
+                            ]}
+                        />
                         <MiniDonut yes={metrics.financiacion.yes} no={metrics.financiacion.no} title="Ofrecimiento Finan." />
                         <MiniDonut yes={metrics.usados.yes} no={metrics.usados.no} title="Toma de Usados" />
                         <MiniDonut yes={metrics.cle.yes} no={metrics.cle.no} title="Contacto Post-Entrega" />

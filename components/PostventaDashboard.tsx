@@ -113,8 +113,8 @@ const BranchKpiCard = ({ title, icon: Icon, color, branchData, total, unit = "" 
 export const PostventaDashboard: React.FC<PostventaDashboardProps> = ({ sheetUrl, onBack }) => {
   const [data, setData] = useState<AutoRecord[]>([]);
   const [loading, setLoading] = useState<LoadingStatus>({ isLoading: true, error: null });
-  const [selectedYear, setSelectedYear] = useState<string>("");
-  const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
+  const [selectedYear, setSelectedYear] = useState<string>("2026");
+  const [selectedMonths, setSelectedMonths] = useState<string[]>(['Marzo']);
   const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
 
   useEffect(() => {
@@ -145,22 +145,19 @@ export const PostventaDashboard: React.FC<PostventaDashboardProps> = ({ sheetUrl
 
     if (years.length === 0) return;
 
-    const yearRankings = years
-      .map(year => {
-        const recordsForYear = data.filter(item => item.anio?.toString() === year && OPERATIONAL_BRANCHES.includes(normalizeBranchName(item.sucursal)));
-        const branchCount = new Set(recordsForYear.map(item => normalizeBranchName(item.sucursal))).size;
-        const totalRows = recordsForYear.length;
-        return { year, branchCount, totalRows };
-      })
-      .sort((a, b) => {
-        if (b.branchCount !== a.branchCount) return b.branchCount - a.branchCount;
-        if (b.totalRows !== a.totalRows) return b.totalRows - a.totalRows;
-        return Number(b.year) - Number(a.year);
-      });
+    const preferredYear = years.includes('2026') ? '2026' : years[years.length - 1]!;
+    const marchHasData = data.some(item =>
+      item.anio?.toString() === preferredYear &&
+      normalizeBranchName(item.sucursal) && 
+      item.mes?.toLowerCase() === 'marzo'
+    );
 
-    const latestYear = yearRankings[0]?.year || years[years.length - 1]!;
-    if (!selectedYear || !years.includes(selectedYear)) {
-      setSelectedYear(latestYear);
+    if (!years.includes(selectedYear)) {
+      setSelectedYear(preferredYear);
+    }
+
+    if (selectedMonths.length === 0 || (selectedMonths.length === 1 && selectedMonths[0] === 'ANUAL')) {
+      setSelectedMonths(marchHasData ? ['Marzo'] : []);
     }
   }, [data, selectedYear]);
 
@@ -238,8 +235,8 @@ export const PostventaDashboard: React.FC<PostventaDashboardProps> = ({ sheetUrl
       setSelectedMonths([]);
       return;
     }
-    setSelectedMonths(prev => 
-      prev.includes(month) ? prev.filter(m => m !== month) : [...prev, month]
+    setSelectedMonths(prev =>
+      prev.includes(month) ? prev.filter(m => m !== month) : [month]
     );
   };
 

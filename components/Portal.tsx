@@ -25,24 +25,6 @@ const Portal: React.FC<PortalProps> = ({ onSelectArea }) => {
     })),
   ];
 
-  const executiveHighlights = [
-    {
-      icon: 'Target',
-      title: 'Lectura inmediata',
-      description: 'El tablero se entiende en segundos, con una jerarquía visual más limpia.',
-    },
-    {
-      icon: 'ShieldCheck',
-      title: 'Control unificado',
-      description: 'Calidad, postventa, RRHH y ventas conviven bajo una misma lógica ejecutiva.',
-    },
-    {
-      icon: 'Clock',
-      title: 'Decisión rápida',
-      description: 'El acceso está pensado para detectar desvíos y actuar sin perder tiempo.',
-    },
-  ];
-
   return (
     <div className="relative min-h-screen overflow-x-hidden overflow-y-auto bg-slate-950 font-sans text-white">
         <div className="pointer-events-none absolute inset-0">
@@ -75,65 +57,17 @@ const Portal: React.FC<PortalProps> = ({ onSelectArea }) => {
                   initial={{ opacity: 0, y: 24 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.7 }}
-                  className="grid min-h-0 gap-4 rounded-[1.75rem] border border-white/10 bg-[linear-gradient(135deg,rgba(5,8,22,0.92),rgba(10,15,33,0.86))] p-5 text-white shadow-[0_32px_90px_rgba(2,6,23,0.44)] backdrop-blur-xl md:p-6 lg:grid-cols-[1.2fr_0.8fr] lg:p-7"
+                  className="min-h-0 rounded-[1.75rem] border border-white/10 bg-[linear-gradient(135deg,rgba(5,8,22,0.92),rgba(10,15,33,0.86))] p-5 text-white shadow-[0_32px_90px_rgba(2,6,23,0.44)] backdrop-blur-xl md:p-6 lg:p-7"
                 >
                     <div className="flex min-h-0 flex-col justify-between gap-5">
                         <div className="max-w-4xl">
-                            <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-cyan-400/20 bg-cyan-500/10 px-4 py-2 text-[10px] font-black uppercase tracking-[0.35em] text-cyan-200">
-                                <Icons.Sparkles className="h-3.5 w-3.5" />
-                                Centro ejecutivo unificado
-                            </div>
                             <h2 className="max-w-3xl text-3xl font-black leading-[0.92] tracking-tight md:text-4xl lg:text-[3.4rem]">
                                 Visión operativa clara para decisiones rápidas.
                             </h2>
                             <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-300 md:text-[15px] md:leading-7">
-                                Calidad, postventa, RRHH y seguimiento ejecutivo en una sola vista.
-                                La idea es leer rápido, detectar desvíos y actuar.
+                                Calidad, postventa, RRHH y seguimiento ejecutivo en una sola vista. La idea es leer rápido, detectar desvíos y actuar.
                             </p>
                         </div>
-
-                        <div className="flex flex-wrap gap-3">
-                            <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[10px] font-black uppercase tracking-[0.3em] text-slate-300">
-                                Lectura en una pantalla
-                            </div>
-                            <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[10px] font-black uppercase tracking-[0.3em] text-slate-300">
-                                Sin ruido visual
-                            </div>
-                            <div className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[10px] font-black uppercase tracking-[0.3em] text-slate-300">
-                                Navegación por área
-                            </div>
-                        </div>
-                    </div>
-
-                    <div className="grid min-h-0 gap-3">
-                        {executiveHighlights.map((item, index) => {
-                            const IconComponent = Icons[item.icon as keyof typeof Icons] || Icons.Info;
-                            const accent = index === 0
-                              ? 'border-cyan-400/20 from-cyan-400/20 to-blue-400/10'
-                              : index === 1
-                              ? 'border-emerald-400/20 from-emerald-400/20 to-cyan-400/10'
-                              : 'border-amber-400/20 from-amber-400/20 to-orange-400/10';
-
-                            return (
-                              <div
-                                key={item.title}
-                                className={`rounded-[1.5rem] border bg-[linear-gradient(180deg,rgba(11,16,32,0.94),rgba(15,23,42,0.84))] p-4 shadow-[0_18px_50px_rgba(15,23,42,0.28)] ${accent}`}
-                              >
-                                <div className="mb-3 flex items-center gap-3">
-                                  <div className="flex h-11 w-11 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-white">
-                                    <IconComponent className="h-5 w-5" />
-                                  </div>
-                                  <div>
-                                    <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-400">Principio</p>
-                                    <h3 className="text-base font-black tracking-tight text-white">{item.title}</h3>
-                                  </div>
-                                </div>
-                                <p className="max-w-md text-sm leading-6 text-slate-400">
-                                  {item.description}
-                                </p>
-                              </div>
-                            );
-                        })}
                     </div>
                 </motion.section>
 

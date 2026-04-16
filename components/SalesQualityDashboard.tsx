@@ -604,11 +604,11 @@ const SurveyView = ({
     return (
         <div className="space-y-8">
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-6">
-                <LuxuryKPICard title="Satisfacción General (OS)" value={metrics.general.value} color="bg-slate-950" icon={Icons.Star} featured footerLabel="Muestra" footerValue={`${metrics.general.sampleCount} notas`} />
-                <LuxuryKPICard title="CEM - Trato" value={metrics.trato.value} color="bg-blue-600" icon={Icons.Users} featured footerLabel="Muestra" footerValue={`${metrics.trato.sampleCount} notas`} />
-                <LuxuryKPICard title="CEM - Organización" value={metrics.organizacion.value} color="bg-indigo-600" icon={Icons.Layers} featured footerLabel="Muestra" footerValue={`${metrics.organizacion.sampleCount} notas`} />
-                <LuxuryKPICard title="CEM - Asesoramiento" value={metrics.asesoramiento.value} color="bg-emerald-600" icon={Icons.Activity} featured footerLabel="Muestra" footerValue={`${metrics.asesoramiento.sampleCount} notas`} />
-                <LuxuryKPICard title="Recomendación (NPS)" value={metrics.nps.value} color="bg-amber-600" icon={Icons.ThumbsUp} featured footerLabel="Muestra" footerValue={`${metrics.nps.sampleCount} notas`} />
+                <LuxuryKPICard title="Satisfacción General (OS)" value={metrics.general.value} color="bg-slate-950" icon={Icons.Star} featured footerLabel="Muestra" footerDetail={`${metrics.general.sampleCount} notas`} />
+                <LuxuryKPICard title="CEM - Trato" value={metrics.trato.value} color="bg-blue-600" icon={Icons.Users} featured footerLabel="Muestra" footerDetail={`${metrics.trato.sampleCount} notas`} />
+                <LuxuryKPICard title="CEM - Organización" value={metrics.organizacion.value} color="bg-indigo-600" icon={Icons.Layers} featured footerLabel="Muestra" footerDetail={`${metrics.organizacion.sampleCount} notas`} />
+                <LuxuryKPICard title="CEM - Asesoramiento" value={metrics.asesoramiento.value} color="bg-emerald-600" icon={Icons.Activity} featured footerLabel="Muestra" footerDetail={`${metrics.asesoramiento.sampleCount} notas`} />
+                <LuxuryKPICard title="Recomendación (NPS)" value={metrics.nps.value} color="bg-amber-600" icon={Icons.ThumbsUp} featured footerLabel="Muestra" footerDetail={`${metrics.nps.sampleCount} notas`} />
             </div>
             
             <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">

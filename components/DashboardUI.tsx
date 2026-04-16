@@ -445,7 +445,7 @@ const Sparkline = ({ data, color }: { data: number[], color: string }) => {
   );
 };
 
-export const LuxuryKPICard = ({ title, value, color, icon: Icon, trend, isDark = false, isDanger = false, breakdown, sparklineData, featured = false, footerLabel, footerValue }: { 
+export const LuxuryKPICard = ({ title, value, color, icon: Icon, trend, isDark = false, isDanger = false, breakdown, sparklineData, featured = false, footerLabel, footerValue, footerDetail }: { 
   title: string, 
   value: string | number, 
   color: string, 
@@ -458,6 +458,7 @@ export const LuxuryKPICard = ({ title, value, color, icon: Icon, trend, isDark =
   sparklineData?: number[],
   footerLabel?: string,
   footerValue?: string | number,
+  footerDetail?: string,
 }) => (
   <motion.div 
     whileHover={{ y: -4, scale: 1.02, boxShadow: "0 20px 40px rgba(0,0,0,0.08)" }}
@@ -536,6 +537,11 @@ export const LuxuryKPICard = ({ title, value, color, icon: Icon, trend, isDark =
               ? (Number.isInteger(value) ? value : value.toFixed(2))
               : value}
           </h4>
+          {footerDetail && (
+            <p className="mt-1 text-[8px] font-black uppercase tracking-[0.28em] text-slate-400">
+              {footerDetail}
+            </p>
+          )}
         </div>
         {sparklineData && (
           <div className="pb-1">

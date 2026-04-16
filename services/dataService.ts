@@ -973,10 +973,19 @@ const parseSalesQualityCSV = (csvText: string): SalesQualityRecord[] => {
         else if (header.includes('tramites') && header.includes('explicacion')) record.explicacion_tramites = parseScore(value); 
         else if (header.includes('plazo de entrega')) record.plazo_entrega = parseScore(value);
         else if (
-            header.includes('estado del vehiculo') ||
-            (header.includes('estado') && header.includes('vehiculo')) ||
-            header.includes('satisfaccion con el estado del vehiculo') ||
-            (header.includes('danos') && header.includes('pintura'))
+            (
+                header.includes('satisfaccion con el estado del vehiculo') &&
+                header.includes('entrega')
+            ) ||
+            (
+                header.includes('estado del vehiculo') &&
+                header.includes('entrega')
+            ) ||
+            (
+                header.includes('entrega') &&
+                header.includes('estado del vehiculo')
+            ) ||
+            (header.includes('danos') && header.includes('pintura') && header.includes('entrega'))
         ) record.estado_vehiculo = parseScore(value);
         else if (header.includes('explicacion') && header.includes('funcionamiento')) record.explicacion_entrega = parseScore(value);
         else if (header.includes('seguro')) record.ofrecimiento_seguro = value;

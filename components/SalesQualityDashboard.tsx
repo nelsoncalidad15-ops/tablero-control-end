@@ -310,8 +310,9 @@ const resolveContactState = (rawValue: string): ContactStateDefinition => {
     if (normalized.includes('fuera de servicio') || normalized.includes('fuera servicio')) return CONTACT_STATE_DEFINITIONS[8];
     if (normalized.includes('duplicado')) return CONTACT_STATE_DEFINITIONS[11];
     if (normalized.includes('recontactado')) return CONTACT_STATE_DEFINITIONS[0];
-    if (normalized.includes('contactado')) return CONTACT_STATE_DEFINITIONS[1];
     if (normalized.includes('envio') && (normalized.includes('wsp') || normalized.includes('wpp') || normalized.includes('whatsapp'))) return CONTACT_STATE_DEFINITIONS[2];
+    if (normalized.includes('whatsapp') || normalized.includes('wsp') || normalized.includes('wpp')) return CONTACT_STATE_DEFINITIONS[2];
+    if (normalized.includes('contactado')) return CONTACT_STATE_DEFINITIONS[1];
     if (normalized.includes('llamar luego') || normalized.includes('volver a llamar') || normalized.includes('llamar mas tarde')) return CONTACT_STATE_DEFINITIONS[3];
     if (normalized.includes('buzon') || normalized.includes('correo de voz') || normalized.includes('voicemail')) return CONTACT_STATE_DEFINITIONS[4];
 

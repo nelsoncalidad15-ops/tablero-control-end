@@ -399,6 +399,7 @@ const SurveyView = ({
             if (normalizedStatus === 'contactado') {
                 contactedEffective++;
             } else if (normalizedStatus.includes('whatsapp') || normalizedStatus.includes('wsp') || normalizedStatus.includes('wpp')) {
+                contactedEffective++;
                 effectiveViaWpp++;
             }
     
@@ -519,7 +520,9 @@ const SurveyView = ({
             current.count += 1;
             contactStateMap.set(key, current);
 
-            if (resolved.label === 'Contactado') effectiveCount += 1;
+            const normalizedResolvedLabel = normalizeContactStateKey(resolved.label);
+            const isWhatsappContact = normalizedResolvedLabel.includes('whatsapp') || normalizedResolvedLabel.includes('wsp') || normalizedResolvedLabel.includes('wpp');
+            if (normalizedResolvedLabel === 'contactado' || isWhatsappContact) effectiveCount += 1;
             else if (resolved.contacted || resolved.bucket === 'Recuperable') managedCount += 1;
             else if (resolved.bucket === 'No contactable') noContactableCount += 1;
             else withoutStateCount += 1;
@@ -532,8 +535,21 @@ const SurveyView = ({
                 percentage: total > 0 ? (item.count / total) * 100 : 0,
             }))
             .sort((a, b) => {
+                const rank = (row: ContactStateSummary) => {
+                    const normalizedLabel = normalizeContactStateKey(row.label);
+                    if (normalizedLabel === 'contactado') return 0;
+                    if (normalizedLabel.includes('whatsapp') || normalizedLabel.includes('wsp') || normalizedLabel.includes('wpp')) return 1;
+                    if (row.bucket === 'Efectivo') return 2;
+                    if (row.bucket === 'Recuperable') return 3;
+                    if (row.bucket === 'No contactable') return 4;
+                    return 5;
+                };
+
+                const rankDiff = rank(a) - rank(b);
+                if (rankDiff !== 0) return rankDiff;
                 if (b.count !== a.count) return b.count - a.count;
-                return a.priority - b.priority;
+                if (a.priority !== b.priority) return a.priority - b.priority;
+                return a.label.localeCompare(b.label);
             });
 
         const pct = (value: number) => total > 0 ? (value / total) * 100 : 0;

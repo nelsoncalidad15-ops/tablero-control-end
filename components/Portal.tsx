@@ -23,7 +23,7 @@ const Portal: React.FC<PortalProps> = ({ onSelectArea }) => {
           ? 'Auditorías y satisfacción.'
           : 'Ventas y leads.',
     })),
-  ];
+  ].filter((area) => area.id !== 'ventas');
 
   return (
     <div className="relative min-h-screen overflow-x-hidden overflow-y-auto bg-slate-950 font-sans text-white">
@@ -52,20 +52,20 @@ const Portal: React.FC<PortalProps> = ({ onSelectArea }) => {
                 </div>
             </motion.div>
 
-            <div className="grid flex-1 min-h-0 gap-4 lg:grid-rows-[minmax(0,0.82fr)_minmax(0,1.18fr)]">
+            <div className="flex flex-1 min-h-0 flex-col gap-4">
               <motion.section
                   initial={{ opacity: 0, y: 24 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.7 }}
                   className="min-h-0 rounded-[1.9rem] border border-white/10 bg-[linear-gradient(135deg,rgba(5,8,22,0.94),rgba(10,15,33,0.88))] p-5 text-white shadow-[0_34px_100px_rgba(2,6,23,0.48)] backdrop-blur-xl md:p-6 lg:p-7"
                 >
-                    <div className="flex h-full flex-col justify-between gap-5">
+                    <div className="flex h-full flex-col justify-between gap-6">
                         <div className="max-w-4xl">
                             <div className="mb-5 flex items-center gap-3">
                                 <div className="h-px w-14 bg-gradient-to-r from-cyan-400/80 to-transparent" />
                                 <p className="text-[10px] font-bold uppercase tracking-[0.42em] text-cyan-200/80">Visión ejecutiva</p>
                             </div>
-                            <h2 className="max-w-3xl text-4xl font-black leading-[0.9] tracking-tight text-balance md:text-5xl lg:text-[4.2rem]">
+                            <h2 className="max-w-3xl text-4xl font-black leading-[0.9] tracking-tight text-balance md:text-5xl lg:text-[4rem]">
                                 <span className="block">Visión operativa clara</span>
                                 <span className="block text-white/90">para decisiones rápidas.</span>
                             </h2>
@@ -73,21 +73,6 @@ const Portal: React.FC<PortalProps> = ({ onSelectArea }) => {
                                 Calidad, postventa, RRHH y seguimiento ejecutivo en una sola vista.
                                 La idea es leer rápido, detectar desvíos y actuar.
                             </p>
-                        </div>
-
-                        <div className="grid gap-3 sm:grid-cols-3">
-                            <div className="rounded-[1.2rem] border border-white/8 bg-white/5 px-4 py-3">
-                                <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-slate-400">Acceso</p>
-                                <p className="mt-1 text-sm font-black text-white">Un click</p>
-                            </div>
-                            <div className="rounded-[1.2rem] border border-white/8 bg-white/5 px-4 py-3">
-                                <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-slate-400">Lectura</p>
-                                <p className="mt-1 text-sm font-black text-white">Sin fricción</p>
-                            </div>
-                            <div className="rounded-[1.2rem] border border-white/8 bg-white/5 px-4 py-3">
-                                <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-slate-400">Entrada</p>
-                                <p className="mt-1 text-sm font-black text-white">Directa</p>
-                            </div>
                         </div>
                     </div>
                 </motion.section>
@@ -105,7 +90,7 @@ const Portal: React.FC<PortalProps> = ({ onSelectArea }) => {
                         </div>
                     </div>
 
-                    <div className="grid h-full grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-4">
                         {portalAreas.map((area, idx) => {
                             const IconComponent = Icons[area.icon as keyof typeof Icons] || Icons.Home;
                             const isExecutive = area.id === 'executive';
@@ -144,7 +129,7 @@ const Portal: React.FC<PortalProps> = ({ onSelectArea }) => {
                                       <p className="mt-2 max-w-[13rem] text-sm leading-6 text-slate-400">{area.description}</p>
                                     </div>
                                     <div className="mt-4 h-1 w-full overflow-hidden rounded-full bg-white/5">
-                                      <div className={`h-full w-2/3 rounded-full ${isExecutive ? 'bg-cyan-400' : 'bg-blue-400'} opacity-70 transition-all group-hover:w-full`} />
+                                      <div className={`h-full w-1/2 rounded-full ${isExecutive ? 'bg-cyan-400' : 'bg-blue-400'} opacity-70 transition-all group-hover:w-full`} />
                                     </div>
                                   </div>
                               </motion.button>

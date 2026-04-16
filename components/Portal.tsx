@@ -28,7 +28,7 @@ const Portal: React.FC<PortalProps> = ({ onSelectArea }) => {
   return (
     <div className="relative min-h-screen overflow-x-hidden overflow-y-auto bg-slate-950 font-sans text-white">
         <div className="pointer-events-none absolute inset-0">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),_transparent_34%),radial-gradient(circle_at_80%_18%,_rgba(245,158,11,0.12),_transparent_26%),linear-gradient(180deg,_#020617_0%,_#050816_45%,_#020617_100%)]" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.20),_transparent_34%),radial-gradient(circle_at_82%_18%,_rgba(245,158,11,0.12),_transparent_26%),radial-gradient(circle_at_50%_110%,_rgba(14,165,233,0.10),_transparent_28%),linear-gradient(180deg,_#020617_0%,_#050816_45%,_#020617_100%)]" />
             <div className="absolute inset-x-0 top-0 h-56 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.05),transparent)] opacity-40" />
             <div className="absolute -left-24 top-24 h-72 w-72 rounded-full bg-sky-500/10 blur-3xl" />
             <div className="absolute bottom-8 right-0 h-80 w-80 rounded-full bg-amber-400/10 blur-3xl" />
@@ -39,47 +39,79 @@ const Portal: React.FC<PortalProps> = ({ onSelectArea }) => {
             <motion.div
               initial={{ opacity: 0, y: -16 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex shrink-0 items-center justify-between rounded-[1.25rem] border border-white/10 bg-white/6 px-4 py-3 shadow-[0_24px_80px_rgba(2,6,23,0.32)] backdrop-blur-xl md:px-5"
+              className="flex shrink-0 items-center justify-between rounded-[1.35rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.10),rgba(255,255,255,0.04))] px-4 py-3 shadow-[0_24px_80px_rgba(2,6,23,0.34)] backdrop-blur-xl md:px-5"
             >
                 <div className="flex items-center gap-4">
-                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-sm font-black italic text-slate-950 md:h-12 md:w-12 md:text-base">
+                    <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white text-sm font-black italic text-slate-950 shadow-[0_10px_30px_rgba(255,255,255,0.12)] md:h-12 md:w-12 md:text-base">
                         VW
                     </div>
                     <div>
-                        <p className="text-[9px] font-bold uppercase tracking-[0.28em] text-slate-400 md:text-[10px]">Autosol Group</p>
+                        <p className="text-[9px] font-bold uppercase tracking-[0.34em] text-slate-400 md:text-[10px]">Autosol Group</p>
                         <h1 className="text-lg font-black tracking-tight text-white md:text-xl lg:text-2xl">Centro de Control Operativo</h1>
                     </div>
                 </div>
             </motion.div>
 
             <div className="grid flex-1 min-h-0 gap-4 lg:grid-rows-[minmax(0,1.08fr)_minmax(0,0.92fr)]">
-                <motion.section
+              <motion.section
                   initial={{ opacity: 0, y: 24 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.7 }}
-                  className="min-h-0 rounded-[1.75rem] border border-white/10 bg-[linear-gradient(135deg,rgba(5,8,22,0.92),rgba(10,15,33,0.86))] p-5 text-white shadow-[0_32px_90px_rgba(2,6,23,0.44)] backdrop-blur-xl md:p-6 lg:p-7"
+                  className="min-h-0 rounded-[1.9rem] border border-white/10 bg-[linear-gradient(135deg,rgba(5,8,22,0.94),rgba(10,15,33,0.88))] p-5 text-white shadow-[0_34px_100px_rgba(2,6,23,0.48)] backdrop-blur-xl md:p-6 lg:p-7"
                 >
-                    <div className="flex min-h-0 flex-col justify-between gap-5">
-                        <div className="max-w-4xl">
-                            <h2 className="max-w-3xl text-3xl font-black leading-[0.92] tracking-tight md:text-4xl lg:text-[3.4rem]">
-                                Visión operativa clara para decisiones rápidas.
-                            </h2>
-                            <p className="mt-4 max-w-2xl text-sm leading-6 text-slate-300 md:text-[15px] md:leading-7">
-                                Calidad, postventa, RRHH y seguimiento ejecutivo en una sola vista. La idea es leer rápido, detectar desvíos y actuar.
-                            </p>
+                    <div className="grid min-h-0 gap-8 lg:grid-cols-[1.25fr_0.75fr] lg:gap-10">
+                        <div className="flex min-h-0 flex-col justify-between">
+                            <div className="max-w-4xl">
+                                <div className="mb-6 flex items-center gap-3">
+                                    <div className="h-px w-14 bg-gradient-to-r from-cyan-400/80 to-transparent" />
+                                    <p className="text-[10px] font-bold uppercase tracking-[0.42em] text-cyan-200/80">Visión ejecutiva</p>
+                                </div>
+                                <h2 className="max-w-3xl text-4xl font-black leading-[0.9] tracking-tight text-balance md:text-5xl lg:text-[4.4rem]">
+                                    <span className="block">Visión operativa clara</span>
+                                    <span className="block text-white/90">para decisiones rápidas.</span>
+                                </h2>
+                                <p className="mt-5 max-w-2xl text-sm leading-7 text-slate-300/90 md:text-[15px] md:leading-7">
+                                    Calidad, postventa, RRHH y seguimiento ejecutivo en una sola vista.
+                                    La idea es leer rápido, detectar desvíos y actuar.
+                                </p>
+                            </div>
+
+                            <div className="mt-8 flex flex-wrap gap-3 text-[10px] font-black uppercase tracking-[0.32em] text-slate-300/80">
+                                <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 backdrop-blur">Lectura rápida</span>
+                                <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 backdrop-blur">Jerarquía limpia</span>
+                                <span className="rounded-full border border-white/10 bg-white/5 px-4 py-2 backdrop-blur">Acceso directo</span>
+                            </div>
+                        </div>
+
+                        <div className="flex h-full items-end">
+                            <div className="w-full rounded-[1.5rem] border border-cyan-400/15 bg-[linear-gradient(180deg,rgba(8,15,32,0.72),rgba(7,10,20,0.88))] p-5 shadow-[inset_0_1px_0_rgba(255,255,255,0.05)]">
+                                <div className="flex items-center justify-between gap-4 border-b border-white/5 pb-4">
+                                    <div>
+                                        <p className="text-[10px] font-bold uppercase tracking-[0.35em] text-slate-400">Enfoque</p>
+                                        <h3 className="mt-1 text-xl font-black tracking-tight text-white">Control sin ruido</h3>
+                                    </div>
+                                    <div className="flex h-12 w-12 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-cyan-300">
+                                        <Icons.Target className="h-5 w-5" />
+                                    </div>
+                                </div>
+                                <div className="mt-4 space-y-3 text-sm leading-6 text-slate-300">
+                                    <p>Una portada más editorial, más limpia y con menos fricción visual.</p>
+                                    <p>Las áreas quedan como accesos rápidos, no como distractores.</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </motion.section>
 
-                <motion.section
+              <motion.section
                   initial={{ opacity: 0, y: 24 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.7, delay: 0.1 }}
-                  className="min-h-0 rounded-[1.75rem] border border-white/10 bg-white/6 p-4 shadow-[0_28px_80px_rgba(2,6,23,0.3)] backdrop-blur-xl md:p-5"
+                  className="min-h-0 rounded-[1.85rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.08),rgba(255,255,255,0.04))] p-4 shadow-[0_28px_80px_rgba(2,6,23,0.34)] backdrop-blur-xl md:p-5"
                 >
                     <div className="mb-4 flex items-center justify-between">
                         <div>
-                            <p className="text-[9px] font-bold uppercase tracking-[0.28em] text-slate-400">Acceso rápido</p>
+                            <p className="text-[9px] font-bold uppercase tracking-[0.32em] text-slate-400">Acceso rápido</p>
                             <h3 className="mt-1 text-xl font-black tracking-tight text-white md:text-2xl">Áreas principales</h3>
                         </div>
                     </div>
@@ -104,13 +136,13 @@ const Portal: React.FC<PortalProps> = ({ onSelectArea }) => {
                                 initial={{ opacity: 0, y: 16 }}
                                 animate={{ opacity: 1, y: 0 }}
                                 transition={{ delay: 0.12 + idx * 0.05 }}
-                                whileHover={{ y: -5 }}
+                                whileHover={{ y: -6, scale: 1.01 }}
                                 whileTap={{ scale: 0.99 }}
                                 onClick={() => onSelectArea(isExecutive ? { id: 'executive' as any, name: 'Sala de Situación', icon: 'Activity', color: 'blue', description: 'Resumen Ejecutivo Unificado' } : area)}
-                                className="group rounded-[1.45rem] border border-white/10 bg-[linear-gradient(180deg,rgba(11,16,32,0.92),rgba(15,23,42,0.82))] p-4 text-left transition-all hover:border-white/30 hover:bg-[#10172b] hover:shadow-[0_18px_50px_rgba(15,23,42,0.35)] md:min-h-[150px] md:p-5"
+                                className="group rounded-[1.45rem] border border-white/10 bg-[linear-gradient(180deg,rgba(11,16,32,0.92),rgba(15,23,42,0.82))] p-4 text-left transition-all hover:border-white/20 hover:bg-[linear-gradient(180deg,rgba(17,24,39,0.98),rgba(15,23,42,0.92))] hover:shadow-[0_18px_50px_rgba(15,23,42,0.38)] md:min-h-[150px] md:p-5"
                               >
                                   <div className="mb-3 flex items-start justify-between gap-3">
-                                    <div className={`flex h-11 w-11 items-center justify-center rounded-2xl border ${palette}`}>
+                                    <div className={`flex h-11 w-11 items-center justify-center rounded-2xl border ${palette} shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]`}>
                                         <IconComponent className="h-5.5 w-5.5" />
                                     </div>
                                     <Icons.ChevronRight className="h-4 w-4 text-slate-500 transition-transform group-hover:translate-x-1" />

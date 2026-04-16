@@ -44,7 +44,7 @@ const Portal: React.FC<PortalProps> = ({ onSelectArea }) => {
   ];
 
   return (
-    <div className="relative h-screen overflow-hidden bg-slate-950 font-sans text-white">
+    <div className="relative min-h-screen overflow-x-hidden overflow-y-auto bg-slate-950 font-sans text-white">
         <div className="pointer-events-none absolute inset-0">
             <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),_transparent_34%),radial-gradient(circle_at_80%_18%,_rgba(245,158,11,0.12),_transparent_26%),linear-gradient(180deg,_#020617_0%,_#050816_45%,_#020617_100%)]" />
             <div className="absolute inset-x-0 top-0 h-56 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.05),transparent)] opacity-40" />
@@ -53,7 +53,7 @@ const Portal: React.FC<PortalProps> = ({ onSelectArea }) => {
             <div className="absolute inset-0 opacity-[0.08]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px)', backgroundSize: '72px 72px' }} />
         </div>
 
-        <div className="relative mx-auto flex h-full w-full max-w-[1700px] flex-col gap-4 px-4 py-4 md:px-6 md:py-5 lg:px-8">
+        <div className="relative mx-auto flex min-h-screen w-full max-w-[1700px] flex-col gap-4 px-4 py-4 md:px-6 md:py-5 lg:px-8">
             <motion.div
               initial={{ opacity: 0, y: -16 }}
               animate={{ opacity: 1, y: 0 }}
@@ -70,7 +70,7 @@ const Portal: React.FC<PortalProps> = ({ onSelectArea }) => {
                 </div>
             </motion.div>
 
-            <div className="grid flex-1 min-h-0 grid-rows-[minmax(0,1.08fr)_minmax(0,0.92fr)] gap-4">
+            <div className="grid flex-1 min-h-0 gap-4 lg:grid-rows-[minmax(0,1.08fr)_minmax(0,0.92fr)]">
                 <motion.section
                   initial={{ opacity: 0, y: 24 }}
                   animate={{ opacity: 1, y: 0 }}
@@ -150,7 +150,7 @@ const Portal: React.FC<PortalProps> = ({ onSelectArea }) => {
                         </div>
                     </div>
 
-                    <div className="grid h-full grid-cols-1 gap-3 md:grid-cols-2 xl:grid-cols-5">
+                    <div className="grid h-full grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-5">
                         {portalAreas.map((area, idx) => {
                             const IconComponent = Icons[area.icon as keyof typeof Icons] || Icons.Home;
                             const isExecutive = area.id === 'executive';

@@ -911,7 +911,7 @@ const parseSalesQualityCSV = (csvText: string): SalesQualityRecord[] => {
   
     for (let i = 1; i < rows.length; i++) {
       const currentLine = rows[i];
-      if (currentLine.length < headers.length - 1) continue;
+      if (currentLine.length < 3) continue;
   
       const record: any = { id: `sq-row-${i}` };
       

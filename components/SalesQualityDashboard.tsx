@@ -1304,7 +1304,6 @@ const SalesQualityDashboard: React.FC<SalesQualityDashboardProps> = ({ onBack, i
   }, [claimsData, claimsBranches, selectedSaleTypes]);
 
   const totalUnidades = useMemo(() => {
-    const uniqueVins = new Set();
     let activeData: any[] = [];
     
     if (activeTab === 'surveys') {
@@ -1323,14 +1322,21 @@ const SalesQualityDashboard: React.FC<SalesQualityDashboardProps> = ({ onBack, i
       });
     }
 
+    const getVehicleKey = (d: any) => {
+      if ('chasis' in d && d.chasis && d.chasis.trim() !== "") return d.chasis.trim();
+      if ('vin' in d && d.vin && d.vin.trim() !== "") return d.vin.trim();
+      if ('cod_id' in d && d.cod_id && d.cod_id.trim() !== "") return d.cod_id.trim();
+      return '';
+    };
+
+    if (activeTab === 'surveys') {
+      return activeData.filter(d => getVehicleKey(d) !== '').length;
+    }
+
+    const uniqueVins = new Set<string>();
     activeData.forEach(d => {
-      if ('chasis' in d && d.chasis && d.chasis.trim() !== "") {
-        uniqueVins.add(d.chasis.trim());
-      } else if ('vin' in d && d.vin && d.vin.trim() !== "") {
-        uniqueVins.add(d.vin.trim());
-      } else if ('cod_id' in d && d.cod_id && d.cod_id.trim() !== "") {
-        uniqueVins.add(d.cod_id.trim());
-      }
+      const key = getVehicleKey(d);
+      if (key) uniqueVins.add(key);
     });
     return uniqueVins.size;
   }, [filteredSurveyData, filteredClaimsData, cemOsData, activeTab, selectedMonths]);

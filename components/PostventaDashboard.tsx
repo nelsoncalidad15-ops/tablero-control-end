@@ -28,7 +28,7 @@ import { ChatBot } from './ChatBot';
 import { GaugeChart } from './GaugeChart';
 import { fetchSheetData } from '../services/dataService';
 import { AutoRecord, LoadingStatus } from '../types';
-import { MONTHS, YEARS, BRANCHES, BRANCH_COLORS, DEFAULT_CONFIG } from '../constants';
+import { MONTHS, YEARS, BRANCH_COLORS, DEFAULT_CONFIG } from '../constants';
 
 interface PostventaDashboardProps {
   sheetUrl?: string;
@@ -40,6 +40,8 @@ const formatNumber = (value: unknown, options?: Intl.NumberFormatOptions) => {
   if (!Number.isFinite(num)) return '0';
   return num.toLocaleString('es-AR', options);
 };
+
+const OPERATIONAL_BRANCHES = ['Santa Fe', 'Jujuy', 'Express', 'MOVIL', 'Tartagal'];
 
 const BranchKpiCard = ({ title, icon: Icon, color, branchData, total, unit = "" }: { 
   title: string, 
@@ -107,12 +109,30 @@ export const PostventaDashboard: React.FC<PostventaDashboardProps> = ({ sheetUrl
     if (data.length === 0) return;
 
     const years = Array.from(
-      new Set(data.map(item => item.anio?.toString()).filter((year): year is string => !!year && year !== '0'))
+      new Set(
+        data
+          .filter(item => OPERATIONAL_BRANCHES.includes(item.sucursal))
+          .map(item => item.anio?.toString())
+          .filter((year): year is string => !!year && year !== '0')
+      )
     ).sort();
 
     if (years.length === 0) return;
 
-    const latestYear = years[years.length - 1]!;
+    const yearRankings = years
+      .map(year => {
+        const recordsForYear = data.filter(item => item.anio?.toString() === year && OPERATIONAL_BRANCHES.includes(item.sucursal));
+        const branchCount = new Set(recordsForYear.map(item => item.sucursal)).size;
+        const totalRows = recordsForYear.length;
+        return { year, branchCount, totalRows };
+      })
+      .sort((a, b) => {
+        if (b.branchCount !== a.branchCount) return b.branchCount - a.branchCount;
+        if (b.totalRows !== a.totalRows) return b.totalRows - a.totalRows;
+        return Number(b.year) - Number(a.year);
+      });
+
+    const latestYear = yearRankings[0]?.year || years[years.length - 1]!;
     if (!selectedYear || !years.includes(selectedYear)) {
       setSelectedYear(latestYear);
     }
@@ -124,9 +144,7 @@ export const PostventaDashboard: React.FC<PostventaDashboardProps> = ({ sheetUrl
     return data.filter(item => {
       const yearMatch = item.anio?.toString() === selectedYear;
       const monthMatch = selectedMonths.length === 0 || selectedMonths.some(m => m.toLowerCase() === item.mes?.toLowerCase());
-      
-      // Ensure we only include branches that are in our BRANCHES constant
-      const isAllowedBranch = BRANCHES.includes(item.sucursal);
+      const isAllowedBranch = OPERATIONAL_BRANCHES.includes(item.sucursal);
       const branchMatch = selectedBranches.length === 0 
         ? isAllowedBranch 
         : selectedBranches.includes(item.sucursal);
@@ -137,7 +155,7 @@ export const PostventaDashboard: React.FC<PostventaDashboardProps> = ({ sheetUrl
 
   // KPI Calculations per branch
   const branchKpis = useMemo(() => {
-    const branchesToCalculate = selectedBranches.length > 0 ? selectedBranches : BRANCHES;
+    const branchesToCalculate = selectedBranches.length > 0 ? selectedBranches : OPERATIONAL_BRANCHES;
     return branchesToCalculate.map(branch => {
       const branchData = filteredData.filter(d => d.sucursal === branch);
       return {
@@ -165,7 +183,7 @@ export const PostventaDashboard: React.FC<PostventaDashboardProps> = ({ sheetUrl
 
   // Monthly Chart Data
   const monthlyChartData = useMemo(() => {
-    const branchesToUse = selectedBranches.length > 0 ? selectedBranches : BRANCHES;
+    const branchesToUse = selectedBranches.length > 0 ? selectedBranches : OPERATIONAL_BRANCHES;
     return MONTHS.map(m => {
       const entry: any = { name: m.substring(0, 3).toUpperCase() };
       branchesToUse.forEach(branch => {
@@ -246,7 +264,7 @@ export const PostventaDashboard: React.FC<PostventaDashboardProps> = ({ sheetUrl
               >
                 TODAS
               </button>
-              {BRANCHES.map(branch => (
+              {OPERATIONAL_BRANCHES.map(branch => (
                 <button 
                   key={branch}
                   onClick={() => toggleBranch(branch)}
@@ -437,7 +455,7 @@ export const PostventaDashboard: React.FC<PostventaDashboardProps> = ({ sheetUrl
                   contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}
                 />
                 <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px', fontSize: '10px', fontWeight: 900, textTransform: 'uppercase' }} />
-                {(selectedBranches.length > 0 ? selectedBranches : BRANCHES).map(branch => (
+                {(selectedBranches.length > 0 ? selectedBranches : OPERATIONAL_BRANCHES).map(branch => (
                   <Bar key={branch} dataKey={branch} name={branch} fill={BRANCH_COLORS[branch as keyof typeof BRANCH_COLORS]} radius={[4, 4, 0, 0]}>
                     <LabelList dataKey={branch} position="top" style={{ fontSize: '8px', fontWeight: 900, fill: '#64748b' }} />
                   </Bar>
@@ -466,7 +484,7 @@ export const PostventaDashboard: React.FC<PostventaDashboardProps> = ({ sheetUrl
                   contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}
                 />
                 <Legend iconType="circle" wrapperStyle={{ fontSize: '9px', fontWeight: 900, textTransform: 'uppercase' }} />
-                {(selectedBranches.length > 0 ? selectedBranches : BRANCHES).map(branch => (
+                {(selectedBranches.length > 0 ? selectedBranches : OPERATIONAL_BRANCHES).map(branch => (
                   <Line 
                     key={branch}
                     type="monotone" 
@@ -492,7 +510,7 @@ export const PostventaDashboard: React.FC<PostventaDashboardProps> = ({ sheetUrl
                   contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}
                 />
                 <Legend iconType="circle" wrapperStyle={{ fontSize: '9px', fontWeight: 900, textTransform: 'uppercase' }} />
-                {(selectedBranches.length > 0 ? selectedBranches : BRANCHES).map(branch => (
+                {(selectedBranches.length > 0 ? selectedBranches : OPERATIONAL_BRANCHES).map(branch => (
                   <Line 
                     key={branch}
                     type="monotone" 
@@ -518,7 +536,7 @@ export const PostventaDashboard: React.FC<PostventaDashboardProps> = ({ sheetUrl
                   contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}
                 />
                 <Legend iconType="circle" wrapperStyle={{ fontSize: '9px', fontWeight: 900, textTransform: 'uppercase' }} />
-                {(selectedBranches.length > 0 ? selectedBranches : BRANCHES).map(branch => (
+                {(selectedBranches.length > 0 ? selectedBranches : OPERATIONAL_BRANCHES).map(branch => (
                   <Line 
                     key={branch}
                     type="monotone" 
@@ -544,7 +562,7 @@ export const PostventaDashboard: React.FC<PostventaDashboardProps> = ({ sheetUrl
                   contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 10px 30px rgba(0,0,0,0.1)' }}
                 />
                 <Legend iconType="circle" wrapperStyle={{ fontSize: '9px', fontWeight: 900, textTransform: 'uppercase' }} />
-                {(selectedBranches.length > 0 ? selectedBranches : BRANCHES).map(branch => (
+                {(selectedBranches.length > 0 ? selectedBranches : OPERATIONAL_BRANCHES).map(branch => (
                   <Line 
                     key={branch}
                     type="monotone" 

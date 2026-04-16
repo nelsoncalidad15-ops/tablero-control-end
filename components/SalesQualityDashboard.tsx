@@ -396,8 +396,10 @@ const SurveyView = ({
             const status = d.estado ? d.estado.trim() : 'Sin Estado';
             statusCounts[status] = (statusCounts[status] || 0) + 1;
             const normalizedStatus = status.toLowerCase();
-            if (normalizedStatus === 'contactado' || normalizedStatus === 'recontactado') {
+            if (normalizedStatus === 'contactado') {
                 contactedEffective++;
+            } else if (normalizedStatus.includes('whatsapp') || normalizedStatus.includes('wsp') || normalizedStatus.includes('wpp')) {
+                effectiveViaWpp++;
             }
     
             const deliveryDate = parseDateString(d.fecha_entrega);
@@ -424,7 +426,7 @@ const SurveyView = ({
             { name: 'A Tiempo', value: onTime, fill: '#10B981' },
             { name: 'Vencido', value: late, fill: '#EF4444' },
         ];
-        return { percent, methodData, contactedEffective, totalRows, statusChartData, complianceData };
+        return { percent, methodData, contactedEffective, totalRows, statusChartData, complianceData, effectiveViaWpp };
     }, [filteredData]);
 
     const deliveryData = useMemo(() => {
@@ -440,6 +442,17 @@ const SurveyView = ({
         const hasEffectiveContact = !!(row.fecha_contacto_efectivo || row.fecha_respuesta_wpp || row.fecha_recontacto);
         const hasFollowUp = !!(row.fecha_1_llamado || row.fecha_2_llamado || row.fecha_3_llamado || row.fecha_envio_wpp);
         const rawState = row.estado || '';
+
+        if (!rawState && (row.fecha_respuesta_wpp || row.fecha_envio_wpp)) {
+            return {
+                label: 'Contacto por WhatsApp',
+                bucket: 'Recuperable',
+                color: '#10B981',
+                contacted: true,
+                action: 'Contacto por WhatsApp',
+                priority: 3,
+            };
+        }
 
         if (!rawState && hasEffectiveContact) {
             return row.fecha_recontacto
@@ -458,6 +471,16 @@ const SurveyView = ({
         }
 
         const resolved = resolveContactState(rawState);
+        if (normalizeContactStateKey(rawState).includes('whatsapp') || normalizeContactStateKey(rawState).includes('wsp') || normalizeContactStateKey(rawState).includes('wpp')) {
+            return {
+                label: 'Contacto por WhatsApp',
+                bucket: 'Recuperable',
+                color: '#10B981',
+                contacted: true,
+                action: 'Contacto por WhatsApp',
+                priority: 3,
+            };
+        }
         if (resolved.bucket === 'Sin dato' && hasEffectiveContact) {
             return row.fecha_recontacto
                 ? CONTACT_STATE_DEFINITIONS[0]
@@ -496,7 +519,7 @@ const SurveyView = ({
             current.count += 1;
             contactStateMap.set(key, current);
 
-            if (resolved.bucket === 'Efectivo') effectiveCount += 1;
+            if (resolved.label === 'Contactado') effectiveCount += 1;
             else if (resolved.contacted || resolved.bucket === 'Recuperable') managedCount += 1;
             else if (resolved.bucket === 'No contactable') noContactableCount += 1;
             else withoutStateCount += 1;

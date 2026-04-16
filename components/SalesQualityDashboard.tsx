@@ -420,13 +420,20 @@ const SurveyView = ({
     osFilter, setOsFilter
 }: any) => {
 
-    const calculateAverageStats = (key: keyof SalesQualityRecord) => {
+    const calculateAverageStats = (key: keyof SalesQualityRecord, allowZero: boolean = false) => {
         let sum = 0;
         let count = 0;
         filteredData.forEach((d: any) => {
             const val = d[key];
-            if (typeof val === 'number' && val > 0) {
-                sum += val;
+            const numericValue =
+                typeof val === 'number'
+                    ? val
+                    : typeof val === 'string'
+                        ? Number(val.replace(',', '.').trim())
+                        : NaN;
+
+            if (Number.isFinite(numericValue) && (allowZero ? numericValue >= 0 : numericValue > 0)) {
+                sum += numericValue;
                 count++;
             }
         });
@@ -532,7 +539,7 @@ const SurveyView = ({
 
     const deliveryData = useMemo(() => {
         return [
-            { subject: 'Estado Vehículo', A: calculateAverageStats('estado_vehiculo').value, fullMark: 5 },
+            { subject: 'Estado Vehículo', A: calculateAverageStats('estado_vehiculo', true).value, fullMark: 5 },
             { subject: 'Explicación Entrega', A: calculateAverageStats('explicacion_entrega').value, fullMark: 5 },
             { subject: 'Trámites Adm.', A: calculateAverageStats('explicacion_tramites').value, fullMark: 5 },
             { subject: 'Plazo Entrega', A: calculateAverageStats('plazo_entrega').value, fullMark: 5 },

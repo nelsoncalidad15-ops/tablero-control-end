@@ -182,13 +182,13 @@ export const PostventaDashboard: React.FC<PostventaDashboardProps> = ({ sheetUrl
     return branchesToCalculate.map(branch => {
       const branchKey = normalizeBranchName(branch);
       const branchData = filteredData.filter(d => normalizeBranchName(d.sucursal) === branchKey);
-      return {
+        return {
         name: displayBranchName(branch),
         avance: branchData.reduce((sum, d) => sum + (d.avance_ppt || 0), 0),
         objetivo: branchData.reduce((sum, d) => sum + (d.objetivo_mensual || 0), 0),
         pptDiarios: branchData.reduce((sum, d) => sum + (d.ppt_diarios || 0), 0),
         servisDiarios: branchData.reduce((sum, d) => sum + (d.servicios_diarios || 0), 0),
-        servisTotales: branchData.reduce((sum, d) => sum + (d.avance_servicios || 0), 0),
+        servisTotales: branchData.reduce((sum, d) => sum + (d.servicios_totales || 0), 0),
         diasLaborables: branchData.reduce((sum, d) => sum + (d.dias_laborables || 0), 0),
       };
     }).sort((a, b) => b.objetivo - a.objetivo);
@@ -219,7 +219,7 @@ export const PostventaDashboard: React.FC<PostventaDashboardProps> = ({ sheetUrl
         );
         entry[`${branch}_avance`] = branchMonthData?.avance_ppt || 0;
         entry[`${branch}_pptDiarios`] = branchMonthData?.ppt_diarios || 0;
-        entry[`${branch}_servisTotales`] = branchMonthData?.avance_servicios || 0;
+        entry[`${branch}_servisTotales`] = branchMonthData?.servicios_totales || 0;
         entry[`${branch}_servisDiarios`] = branchMonthData?.servicios_diarios || 0;
         // For the bar chart which uses branch name directly as key
         entry[branch] = branchMonthData?.avance_ppt || 0;
@@ -660,7 +660,7 @@ export const PostventaDashboard: React.FC<PostventaDashboardProps> = ({ sheetUrl
           },
           { 
             header: 'SERVICIOS', 
-            accessor: 'avance_servicios',
+            accessor: 'servicios_totales',
             render: (val) => <span className="font-black">{formatNumber(val)}</span>
           }
         ]}

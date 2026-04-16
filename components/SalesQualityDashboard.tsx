@@ -424,7 +424,10 @@ const SurveyView = ({
         let sum = 0;
         let count = 0;
         filteredData.forEach((d: any) => {
-            const val = d[key];
+            const val = d[key] ?? (key === 'estado_vehiculo' ? Object.entries(d).find(([rawKey]) => {
+                const normalizedKey = rawKey.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+                return normalizedKey.includes('estado') && normalizedKey.includes('vehiculo');
+            })?.[1] : undefined);
             const numericValue =
                 typeof val === 'number'
                     ? val

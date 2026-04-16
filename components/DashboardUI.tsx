@@ -445,7 +445,7 @@ const Sparkline = ({ data, color }: { data: number[], color: string }) => {
   );
 };
 
-export const LuxuryKPICard = ({ title, value, color, icon: Icon, trend, isDark = false, isDanger = false, breakdown, sparklineData, featured = false }: { 
+export const LuxuryKPICard = ({ title, value, color, icon: Icon, trend, isDark = false, isDanger = false, breakdown, sparklineData, featured = false, footerLabel, footerValue }: { 
   title: string, 
   value: string | number, 
   color: string, 
@@ -455,7 +455,9 @@ export const LuxuryKPICard = ({ title, value, color, icon: Icon, trend, isDark =
   isDanger?: boolean,
   featured?: boolean,
   breakdown?: { name: string, value: string | number, secondaryValue?: string | number, percentage?: number }[],
-  sparklineData?: number[]
+  sparklineData?: number[],
+  footerLabel?: string,
+  footerValue?: string | number,
 }) => (
   <motion.div 
     whileHover={{ y: -4, scale: 1.02, boxShadow: "0 20px 40px rgba(0,0,0,0.08)" }}
@@ -524,9 +526,15 @@ export const LuxuryKPICard = ({ title, value, color, icon: Icon, trend, isDark =
 
       <div className="pt-2 border-t border-slate-100/50 mt-auto flex items-end justify-between">
         <div>
-          <span className={`block mb-0.5 font-black text-slate-400 uppercase tracking-widest ${featured ? 'text-[8px]' : 'text-[7px]'}`}>Consolidado</span>
+          <span className={`block mb-0.5 font-black text-slate-400 uppercase tracking-widest ${featured ? 'text-[8px]' : 'text-[7px]'}`}>
+            {footerLabel || 'Consolidado'}
+          </span>
           <h4 className={`font-black ${isDark ? 'text-white' : 'text-slate-900'} tracking-tighter leading-none italic ${featured ? 'text-4xl md:text-5xl opacity-100' : 'text-sm opacity-40'}`}>
-            {typeof value === 'number' ? (Number.isInteger(value) ? value : value.toFixed(2)) : value}
+            {typeof footerValue !== 'undefined'
+              ? footerValue
+              : typeof value === 'number'
+              ? (Number.isInteger(value) ? value : value.toFixed(2))
+              : value}
           </h4>
         </div>
         {sparklineData && (

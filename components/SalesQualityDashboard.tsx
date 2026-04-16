@@ -338,7 +338,7 @@ const SurveyView = ({
     osFilter, setOsFilter
 }: any) => {
 
-    const calculateAverage = (key: keyof SalesQualityRecord) => {
+    const calculateAverageStats = (key: keyof SalesQualityRecord) => {
         let sum = 0;
         let count = 0;
         filteredData.forEach((d: any) => {
@@ -348,7 +348,10 @@ const SurveyView = ({
                 count++;
             }
         });
-        return count > 0 ? sum / count : 0;
+        return {
+            value: count > 0 ? sum / count : 0,
+            sampleCount: count,
+        };
     };
   
     const calculateYesNo = (key: keyof SalesQualityRecord) => {
@@ -363,11 +366,11 @@ const SurveyView = ({
     };
 
     const metrics = useMemo(() => ({
-        general: calculateAverage('cem_general'),
-        trato: calculateAverage('cem_trato'),
-        organizacion: calculateAverage('cem_organizacion'),
-        asesoramiento: calculateAverage('cem_asesoramiento'),
-        nps: calculateAverage('nps'),
+        general: calculateAverageStats('cem_general'),
+        trato: calculateAverageStats('cem_trato'),
+        organizacion: calculateAverageStats('cem_organizacion'),
+        asesoramiento: calculateAverageStats('cem_asesoramiento'),
+        nps: calculateAverageStats('nps'),
         pruebaManejo: calculateYesNo('prueba_manejo'),
         financiacion: calculateYesNo('ofrecimiento_financiacion'),
         usados: calculateYesNo('toma_usados'),
@@ -426,10 +429,10 @@ const SurveyView = ({
 
     const deliveryData = useMemo(() => {
         return [
-            { subject: 'Estado Vehículo', A: calculateAverage('estado_vehiculo'), fullMark: 5 },
-            { subject: 'Explicación Entrega', A: calculateAverage('explicacion_entrega'), fullMark: 5 },
-            { subject: 'Trámites Adm.', A: calculateAverage('explicacion_tramites'), fullMark: 5 },
-            { subject: 'Plazo Entrega', A: calculateAverage('plazo_entrega'), fullMark: 5 },
+            { subject: 'Estado Vehículo', A: calculateAverageStats('estado_vehiculo').value, fullMark: 5 },
+            { subject: 'Explicación Entrega', A: calculateAverageStats('explicacion_entrega').value, fullMark: 5 },
+            { subject: 'Trámites Adm.', A: calculateAverageStats('explicacion_tramites').value, fullMark: 5 },
+            { subject: 'Plazo Entrega', A: calculateAverageStats('plazo_entrega').value, fullMark: 5 },
         ];
     }, [contactSourceData]);
 
@@ -601,11 +604,11 @@ const SurveyView = ({
     return (
         <div className="space-y-8">
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-6">
-                <LuxuryKPICard title="Satisfacción General (OS)" value={metrics.general} color="bg-slate-950" icon={Icons.Star} />
-                <LuxuryKPICard title="CEM - Trato" value={metrics.trato} color="bg-blue-600" icon={Icons.Users} />
-                <LuxuryKPICard title="CEM - Organización" value={metrics.organizacion} color="bg-indigo-600" icon={Icons.Layers} />
-                <LuxuryKPICard title="CEM - Asesoramiento" value={metrics.asesoramiento} color="bg-emerald-600" icon={Icons.Activity} />
-                <LuxuryKPICard title="Recomendación (NPS)" value={metrics.nps} color="bg-amber-600" icon={Icons.ThumbsUp} />
+                <LuxuryKPICard title="Satisfacción General (OS)" value={metrics.general.value} color="bg-slate-950" icon={Icons.Star} featured footerLabel="Muestra" footerValue={`${metrics.general.sampleCount} notas`} />
+                <LuxuryKPICard title="CEM - Trato" value={metrics.trato.value} color="bg-blue-600" icon={Icons.Users} featured footerLabel="Muestra" footerValue={`${metrics.trato.sampleCount} notas`} />
+                <LuxuryKPICard title="CEM - Organización" value={metrics.organizacion.value} color="bg-indigo-600" icon={Icons.Layers} featured footerLabel="Muestra" footerValue={`${metrics.organizacion.sampleCount} notas`} />
+                <LuxuryKPICard title="CEM - Asesoramiento" value={metrics.asesoramiento.value} color="bg-emerald-600" icon={Icons.Activity} featured footerLabel="Muestra" footerValue={`${metrics.asesoramiento.sampleCount} notas`} />
+                <LuxuryKPICard title="Recomendación (NPS)" value={metrics.nps.value} color="bg-amber-600" icon={Icons.ThumbsUp} featured footerLabel="Muestra" footerValue={`${metrics.nps.sampleCount} notas`} />
             </div>
             
             <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
@@ -1341,7 +1344,7 @@ const SalesQualityDashboard: React.FC<SalesQualityDashboardProps> = ({ onBack, i
             </div>
             <div className="flex flex-col">
                 <span className="text-lg font-black leading-none tracking-tighter italic">{totalUnidades}</span>
-                <span className="text-[8px] font-black uppercase tracking-[0.2em] text-blue-400">Unidades</span>
+                <span className="text-[8px] font-black uppercase tracking-[0.2em] text-blue-400">VIN / Chasis</span>
             </div>
         </div>
 

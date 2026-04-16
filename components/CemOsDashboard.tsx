@@ -88,12 +88,25 @@ const CemOsDashboard: React.FC<CemOsDashboardProps> = ({
 
   // KPIs
   const kpis = useMemo(() => {
-    // Patentados: all records
-    const total = filteredData.length;
+    const normalizeVehicleKey = (row: CemOsRecord) => {
+      const chasis = row.chasis?.trim();
+      if (chasis) return chasis;
+      const vin = row.vin?.trim();
+      if (vin) return vin;
+      const code = row.codigo?.trim();
+      if (code) return code;
+      return row.id;
+    };
+
+    const uniqueVehicles = new Map<string, CemOsRecord>();
+    filteredData.forEach((row) => {
+      uniqueVehicles.set(normalizeVehicleKey(row), row);
+    });
+    const patentadosBase = Array.from(uniqueVehicles.values());
     
     // Declared: unique emails that have a valid date in fecha_link_llega
     const declaredEmails = new Set(
-      filteredData
+      patentadosBase
         .filter(d => isValidDateValue(d.fecha_link_llega))
         .map(d => d.cliente_email)
         .filter(Boolean)
@@ -102,7 +115,7 @@ const CemOsDashboard: React.FC<CemOsDashboardProps> = ({
 
     // Respondieron: unique emails that have a CEM score
     const respondedEmails = new Set(
-      filteredData
+      patentadosBase
         .filter(d => d.cem_score !== null)
         .map(d => d.cliente_email)
         .filter(Boolean)
@@ -112,13 +125,13 @@ const CemOsDashboard: React.FC<CemOsDashboardProps> = ({
     // Faltan: difference between declared and responded (unique emails)
     const pending = Math.max(0, declared - responded);
 
-    const cemScores = filteredData.map(d => d.cem_score).filter((v): v is number => v !== null);
+    const cemScores = patentadosBase.map(d => d.cem_score).filter((v): v is number => v !== null);
     const avgCem = cemScores.length > 0 ? cemScores.reduce((acc, v) => acc + v, 0) / cemScores.length : 0;
 
     const responseRate = declared > 0 ? (responded / declared) * 100 : 0;
 
     return {
-      total,
+      total: patentadosBase.length,
       declared,
       responded,
       pending,
@@ -276,11 +289,11 @@ const CemOsDashboard: React.FC<CemOsDashboardProps> = ({
           <>
             {/* KPI Row */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
-              <LuxuryKPICard title="Patentados" value={kpis.total} color="bg-slate-900" icon={Icons.FileText} />
-              <LuxuryKPICard title="Declarados" value={kpis.declared} color="bg-blue-600" icon={Icons.TrendingUp} />
-              <LuxuryKPICard title="Respondieron" value={kpis.responded} color="bg-emerald-600" icon={Icons.Check} />
-              <LuxuryKPICard title="Faltan" value={kpis.pending} color="bg-rose-600" icon={Icons.Activity} />
-              <LuxuryKPICard title="Promedio CEM" value={kpis.avgCem} color="bg-indigo-600" icon={Icons.Star} featured />
+              <LuxuryKPICard title="Patentados" value={kpis.total} color="bg-slate-900" icon={Icons.FileText} featured footerLabel="VIN / Chasis" footerValue={kpis.total} />
+              <LuxuryKPICard title="Declarados" value={kpis.declared} color="bg-blue-600" icon={Icons.TrendingUp} featured footerLabel="Base" footerValue={kpis.declared} />
+              <LuxuryKPICard title="Respondieron" value={kpis.responded} color="bg-emerald-600" icon={Icons.Check} featured footerLabel="Base" footerValue={kpis.responded} />
+              <LuxuryKPICard title="Faltan" value={kpis.pending} color="bg-rose-600" icon={Icons.Activity} featured footerLabel="Base" footerValue={kpis.pending} />
+              <LuxuryKPICard title="Promedio CEM" value={kpis.avgCem} color="bg-indigo-600" icon={Icons.Star} featured footerLabel="Base" footerValue={kpis.avgCem.toFixed(2)} />
             </div>
 
       {/* Charts Grid */}
@@ -440,7 +453,7 @@ const CemOsDashboard: React.FC<CemOsDashboardProps> = ({
               <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Respondidas</span>
             </div>
           </div>
-          <div className="h-[700px]">
+          <div style={{ height: Math.max(420, advisorStats.length * 30) }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={advisorStats} layout="vertical" margin={{ left: 20, right: 60 }}>
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f8fafc" />
@@ -452,6 +465,9 @@ const CemOsDashboard: React.FC<CemOsDashboardProps> = ({
                   width={180}
                   axisLine={false}
                   tickLine={false}
+                  interval={0}
+                  minTickGap={0}
+                  tickMargin={6}
                 />
                 <Tooltip 
                   cursor={{fill: '#f8fafc'}}
@@ -485,7 +501,7 @@ const CemOsDashboard: React.FC<CemOsDashboardProps> = ({
               <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">{detailedRankingStats.length} asesores en el ranking</span>
             </div>
           </div>
-          <div className="h-[800px]">
+          <div style={{ height: Math.max(520, detailedRankingStats.length * 34) }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={detailedRankingStats} layout="vertical" margin={{ left: 20, right: 120 }}>
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f8fafc" />
@@ -497,6 +513,9 @@ const CemOsDashboard: React.FC<CemOsDashboardProps> = ({
                   width={220}
                   axisLine={false}
                   tickLine={false}
+                  interval={0}
+                  minTickGap={0}
+                  tickMargin={6}
                 />
                 <Tooltip 
                   cursor={{fill: '#f8fafc'}}

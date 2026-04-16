@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import {
+  ArrowLeft,
   LayoutDashboard,
   Users,
   Calendar,
@@ -172,6 +173,17 @@ const RRHHDashboard: React.FC<RRHHDashboardProps> = ({ gradesUrl, relatorioUrl, 
           <div className="mx-auto w-full max-w-[1600px]">
             <div className="flex h-20 items-center justify-between border-b border-slate-50 px-8">
               <div className="flex items-center gap-4">
+                <motion.button
+                  type="button"
+                  whileHover={{ x: -3 }}
+                  whileTap={{ scale: 0.96 }}
+                  onClick={onBack}
+                  className="group flex h-11 items-center gap-3 rounded-2xl border border-slate-200 bg-white/80 px-4 text-slate-600 shadow-sm transition-all hover:border-slate-300 hover:text-[#001E50]"
+                  aria-label="Volver al tablero anterior"
+                >
+                  <ArrowLeft size={16} strokeWidth={2.2} className="transition-transform group-hover:-translate-x-0.5" />
+                  <span className="text-[10px] font-black uppercase tracking-[0.28em]">Volver</span>
+                </motion.button>
                 <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-[#001E50] shadow-xl shadow-[#001E50]/10">
                   <span className="font-display text-2xl font-bold text-white">A</span>
                 </div>

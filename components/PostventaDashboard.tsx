@@ -41,7 +41,33 @@ const formatNumber = (value: unknown, options?: Intl.NumberFormatOptions) => {
   return num.toLocaleString('es-AR', options);
 };
 
-const OPERATIONAL_BRANCHES = ['Santa Fe', 'Jujuy', 'Express', 'MOVIL', 'Tartagal'];
+const OPERATIONAL_BRANCHES = ['SANTA FE', 'JUJUY', 'EXPRESS', 'MOVIL', 'TARTAGAL'];
+const OPERATIONAL_BRANCH_LABELS: Record<string, string> = {
+  'SANTA FE': 'Santa Fe',
+  'JUJUY': 'Jujuy',
+  'EXPRESS': 'Express',
+  'MOVIL': 'MOVIL',
+  'TARTAGAL': 'Tartagal'
+};
+const OPERATIONAL_BRANCH_COLORS: Record<string, string> = {
+  'SANTA FE': BRANCH_COLORS['Santa Fe'],
+  'JUJUY': BRANCH_COLORS['Jujuy'],
+  'EXPRESS': BRANCH_COLORS['Express'],
+  'MOVIL': BRANCH_COLORS['MOVIL'],
+  'TARTAGAL': BRANCH_COLORS['Tartagal']
+};
+
+const normalizeBranchName = (value: string) => {
+  if (!value) return '';
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toUpperCase()
+    .trim();
+};
+
+const displayBranchName = (value: string) => OPERATIONAL_BRANCH_LABELS[normalizeBranchName(value)] || value;
+const branchColor = (value: string) => OPERATIONAL_BRANCH_COLORS[normalizeBranchName(value)] || '#001E50';
 
 const BranchKpiCard = ({ title, icon: Icon, color, branchData, total, unit = "" }: { 
   title: string, 
@@ -111,7 +137,7 @@ export const PostventaDashboard: React.FC<PostventaDashboardProps> = ({ sheetUrl
     const years = Array.from(
       new Set(
         data
-          .filter(item => OPERATIONAL_BRANCHES.includes(item.sucursal))
+          .filter(item => OPERATIONAL_BRANCHES.includes(normalizeBranchName(item.sucursal)))
           .map(item => item.anio?.toString())
           .filter((year): year is string => !!year && year !== '0')
       )
@@ -121,8 +147,8 @@ export const PostventaDashboard: React.FC<PostventaDashboardProps> = ({ sheetUrl
 
     const yearRankings = years
       .map(year => {
-        const recordsForYear = data.filter(item => item.anio?.toString() === year && OPERATIONAL_BRANCHES.includes(item.sucursal));
-        const branchCount = new Set(recordsForYear.map(item => item.sucursal)).size;
+        const recordsForYear = data.filter(item => item.anio?.toString() === year && OPERATIONAL_BRANCHES.includes(normalizeBranchName(item.sucursal)));
+        const branchCount = new Set(recordsForYear.map(item => normalizeBranchName(item.sucursal))).size;
         const totalRows = recordsForYear.length;
         return { year, branchCount, totalRows };
       })
@@ -144,10 +170,10 @@ export const PostventaDashboard: React.FC<PostventaDashboardProps> = ({ sheetUrl
     return data.filter(item => {
       const yearMatch = item.anio?.toString() === selectedYear;
       const monthMatch = selectedMonths.length === 0 || selectedMonths.some(m => m.toLowerCase() === item.mes?.toLowerCase());
-      const isAllowedBranch = OPERATIONAL_BRANCHES.includes(item.sucursal);
+      const isAllowedBranch = OPERATIONAL_BRANCHES.includes(normalizeBranchName(item.sucursal));
       const branchMatch = selectedBranches.length === 0 
         ? isAllowedBranch 
-        : selectedBranches.includes(item.sucursal);
+        : selectedBranches.includes(normalizeBranchName(item.sucursal));
         
       return yearMatch && monthMatch && branchMatch;
     });
@@ -157,9 +183,10 @@ export const PostventaDashboard: React.FC<PostventaDashboardProps> = ({ sheetUrl
   const branchKpis = useMemo(() => {
     const branchesToCalculate = selectedBranches.length > 0 ? selectedBranches : OPERATIONAL_BRANCHES;
     return branchesToCalculate.map(branch => {
-      const branchData = filteredData.filter(d => d.sucursal === branch);
+      const branchKey = normalizeBranchName(branch);
+      const branchData = filteredData.filter(d => normalizeBranchName(d.sucursal) === branchKey);
       return {
-        name: branch,
+        name: displayBranchName(branch),
         avance: branchData.reduce((sum, d) => sum + (d.avance_ppt || 0), 0),
         objetivo: branchData.reduce((sum, d) => sum + (d.objetivo_mensual || 0), 0),
         pptDiarios: branchData.reduce((sum, d) => sum + (d.ppt_diarios || 0), 0),
@@ -187,10 +214,11 @@ export const PostventaDashboard: React.FC<PostventaDashboardProps> = ({ sheetUrl
     return MONTHS.map(m => {
       const entry: any = { name: m.substring(0, 3).toUpperCase() };
       branchesToUse.forEach(branch => {
+        const branchKey = normalizeBranchName(branch);
         const branchMonthData = data.find(d => 
           d.mes?.trim().toLowerCase() === m.trim().toLowerCase() && 
           d.anio?.toString() === selectedYear && 
-          d.sucursal === branch
+          normalizeBranchName(d.sucursal) === branchKey
         );
         entry[`${branch}_avance`] = branchMonthData?.avance_ppt || 0;
         entry[`${branch}_pptDiarios`] = branchMonthData?.ppt_diarios || 0;
@@ -270,7 +298,7 @@ export const PostventaDashboard: React.FC<PostventaDashboardProps> = ({ sheetUrl
                   onClick={() => toggleBranch(branch)}
                   className={`px-4 py-1.5 rounded-lg text-[9px] font-black transition-all border ${selectedBranches.includes(branch) ? 'bg-slate-950 text-white border-slate-950 shadow-sm' : 'bg-white/50 text-slate-400 border-white/60 hover:border-slate-200'}`}
                 >
-                  {branch}
+                  {displayBranchName(branch)}
                 </button>
               ))}
             </div>
@@ -456,7 +484,7 @@ export const PostventaDashboard: React.FC<PostventaDashboardProps> = ({ sheetUrl
                 />
                 <Legend iconType="circle" wrapperStyle={{ paddingTop: '20px', fontSize: '10px', fontWeight: 900, textTransform: 'uppercase' }} />
                 {(selectedBranches.length > 0 ? selectedBranches : OPERATIONAL_BRANCHES).map(branch => (
-                  <Bar key={branch} dataKey={branch} name={branch} fill={BRANCH_COLORS[branch as keyof typeof BRANCH_COLORS]} radius={[4, 4, 0, 0]}>
+                  <Bar key={branch} dataKey={branch} name={displayBranchName(branch)} fill={branchColor(branch)} radius={[4, 4, 0, 0]}>
                     <LabelList dataKey={branch} position="top" style={{ fontSize: '8px', fontWeight: 900, fill: '#64748b' }} />
                   </Bar>
                 ))}
@@ -489,10 +517,10 @@ export const PostventaDashboard: React.FC<PostventaDashboardProps> = ({ sheetUrl
                     key={branch}
                     type="monotone" 
                     dataKey={`${branch}_avance`} 
-                    name={branch}
-                    stroke={BRANCH_COLORS[branch as keyof typeof BRANCH_COLORS]} 
+                    name={displayBranchName(branch)}
+                    stroke={branchColor(branch)} 
                     strokeWidth={3} 
-                    dot={{ r: 3, fill: BRANCH_COLORS[branch as keyof typeof BRANCH_COLORS] }} 
+                    dot={{ r: 3, fill: branchColor(branch) }} 
                     activeDot={{ r: 5 }} 
                   />
                 ))}
@@ -515,10 +543,10 @@ export const PostventaDashboard: React.FC<PostventaDashboardProps> = ({ sheetUrl
                     key={branch}
                     type="monotone" 
                     dataKey={`${branch}_pptDiarios`} 
-                    name={branch}
-                    stroke={BRANCH_COLORS[branch as keyof typeof BRANCH_COLORS]} 
+                    name={displayBranchName(branch)}
+                    stroke={branchColor(branch)} 
                     strokeWidth={3} 
-                    dot={{ r: 3, fill: BRANCH_COLORS[branch as keyof typeof BRANCH_COLORS] }} 
+                    dot={{ r: 3, fill: branchColor(branch) }} 
                     activeDot={{ r: 5 }} 
                   />
                 ))}
@@ -541,10 +569,10 @@ export const PostventaDashboard: React.FC<PostventaDashboardProps> = ({ sheetUrl
                     key={branch}
                     type="monotone" 
                     dataKey={`${branch}_servisTotales`} 
-                    name={branch}
-                    stroke={BRANCH_COLORS[branch as keyof typeof BRANCH_COLORS]} 
+                    name={displayBranchName(branch)}
+                    stroke={branchColor(branch)} 
                     strokeWidth={3} 
-                    dot={{ r: 3, fill: BRANCH_COLORS[branch as keyof typeof BRANCH_COLORS] }} 
+                    dot={{ r: 3, fill: branchColor(branch) }} 
                     activeDot={{ r: 5 }} 
                   />
                 ))}
@@ -567,10 +595,10 @@ export const PostventaDashboard: React.FC<PostventaDashboardProps> = ({ sheetUrl
                     key={branch}
                     type="monotone" 
                     dataKey={`${branch}_servisDiarios`} 
-                    name={branch}
-                    stroke={BRANCH_COLORS[branch as keyof typeof BRANCH_COLORS]} 
+                    name={displayBranchName(branch)}
+                    stroke={branchColor(branch)} 
                     strokeWidth={3} 
-                    dot={{ r: 3, fill: BRANCH_COLORS[branch as keyof typeof BRANCH_COLORS] }} 
+                    dot={{ r: 3, fill: branchColor(branch) }} 
                     activeDot={{ r: 5 }} 
                   />
                 ))}
@@ -593,7 +621,7 @@ export const PostventaDashboard: React.FC<PostventaDashboardProps> = ({ sheetUrl
               <div className="flex items-center gap-3">
                 <div className="w-2 h-2 rounded-full bg-blue-500"></div>
                 <span className="px-4 py-1.5 bg-blue-50 text-blue-600 rounded-full text-[9px] font-black uppercase tracking-widest border border-blue-100">
-                  {val}
+                  {displayBranchName(val)}
                 </span>
               </div>
             )

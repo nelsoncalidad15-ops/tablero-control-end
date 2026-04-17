@@ -28,7 +28,7 @@ const Portal: React.FC<PortalProps> = ({ onSelectArea }) => {
   return (
     <div className="relative min-h-screen overflow-x-hidden overflow-y-auto bg-slate-950 font-sans text-white">
         <div className="pointer-events-none absolute inset-0">
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_left,_rgba(56,189,248,0.18),_transparent_30%),radial-gradient(circle_at_82%_16%,_rgba(168,85,247,0.11),_transparent_24%),radial-gradient(circle_at_50%_112%,_rgba(14,165,233,0.08),_transparent_28%),linear-gradient(180deg,_#020617_0%,_#050816_48%,_#020617_100%)]" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_center,_rgba(79,70,229,0.18),_transparent_26%),radial-gradient(circle_at_18%_14%,_rgba(56,189,248,0.11),_transparent_22%),radial-gradient(circle_at_82%_18%,_rgba(245,158,11,0.08),_transparent_20%),linear-gradient(180deg,_#020617_0%,_#050816_46%,_#020617_100%)]" />
             <div className="absolute inset-x-0 top-0 h-40 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.045),transparent)] opacity-35" />
             <div className="absolute -left-24 top-24 h-72 w-72 rounded-full bg-sky-500/10 blur-3xl" />
             <div className="absolute bottom-8 right-0 h-80 w-80 rounded-full bg-violet-400/10 blur-3xl" />
@@ -51,53 +51,22 @@ const Portal: React.FC<PortalProps> = ({ onSelectArea }) => {
                 </div>
             </motion.div>
 
-            <div className="flex flex-1 min-h-0 flex-col gap-4">
+            <div className="flex flex-1 min-h-0 flex-col gap-5">
               <motion.section
                   initial={{ opacity: 0, y: 24 }}
                   animate={{ opacity: 1, y: 0 }}
                   transition={{ duration: 0.7 }}
-                  className="min-h-0 rounded-[1.9rem] border border-white/10 bg-[linear-gradient(135deg,rgba(5,8,22,0.94),rgba(10,15,33,0.88))] p-5 text-white shadow-[0_34px_100px_rgba(2,6,23,0.42)] backdrop-blur-xl md:p-6 lg:p-6"
+                  className="min-h-0 rounded-[2rem] border border-white/10 bg-[linear-gradient(180deg,rgba(10,14,30,0.96),rgba(6,10,24,0.92))] px-5 py-8 text-white shadow-[0_34px_100px_rgba(2,6,23,0.42)] backdrop-blur-xl md:px-10 md:py-12"
                 >
-                    <div className="grid gap-5 lg:grid-cols-[1.25fr_0.75fr] lg:items-stretch">
-                        <div className="flex h-full flex-col justify-between gap-4 md:gap-5">
-                            <div className="max-w-4xl">
-                                <div className="mb-4 flex items-center gap-3">
-                                    <div className="h-px w-10 bg-gradient-to-r from-cyan-400/80 to-transparent" />
-                                </div>
-                                <h2 className="max-w-3xl text-[2.35rem] font-black leading-[0.94] tracking-tight text-balance md:text-[3.15rem] lg:text-[3.45rem]">
-                                    <span className="block">Visión operativa clara</span>
-                                    <span className="block text-white/90">para decisiones rápidas.</span>
-                                </h2>
-                                <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300/88 md:text-[15px] md:leading-7">
-                                    Calidad, postventa, RRHH y seguimiento ejecutivo en una sola vista.
-                                    La idea es leer rápido, detectar desvíos y actuar.
-                                </p>
-                            </div>
-                        </div>
-
-                        <div className="grid gap-3 self-stretch rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
-                            {[
-                                { icon: Icons.Activity, label: 'Monitoreo', value: 'Directo' },
-                                { icon: Icons.Monitor, label: 'Control', value: 'Centralizado' },
-                                { icon: Icons.FileText, label: 'Reporte', value: 'Ejecutivo' },
-                            ].map((item) => {
-                                const ItemIcon = item.icon;
-                                return (
-                                    <div key={item.label} className="flex items-center justify-between rounded-[1.15rem] border border-white/10 bg-white/[0.04] px-4 py-3">
-                                        <div className="flex items-center gap-3">
-                                            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-400/20 bg-cyan-400/10 text-cyan-200">
-                                                <ItemIcon className="h-4.5 w-4.5" />
-                                            </div>
-                                            <div>
-                                                <p className="text-[9px] font-black uppercase tracking-[0.32em] text-slate-400">{item.label}</p>
-                                                <p className="mt-1 text-sm font-black text-white">{item.value}</p>
-                                            </div>
-                                        </div>
-                                        <Icons.ArrowRight className="h-4 w-4 text-slate-500" />
-                                    </div>
-                                );
-                            })}
-                        </div>
+                    <div className="mx-auto max-w-5xl text-center">
+                        <p className="text-[10px] font-black uppercase tracking-[0.55em] text-indigo-300/80">Intelligence Hub</p>
+                        <h2 className="mt-4 text-[2.7rem] font-black uppercase italic leading-[0.88] tracking-tighter md:text-[4.4rem] lg:text-[5.2rem]">
+                            <span className="block text-white">Centro de</span>
+                            <span className="block text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-400 to-violet-400">calidad</span>
+                        </h2>
+                        <p className="mx-auto mt-5 max-w-2xl text-sm leading-7 text-slate-300/88 md:text-[15px]">
+                            Seleccione el módulo de análisis para visualizar el rendimiento y la satisfacción del cliente en tiempo real.
+                        </p>
                     </div>
                 </motion.section>
 
@@ -107,13 +76,7 @@ const Portal: React.FC<PortalProps> = ({ onSelectArea }) => {
                   transition={{ duration: 0.7, delay: 0.1 }}
                   className="min-h-0 rounded-[1.85rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.03))] p-4 shadow-[0_28px_80px_rgba(2,6,23,0.30)] backdrop-blur-xl md:p-5"
                 >
-                    <div className="mb-4 flex items-center justify-between">
-                        <div>
-                            <h3 className="mt-1 text-xl font-black tracking-tight text-white md:text-2xl">Áreas principales</h3>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-4">
+                    <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-4">
                         {portalAreas.map((area, idx) => {
                             const IconComponent = Icons[area.icon as keyof typeof Icons] || Icons.Home;
                             const isExecutive = area.id === 'executive';
@@ -136,24 +99,17 @@ const Portal: React.FC<PortalProps> = ({ onSelectArea }) => {
                                 whileHover={{ y: -4, scale: 1.01 }}
                                 whileTap={{ scale: 0.99 }}
                                 onClick={() => onSelectArea(isExecutive ? { id: 'executive' as any, name: 'Sala de Situación', icon: 'Activity', color: 'blue', description: 'Resumen Ejecutivo Unificado' } : area)}
-                                className="group relative min-h-[160px] rounded-[1.45rem] border border-white/10 bg-[linear-gradient(180deg,rgba(11,16,32,0.90),rgba(15,23,42,0.80))] p-4 text-left transition-all hover:border-white/20 hover:bg-[linear-gradient(180deg,rgba(17,24,39,0.98),rgba(15,23,42,0.92))] hover:shadow-[0_18px_50px_rgba(15,23,42,0.34)] md:min-h-[166px] md:p-5"
+                                className="group relative min-h-[190px] rounded-[1.65rem] border border-white/10 bg-[linear-gradient(180deg,rgba(11,16,32,0.90),rgba(15,23,42,0.80))] p-5 text-center transition-all hover:border-white/20 hover:bg-[linear-gradient(180deg,rgba(17,24,39,0.98),rgba(15,23,42,0.92))] hover:shadow-[0_18px_50px_rgba(15,23,42,0.34)] md:min-h-[210px] md:p-6"
                               >
-                                  <div className="flex h-full flex-col justify-between">
-                                    <div className="flex items-start justify-between gap-3">
-                                      <div className={`flex h-11 w-11 items-center justify-center rounded-2xl border ${palette} shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]`}>
-                                          <IconComponent className="h-5.5 w-5.5" />
+                                  <div className="flex h-full flex-col items-center justify-between">
+                                    <div className="flex h-full w-full flex-col items-center justify-center gap-6">
+                                      <div className={`flex h-20 w-20 items-center justify-center rounded-[1.8rem] border ${palette} shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]`}>
+                                        <IconComponent className="h-9 w-9" />
                                       </div>
-                                      <div className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.28em] text-slate-300 transition-colors group-hover:bg-cyan-400/10 group-hover:text-cyan-200">
-                                        abrir
+                                      <div>
+                                        <h4 className="text-[1.45rem] font-black uppercase leading-none tracking-tight text-white md:text-[1.6rem]">{area.name}</h4>
+                                        <p className="mt-3 text-[0.7rem] font-black uppercase tracking-[0.42em] text-slate-400">{area.description}</p>
                                       </div>
-                                    </div>
-                                    <div className="mt-4">
-                                      <h4 className="max-w-[12rem] text-[0.98rem] font-black uppercase leading-5 tracking-tight text-white md:text-[1.02rem]">{area.name}</h4>
-                                      <p className="mt-2 max-w-[13rem] text-sm leading-6 text-slate-400">{area.description}</p>
-                                    </div>
-                                    <div className="mt-4 flex items-center justify-between text-[9px] font-black uppercase tracking-[0.3em] text-slate-500">
-                                      <span>Acceso directo</span>
-                                      <Icons.ChevronRight className="h-4 w-4 text-slate-500 transition-transform group-hover:translate-x-1" />
                                     </div>
                                     <div className="mt-4 h-1 w-full overflow-hidden rounded-full bg-white/5">
                                       <div className={`h-full w-1/2 rounded-full ${isExecutive ? 'bg-cyan-400' : 'bg-blue-400'} opacity-70 transition-all group-hover:w-full`} />

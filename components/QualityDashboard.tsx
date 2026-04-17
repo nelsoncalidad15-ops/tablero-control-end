@@ -315,38 +315,29 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
         <div className="space-y-8 pb-24 -m-6 p-6 md:p-8 bg-[#f6f8fb] min-h-screen">
 
             {/* Modern Header Section */}
-            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-end gap-6">
+            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-end gap-4">
                 <div className="max-w-3xl">
                     <motion.div 
                         initial={{ opacity: 0, x: -20 }}
                         animate={{ opacity: 1, x: 0 }}
-                        className="inline-flex items-center gap-2.5 px-3.5 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-blue-700 text-[10px] font-semibold tracking-[0.16em] mb-4"
+                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-blue-700 text-[9px] font-semibold tracking-[0.16em] mb-3"
                     >
                         <Icons.Activity className="w-3 h-3" /> Calidad Postventa
                     </motion.div>
-                    <h1 className="text-4xl md:text-5xl font-black text-slate-950 tracking-tight leading-none mb-3">
+                    <h1 className="text-3xl md:text-4xl font-black text-slate-950 tracking-tight leading-none mb-2">
                         GESTION DE <span className="text-blue-600">RECLAMOS</span>
                     </h1>
-                    <p className="text-sm text-slate-500 leading-relaxed">
+                    <p className="text-xs md:text-sm text-slate-500 leading-relaxed">
                         Analisis de Satisfaccion y Procesos • {area.name}
                     </p>
                 </div>
                 
-                <div className="grid grid-cols-2 gap-4 w-full xl:w-auto xl:min-w-[320px]">
+                <div className="grid grid-cols-1 gap-3 w-full xl:w-auto xl:min-w-[190px]">
                     <div className="text-right">
-                        <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.4em] block mb-2">Total Casos</span>
+                        <span className="text-[9px] font-black text-slate-300 uppercase tracking-[0.35em] block mb-1">Total Casos</span>
                         <div className="flex items-baseline justify-end gap-2">
-                            <span className="text-5xl font-black text-slate-950 leading-none">{uniqueClaimsCount}</span>
-                            <span className="text-xs font-black text-blue-500 uppercase tracking-widest">ORs</span>
-                        </div>
-                    </div>
-                    <div className="h-12 w-px bg-slate-200"></div>
-                    <div className="text-right">
-                        <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.4em] block mb-2">Resolucion</span>
-                        <div className="flex items-baseline justify-end gap-2">
-                            <span className="text-5xl font-black text-slate-950 leading-none">
-                                {Math.round((resolutionChartData.find(d => d.name === 'Resuelto')?.value || 0) / (uniqueClaimsCount || 1) * 100)}%
-                            </span>
+                            <span className="text-4xl font-black text-slate-950 leading-none">{uniqueClaimsCount}</span>
+                            <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">ORs</span>
                         </div>
                     </div>
                 </div>

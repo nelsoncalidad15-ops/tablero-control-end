@@ -42,13 +42,52 @@ const DetailedQualityPostventa: React.FC<DetailedQualityPostventaProps> = ({ she
       .trim();
   };
 
+  const normalizeMonthKey = (value: string | null | undefined) => {
+    const normalized = String(value || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toLowerCase()
+      .replace(/\./g, '')
+      .trim();
+
+    const monthMap: Record<string, string> = {
+      ene: 'Enero',
+      enero: 'Enero',
+      feb: 'Febrero',
+      febrero: 'Febrero',
+      mar: 'Marzo',
+      marzo: 'Marzo',
+      abr: 'Abril',
+      abril: 'Abril',
+      may: 'Mayo',
+      mayo: 'Mayo',
+      jun: 'Junio',
+      junio: 'Junio',
+      jul: 'Julio',
+      julio: 'Julio',
+      ago: 'Agosto',
+      agosto: 'Agosto',
+      sep: 'Septiembre',
+      set: 'Septiembre',
+      septiembre: 'Septiembre',
+      oct: 'Octubre',
+      octubre: 'Octubre',
+      nov: 'Noviembre',
+      noviembre: 'Noviembre',
+      dic: 'Diciembre',
+      diciembre: 'Diciembre',
+    };
+
+    return monthMap[normalized] || String(value || '').trim();
+  };
+
   useEffect(() => {
     const loadData = async () => {
       setLoadingState(LoadingState.LOADING);
       try {
         const [jujuyData, saltaData] = await Promise.all([
-          fetchDetailedQualityData(sheetUrls.jujuy).then(d => d.map(r => ({ ...r, sucursal: 'JUJUY' }))),
-          fetchDetailedQualityData(sheetUrls.salta).then(d => d.map(r => ({ ...r, sucursal: 'SALTA' })))
+          fetchDetailedQualityData(sheetUrls.jujuy).then(d => d.map(r => ({ ...r, sucursal: 'JUJUY', mes: normalizeMonthKey(r.mes) }))),
+          fetchDetailedQualityData(sheetUrls.salta).then(d => d.map(r => ({ ...r, sucursal: 'SALTA', mes: normalizeMonthKey(r.mes) })))
         ]);
         
         const mergedData = [...jujuyData, ...saltaData];
@@ -77,7 +116,7 @@ const DetailedQualityPostventa: React.FC<DetailedQualityPostventaProps> = ({ she
       if (!key) return false;
       if (key === "0") return false;
       const branchKey = normalizeBranchKey(item.sucursal);
-      const monthKey = String(item.mes || '').trim().toUpperCase();
+      const monthKey = normalizeMonthKey(item.mes).toUpperCase();
       const dedupeKey = `${branchKey}::${monthKey}::${key}`;
       if (seen.has(dedupeKey)) return false;
       seen.add(dedupeKey);
@@ -92,7 +131,7 @@ const DetailedQualityPostventa: React.FC<DetailedQualityPostventaProps> = ({ she
 
   const filteredData = useMemo(() => {
     return uniqueData.filter(item => {
-      const matchMonth = !selectedMonth || selectedMonth === "" ? true : item.mes === selectedMonth;
+      const matchMonth = !selectedMonth || selectedMonth === "" ? true : normalizeMonthKey(item.mes) === normalizeMonthKey(selectedMonth);
       const matchAsesor = !selectedAsesor || selectedAsesor === "" ? true : normalizeAdvisorName(item.asesor) === selectedAsesor;
       const matchLvs = selectedLvsScore !== null ? item.q4_score === selectedLvsScore : true;
       const matchCategory = !selectedCategory || selectedCategory === "" ? true : item.categorizacion?.trim() === selectedCategory;

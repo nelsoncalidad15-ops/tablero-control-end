@@ -63,27 +63,53 @@ const Portal: React.FC<PortalProps> = ({ onSelectArea }) => {
                   transition={{ duration: 0.7 }}
                   className="min-h-0 rounded-[1.9rem] border border-white/10 bg-[linear-gradient(135deg,rgba(5,8,22,0.94),rgba(10,15,33,0.88))] p-5 text-white shadow-[0_34px_100px_rgba(2,6,23,0.42)] backdrop-blur-xl md:p-6 lg:p-6"
                 >
-                    <div className="flex h-full flex-col justify-between gap-4 md:gap-5">
-                        <div className="max-w-4xl">
-                            <div className="mb-4 flex items-center gap-3">
-                                <div className="h-px w-10 bg-gradient-to-r from-cyan-400/80 to-transparent" />
-                                <p className="text-[9px] font-bold uppercase tracking-[0.38em] text-cyan-200/80">Visión ejecutiva</p>
+                    <div className="grid gap-5 lg:grid-cols-[1.25fr_0.75fr] lg:items-stretch">
+                        <div className="flex h-full flex-col justify-between gap-4 md:gap-5">
+                            <div className="max-w-4xl">
+                                <div className="mb-4 flex items-center gap-3">
+                                    <div className="h-px w-10 bg-gradient-to-r from-cyan-400/80 to-transparent" />
+                                    <p className="text-[9px] font-bold uppercase tracking-[0.38em] text-cyan-200/80">Visión ejecutiva</p>
+                                </div>
+                                <h2 className="max-w-3xl text-[2.35rem] font-black leading-[0.94] tracking-tight text-balance md:text-[3.15rem] lg:text-[3.45rem]">
+                                    <span className="block">Visión operativa clara</span>
+                                    <span className="block text-white/90">para decisiones rápidas.</span>
+                                </h2>
+                                <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300/88 md:text-[15px] md:leading-7">
+                                    Calidad, postventa, RRHH y seguimiento ejecutivo en una sola vista.
+                                    La idea es leer rápido, detectar desvíos y actuar.
+                                </p>
+                                <div className="mt-5 flex flex-wrap gap-2">
+                                    {['Contexto fijo', 'Acceso directo', 'Comparación rápida'].map(label => (
+                                        <span key={label} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.3em] text-slate-300">
+                                            {label}
+                                        </span>
+                                    ))}
+                                </div>
                             </div>
-                            <h2 className="max-w-3xl text-3xl font-black leading-[0.94] tracking-tight text-balance md:text-4xl lg:text-[3.25rem]">
-                                <span className="block">Visión operativa clara</span>
-                                <span className="block text-white/90">para decisiones rápidas.</span>
-                            </h2>
-                            <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300/88 md:text-[15px] md:leading-7">
-                                Calidad, postventa, RRHH y seguimiento ejecutivo en una sola vista.
-                                La idea es leer rápido, detectar desvíos y actuar.
-                            </p>
-                            <div className="mt-5 flex flex-wrap gap-2">
-                                {['Contexto fijo', 'Acceso directo', 'Comparación rápida'].map(label => (
-                                    <span key={label} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.3em] text-slate-300">
-                                        {label}
-                                    </span>
-                                ))}
-                            </div>
+                        </div>
+
+                        <div className="grid gap-3 self-stretch rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
+                            {[
+                                { icon: Icons.Activity, label: 'Lectura rápida', value: '2 segundos' },
+                                { icon: Icons.Monitor, label: 'Monitoreo', value: 'Tiempo real' },
+                                { icon: Icons.FileText, label: 'Reporte', value: 'Directo' },
+                            ].map((item) => {
+                                const ItemIcon = item.icon;
+                                return (
+                                    <div key={item.label} className="flex items-center justify-between rounded-[1.15rem] border border-white/10 bg-white/[0.04] px-4 py-3">
+                                        <div className="flex items-center gap-3">
+                                            <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-400/20 bg-cyan-400/10 text-cyan-200">
+                                                <ItemIcon className="h-4.5 w-4.5" />
+                                            </div>
+                                            <div>
+                                                <p className="text-[9px] font-black uppercase tracking-[0.32em] text-slate-400">{item.label}</p>
+                                                <p className="mt-1 text-sm font-black text-white">{item.value}</p>
+                                            </div>
+                                        </div>
+                                        <Icons.ArrowRight className="h-4 w-4 text-slate-500" />
+                                    </div>
+                                );
+                            })}
                         </div>
                     </div>
                 </motion.section>
@@ -124,7 +150,7 @@ const Portal: React.FC<PortalProps> = ({ onSelectArea }) => {
                                 whileHover={{ y: -4, scale: 1.01 }}
                                 whileTap={{ scale: 0.99 }}
                                 onClick={() => onSelectArea(isExecutive ? { id: 'executive' as any, name: 'Sala de Situación', icon: 'Activity', color: 'blue', description: 'Resumen Ejecutivo Unificado' } : area)}
-                                className="group relative min-h-[152px] rounded-[1.45rem] border border-white/10 bg-[linear-gradient(180deg,rgba(11,16,32,0.90),rgba(15,23,42,0.80))] p-4 text-left transition-all hover:border-white/20 hover:bg-[linear-gradient(180deg,rgba(17,24,39,0.98),rgba(15,23,42,0.92))] hover:shadow-[0_18px_50px_rgba(15,23,42,0.34)] md:min-h-[156px] md:p-5"
+                                className="group relative min-h-[160px] rounded-[1.45rem] border border-white/10 bg-[linear-gradient(180deg,rgba(11,16,32,0.90),rgba(15,23,42,0.80))] p-4 text-left transition-all hover:border-white/20 hover:bg-[linear-gradient(180deg,rgba(17,24,39,0.98),rgba(15,23,42,0.92))] hover:shadow-[0_18px_50px_rgba(15,23,42,0.34)] md:min-h-[166px] md:p-5"
                               >
                                   <div className="flex h-full flex-col justify-between">
                                     <div className="flex items-start justify-between gap-3">
@@ -139,6 +165,10 @@ const Portal: React.FC<PortalProps> = ({ onSelectArea }) => {
                                       <h4 className="max-w-[12rem] text-[0.98rem] font-black uppercase leading-5 tracking-tight text-white md:text-[1.02rem]">{area.name}</h4>
                                       <p className="mt-2 max-w-[13rem] text-sm leading-6 text-slate-400">{area.description}</p>
                                     </div>
+                                    <div className="mt-4 flex items-center justify-between text-[9px] font-black uppercase tracking-[0.3em] text-slate-500">
+                                      <span>Acceso directo</span>
+                                      <Icons.ChevronRight className="h-4 w-4 text-slate-500 transition-transform group-hover:translate-x-1" />
+                                    </div>
                                     <div className="mt-4 h-1 w-full overflow-hidden rounded-full bg-white/5">
                                       <div className={`h-full w-1/2 rounded-full ${isExecutive ? 'bg-cyan-400' : 'bg-blue-400'} opacity-70 transition-all group-hover:w-full`} />
                                     </div>
@@ -150,7 +180,7 @@ const Portal: React.FC<PortalProps> = ({ onSelectArea }) => {
                 </motion.section>
 
                 <div className="flex justify-center pt-2">
-                    <button className="group inline-flex items-center gap-3 rounded-full border border-cyan-400/20 bg-[linear-gradient(90deg,#2463ff,#5b45ff)] px-6 py-3 text-[11px] font-black uppercase tracking-[0.36em] text-white shadow-[0_18px_50px_rgba(36,99,255,0.32)] transition-all hover:translate-y-[-1px] hover:shadow-[0_22px_60px_rgba(36,99,255,0.40)]">
+                    <button className="group inline-flex items-center gap-3 rounded-full border border-cyan-400/20 bg-[linear-gradient(90deg,#2463ff,#5b45ff)] px-7 py-3 text-[11px] font-black uppercase tracking-[0.32em] text-white shadow-[0_18px_50px_rgba(36,99,255,0.32)] transition-all hover:translate-y-[-1px] hover:shadow-[0_22px_60px_rgba(36,99,255,0.40)]">
                         <Icons.FileText className="h-4 w-4" />
                         Generar reporte profesional
                     </button>

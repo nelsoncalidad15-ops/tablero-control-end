@@ -20,6 +20,13 @@ interface ExecutiveSummaryProps {
   onBack: () => void;
 }
 
+type BranchGaugePoint = {
+    branch: string;
+    value: number;
+    inProgressValue?: number;
+    closedValue?: number;
+};
+
 const GaugeMetric: React.FC<{ 
     title: string, 
     value: number, 
@@ -29,8 +36,9 @@ const GaugeMetric: React.FC<{
     icon: React.ReactNode, 
     monthName: string, 
     inProgressMonthName?: string,
-    closedMonthName?: string
-}> = ({ title, value, inProgressValue, closedValue, target, icon, monthName, inProgressMonthName, closedMonthName }) => {
+    closedMonthName?: string,
+    comparisonSeries?: BranchGaugePoint[]
+}> = ({ title, value, inProgressValue, closedValue, target, icon, monthName, inProgressMonthName, closedMonthName, comparisonSeries }) => {
     const isSuccess = value >= target;
     const color = isSuccess ? '#10b981' : '#ef4444';
     
@@ -45,6 +53,81 @@ const GaugeMetric: React.FC<{
         { value: value, fill: color },
         { value: Math.max(0, 5 - value), fill: 'rgba(255,255,255,0.05)' }
     ];
+
+    const hasComparison = (comparisonSeries || []).length > 1;
+
+    const MiniGauge: React.FC<{ point: BranchGaugePoint }> = ({ point }) => {
+        const pointIsSuccess = point.value >= target;
+        const pointColor = pointIsSuccess ? '#10b981' : '#ef4444';
+        const pointData = [
+            { value: point.value, fill: pointColor },
+            { value: Math.max(0, 5 - point.value), fill: 'rgba(255,255,255,0.05)' }
+        ];
+
+        const miniState = (val?: number) => {
+            if (val === undefined) return '--';
+            return `${val.toFixed(2)}`;
+        };
+
+        return (
+            <div className="rounded-[2rem] border border-white/10 bg-white/5 backdrop-blur-xl p-4 shadow-xl min-h-[260px] flex flex-col">
+                <div className="flex items-center justify-between gap-2 mb-3">
+                    <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.4em] truncate">{point.branch}</span>
+                    <span className={`px-2.5 py-1 rounded-full text-[8px] font-black uppercase tracking-[0.25em] border ${pointIsSuccess ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'}`}>
+                        {point.value.toFixed(2)}
+                    </span>
+                </div>
+
+                <div className="relative w-full aspect-square max-w-[170px] mx-auto">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <PieChart>
+                            <Pie
+                                data={pointData}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius="82%"
+                                outerRadius="100%"
+                                startAngle={225}
+                                endAngle={-45}
+                                paddingAngle={0}
+                                dataKey="value"
+                                stroke="none"
+                                cornerRadius={20}
+                            >
+                                <Cell key="cell-0" fill={pointColor} />
+                                <Cell key="cell-1" fill="rgba(255,255,255,0.05)" />
+                            </Pie>
+                        </PieChart>
+                    </ResponsiveContainer>
+                    <div className="absolute inset-0 flex flex-col items-center justify-center">
+                        <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.35em] mb-1">{monthName}</span>
+                        <span className={`text-4xl font-black tracking-tighter italic ${pointIsSuccess ? 'text-emerald-400' : 'text-rose-400'}`}>
+                            {point.value.toFixed(2)}
+                        </span>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 mt-3 text-center">
+                    <div className="rounded-xl border border-white/10 bg-white/5 py-2">
+                        <div className="text-[7px] font-black text-slate-500 uppercase tracking-widest">Obj</div>
+                        <div className="text-sm font-black text-white">{target.toFixed(2)}</div>
+                    </div>
+                    <div className="rounded-xl border border-white/10 bg-white/5 py-2">
+                        <div className="text-[7px] font-black text-slate-500 uppercase tracking-widest">{inProgressMonthName || 'M-1'}</div>
+                        <div className={`text-sm font-black ${point.inProgressValue !== undefined && point.inProgressValue >= target ? 'text-emerald-400' : 'text-rose-400'}`}>
+                            {miniState(point.inProgressValue)}
+                        </div>
+                    </div>
+                    <div className="rounded-xl border border-white/10 bg-white/5 py-2">
+                        <div className="text-[7px] font-black text-slate-500 uppercase tracking-widest">{closedMonthName || 'M-2'}</div>
+                        <div className={`text-sm font-black ${point.closedValue !== undefined && point.closedValue >= target ? 'text-emerald-400' : 'text-rose-400'}`}>
+                            {miniState(point.closedValue)}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        );
+    };
 
     return (
         <motion.div 
@@ -62,68 +145,78 @@ const GaugeMetric: React.FC<{
                 <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.5em]">{title}</h4>
             </div>
             
-            <div className="relative w-full aspect-square max-w-[260px] relative z-10">
-                <ResponsiveContainer width="100%" height="100%">
-                    <PieChart>
-                        <Pie
-                            data={data}
-                            cx="50%"
-                            cy="50%"
-                            innerRadius="85%"
-                            outerRadius="100%"
-                            startAngle={225}
-                            endAngle={-45}
-                            paddingAngle={0}
-                            dataKey="value"
-                            stroke="none"
-                            cornerRadius={20}
-                        >
-                            <Cell key="cell-0" fill={color} />
-                            <Cell key="cell-1" fill="rgba(255,255,255,0.05)" />
-                        </Pie>
-                    </PieChart>
-                </ResponsiveContainer>
-                
-                <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <div className="flex flex-col items-center">
-                        <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] mb-2">{monthName}</span>
-                        <motion.span 
-                            initial={{ scale: 0.5, opacity: 0 }}
-                            animate={{ scale: 1, opacity: 1 }}
-                            className={`text-6xl font-black tracking-tighter italic ${isSuccess ? 'text-emerald-400' : 'text-rose-400'} drop-shadow-[0_0_30px_rgba(0,0,0,0.5)]`}
-                        >
-                            {value.toFixed(2)}
-                        </motion.span>
-                    </div>
+            {hasComparison ? (
+                <div className={`grid gap-4 mt-6 w-full relative z-10 ${comparisonSeries!.length === 2 ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1 lg:grid-cols-3'}`}>
+                    {comparisonSeries!.map(point => (
+                        <MiniGauge key={point.branch} point={point} />
+                    ))}
                 </div>
-            </div>
+            ) : (
+                <>
+                    <div className="relative w-full aspect-square max-w-[260px] relative z-10">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                                <Pie
+                                    data={data}
+                                    cx="50%"
+                                    cy="50%"
+                                    innerRadius="85%"
+                                    outerRadius="100%"
+                                    startAngle={225}
+                                    endAngle={-45}
+                                    paddingAngle={0}
+                                    dataKey="value"
+                                    stroke="none"
+                                    cornerRadius={20}
+                                >
+                                    <Cell key="cell-0" fill={color} />
+                                    <Cell key="cell-1" fill="rgba(255,255,255,0.05)" />
+                                </Pie>
+                            </PieChart>
+                        </ResponsiveContainer>
+                        
+                        <div className="absolute inset-0 flex flex-col items-center justify-center">
+                            <div className="flex flex-col items-center">
+                                <span className="text-[10px] font-black text-slate-500 uppercase tracking-[0.4em] mb-2">{monthName}</span>
+                                <motion.span 
+                                    initial={{ scale: 0.5, opacity: 0 }}
+                                    animate={{ scale: 1, opacity: 1 }}
+                                    className={`text-6xl font-black tracking-tighter italic ${isSuccess ? 'text-emerald-400' : 'text-rose-400'} drop-shadow-[0_0_30px_rgba(0,0,0,0.5)]`}
+                                >
+                                    {value.toFixed(2)}
+                                </motion.span>
+                            </div>
+                        </div>
+                    </div>
 
-            <div className="grid grid-cols-3 gap-6 mt-10 w-full relative z-10">
-                <div className="flex flex-col items-center border-r border-white/10">
-                    <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Objetivo</span>
-                    <span className="text-lg font-black text-white">{target.toFixed(2)}</span>
-                </div>
-                <div className="flex flex-col items-center border-r border-white/10">
-                    <div className="flex items-center gap-1 mb-1">
-                        <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></span>
-                        <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">En Progreso</span>
+                    <div className="grid grid-cols-3 gap-6 mt-10 w-full relative z-10">
+                        <div className="flex flex-col items-center border-r border-white/10">
+                            <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Objetivo</span>
+                            <span className="text-lg font-black text-white">{target.toFixed(2)}</span>
+                        </div>
+                        <div className="flex flex-col items-center border-r border-white/10">
+                            <div className="flex items-center gap-1 mb-1">
+                                <span className="w-1.5 h-1.5 bg-blue-500 rounded-full animate-pulse"></span>
+                                <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">En Progreso</span>
+                            </div>
+                            <span className="text-[9px] font-black text-slate-400 uppercase mb-1">{inProgressMonthName || '--'}</span>
+                            <span className={`text-xl font-black ${inProgressColor}`}>
+                                {inProgressValue !== undefined ? inProgressValue.toFixed(2) : '--'}
+                            </span>
+                        </div>
+                        <div className="flex flex-col items-center">
+                            <div className="flex items-center gap-1 mb-1">
+                                <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
+                                <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Cerrado</span>
+                            </div>
+                            <span className="text-[9px] font-black text-slate-400 uppercase mb-1">{closedMonthName || '--'}</span>
+                            <span className={`text-xl font-black ${closedColor}`}>
+                                {closedValue !== undefined ? closedValue.toFixed(2) : '--'}
+                            </span>
+                        </div>
                     </div>
-                    <span className="text-[9px] font-black text-slate-400 uppercase mb-1">{inProgressMonthName || '--'}</span>
-                    <span className={`text-xl font-black ${inProgressColor}`}>
-                        {inProgressValue !== undefined ? inProgressValue.toFixed(2) : '--'}
-                    </span>
-                </div>
-                <div className="flex flex-col items-center">
-                    <div className="flex items-center gap-1 mb-1">
-                        <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full"></span>
-                        <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Cerrado</span>
-                    </div>
-                    <span className="text-[9px] font-black text-slate-400 uppercase mb-1">{closedMonthName || '--'}</span>
-                    <span className={`text-xl font-black ${closedColor}`}>
-                        {closedValue !== undefined ? closedValue.toFixed(2) : '--'}
-                    </span>
-                </div>
-            </div>
+                </>
+            )}
 
             <div className={`mt-10 px-10 py-3 rounded-full border text-[11px] font-black uppercase tracking-[0.4em] relative z-10 shadow-2xl transition-all duration-500 ${
                 isSuccess 
@@ -331,6 +424,41 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
         return scores.length > 0 ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
     };
 
+    const comparisonBranches = selectedBranches.length > 1 ? selectedBranches : [];
+    const makeBranchSeries = (list: any[], key: string) => {
+        if (comparisonBranches.length === 0) return [];
+        return comparisonBranches.map(branch => {
+            const branchCurrent = list.filter(d => {
+                const matchYear = !selectedYear || d.anio === selectedYear || (d.fecha_reclamo && d.fecha_reclamo.includes(selectedYear.toString()));
+                const matchMonth = !selectedMonth || d.mes === selectedMonth;
+                return matchYear && matchMonth && d.sucursal === branch;
+            });
+
+            const branchInProgress = filteredData.inProgressMonthName
+                ? list.filter(d => {
+                    const matchYear = !selectedYear || d.anio === selectedYear || (d.fecha_reclamo && d.fecha_reclamo.includes(selectedYear.toString()));
+                    const matchMonth = d.mes === filteredData.inProgressMonthName;
+                    return matchYear && matchMonth && d.sucursal === branch;
+                })
+                : [];
+
+            const branchClosed = filteredData.closedMonthName
+                ? list.filter(d => {
+                    const matchYear = !selectedYear || d.anio === selectedYear || (d.fecha_reclamo && d.fecha_reclamo.includes(selectedYear.toString()));
+                    const matchMonth = d.mes === filteredData.closedMonthName;
+                    return matchYear && matchMonth && d.sucursal === branch;
+                })
+                : [];
+
+            return {
+                branch,
+                value: calculateAvg(branchCurrent, key),
+                inProgressValue: branchInProgress.length > 0 ? calculateAvg(branchInProgress, key) : undefined,
+                closedValue: branchClosed.length > 0 ? calculateAvg(branchClosed, key) : undefined
+            };
+        });
+    };
+
     // Current Metrics (M)
     const avgCEM = calculateAvg(filteredData.cemOs, 'cem_score');
     const avgLVS = calculateAvg(filteredData.detailedQuality, 'q4_score');
@@ -348,6 +476,11 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
     const closedAvgLVS = calculateAvg(filteredData.closedDetailedQuality, 'q4_score');
     const closedAvgOSInternal = calculateAvg(filteredData.closedSalesQuality, 'cem_general');
     const closedAvgLVSInternal = calculateAvg(filteredData.closedInternalPostventa, 'servicio_prestado');
+
+    const cemBranchSeries = makeBranchSeries(data.cemOs, 'cem_score');
+    const lvsBranchSeries = makeBranchSeries(data.detailedQuality, 'q4_score');
+    const osInternalBranchSeries = makeBranchSeries(data.salesQuality, 'cem_general');
+    const lvsInternalBranchSeries = makeBranchSeries(data.internalPostventa, 'servicio_prestado');
 
     // 4. Total Reclamos (Internal Sales)
     const totalSalesClaims = filteredData.salesClaims.length;
@@ -431,6 +564,10 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
         closedAvgLVS,
         closedAvgOSInternal,
         closedAvgLVSInternal,
+        cemBranchSeries,
+        lvsBranchSeries,
+        osInternalBranchSeries,
+        lvsInternalBranchSeries,
         totalSalesClaims,
         totalPostventaClaims,
         topPostventaReasons,
@@ -613,6 +750,7 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
                     monthName={selectedMonth || 'Actual'}
                     inProgressMonthName={filteredData.inProgressMonthName}
                     closedMonthName={filteredData.closedMonthName}
+                    comparisonSeries={metrics.cemBranchSeries}
                 />
                 <GaugeMetric 
                     title="POSTVENTA LVS (EXTERNO)" 
@@ -624,6 +762,7 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
                     monthName={selectedMonth || 'Actual'}
                     inProgressMonthName={filteredData.inProgressMonthName}
                     closedMonthName={filteredData.closedMonthName}
+                    comparisonSeries={metrics.lvsBranchSeries}
                 />
                 <GaugeMetric 
                     title="VENTAS OS (INTERNO)" 
@@ -635,6 +774,7 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
                     monthName={selectedMonth || 'Actual'}
                     inProgressMonthName={filteredData.inProgressMonthName}
                     closedMonthName={filteredData.closedMonthName}
+                    comparisonSeries={metrics.osInternalBranchSeries}
                 />
                 <GaugeMetric 
                     title="POSTVENTA LVS (INTERNO)" 
@@ -646,6 +786,7 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
                     monthName={selectedMonth || 'Actual'}
                     inProgressMonthName={filteredData.inProgressMonthName}
                     closedMonthName={filteredData.closedMonthName}
+                    comparisonSeries={metrics.lvsInternalBranchSeries}
                 />
             </div>
 

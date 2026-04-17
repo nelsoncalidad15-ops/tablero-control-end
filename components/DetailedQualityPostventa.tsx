@@ -34,6 +34,14 @@ const DetailedQualityPostventa: React.FC<DetailedQualityPostventaProps> = ({ she
       .toUpperCase();
   };
 
+  const normalizeBranchKey = (value: string | null | undefined) => {
+    return String(value || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toUpperCase()
+      .trim();
+  };
+
   useEffect(() => {
     const loadData = async () => {
       setLoadingState(LoadingState.LOADING);
@@ -68,8 +76,10 @@ const DetailedQualityPostventa: React.FC<DetailedQualityPostventaProps> = ({ she
       const key = item.cod_id?.trim();
       if (!key) return false;
       if (key === "0") return false;
-      if (seen.has(key)) return false;
-      seen.add(key);
+      const branchKey = normalizeBranchKey(item.sucursal);
+      const dedupeKey = `${branchKey}::${key}`;
+      if (seen.has(dedupeKey)) return false;
+      seen.add(dedupeKey);
       return true;
     });
   }, [data]);

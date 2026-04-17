@@ -1,4 +1,4 @@
-
+﻿
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { 
@@ -1718,9 +1718,38 @@ const SalesQualityDashboard: React.FC<SalesQualityDashboardProps> = ({ onBack, i
 
   // if (loadingState === LoadingState.LOADING) return <SkeletonLoader />;
 
+  const activeMonthLabel = selectedMonths.length === 0 || selectedMonths.length === MONTHS.length
+    ? 'ANUAL'
+    : selectedMonths.join(' / ');
+
+  const scopeLabel = activeTab === 'surveys'
+    ? (surveyBranches.length === 0 ? 'TODAS LAS SUCURSALES' : surveyBranches.join(' / '))
+    : activeTab === 'claims'
+      ? (claimsBranches.length === 0 ? 'TODAS LAS SUCURSALES' : claimsBranches.join(' / '))
+      : [
+          selectedCodigo ? `CODIGO ${selectedCodigo}` : null,
+          selectedZona ? `ZONA ${selectedZona}` : null,
+          selectedCanal ? `CANAL ${selectedCanal}` : null,
+          selectedVendedor ? `ASESOR ${selectedVendedor}` : null,
+          selectedEstadoUnidad ? `ESTADO ${selectedEstadoUnidad}` : null
+        ].filter(Boolean).join(' · ') || 'SIN FILTRO';
+
   return (
     <DashboardFrame
         title="Calidad de Ventas"
+        context={
+          <>
+            <span className="px-3 py-1.5 rounded-full bg-slate-950 text-white text-[9px] font-black uppercase tracking-[0.2em]">
+              {activeTab === 'surveys' ? 'Encuestas' : activeTab === 'claims' ? 'Reclamos' : 'CEM OS'}
+            </span>
+            <span className="px-3 py-1.5 rounded-full bg-white border border-slate-200 text-slate-500 text-[9px] font-black uppercase tracking-[0.2em]">
+              Mes: {activeMonthLabel}
+            </span>
+            <span className="px-3 py-1.5 rounded-full bg-white border border-slate-200 text-slate-500 text-[9px] font-black uppercase tracking-[0.2em]">
+              {activeTab === 'cem_os' ? `Filtros: ${scopeLabel}` : `Sucursal: ${scopeLabel}`}
+            </span>
+          </>
+        }
         subtitle={activeTab === 'surveys' ? "Encuestas de Satisfacción" : activeTab === 'claims' ? "Gestión de Reclamos" : "CEM OS"}
         lastUpdated={new Date().toLocaleTimeString()}
         filters={null}
@@ -1798,3 +1827,4 @@ const SalesQualityDashboard: React.FC<SalesQualityDashboardProps> = ({ onBack, i
 };
 
 export default SalesQualityDashboard;
+

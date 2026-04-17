@@ -373,6 +373,22 @@ export const PostventaBillingDashboard: React.FC<PostventaBillingDashboardProps>
     <DashboardFrame 
       title="Facturación Posventa" 
       subtitle="Análisis de Ingresos y Objetivos"
+      context={
+        <>
+          <span className="px-3 py-1.5 rounded-full bg-slate-950 text-white text-[9px] font-black uppercase tracking-[0.2em]">
+            Facturación
+          </span>
+          <span className="px-3 py-1.5 rounded-full bg-white border border-slate-200 text-slate-500 text-[9px] font-black uppercase tracking-[0.2em]">
+            Año: {selectedYear}
+          </span>
+          <span className="px-3 py-1.5 rounded-full bg-white border border-slate-200 text-slate-500 text-[9px] font-black uppercase tracking-[0.2em]">
+            Mes: {selectedMonths.length === 0 ? 'ANUAL' : selectedMonths.join(' / ')}
+          </span>
+          <span className="px-3 py-1.5 rounded-full bg-white border border-slate-200 text-slate-500 text-[9px] font-black uppercase tracking-[0.2em]">
+            Sucursal: {selectedBranches.length === 0 ? 'TODAS' : selectedBranches.join(' / ')}
+          </span>
+        </>
+      }
       onBack={onBack}
       isLoading={loading.isLoading}
       lastUpdated="23/03/2026 12:15"

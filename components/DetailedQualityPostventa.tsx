@@ -299,6 +299,19 @@ const DetailedQualityPostventa: React.FC<DetailedQualityPostventaProps> = ({ she
     <DashboardFrame
       title="Refuerzo Calidad Postventa"
       subtitle="Análisis Profundo - JUJUY & SALTA"
+      context={
+        <>
+          <span className="px-3 py-1.5 rounded-full bg-slate-950 text-white text-[9px] font-black uppercase tracking-[0.2em]">
+            Refuerzo
+          </span>
+          <span className="px-3 py-1.5 rounded-full bg-white border border-slate-200 text-slate-500 text-[9px] font-black uppercase tracking-[0.2em]">
+            Mes: {selectedMonth || 'TODOS'}
+          </span>
+          <span className="px-3 py-1.5 rounded-full bg-white border border-slate-200 text-slate-500 text-[9px] font-black uppercase tracking-[0.2em]">
+            Sucursal: {selectedSucursal || 'JUJUY & SALTA'}
+          </span>
+        </>
+      }
       lastUpdated={new Date().toLocaleTimeString()}
       onBack={onBack}
     >

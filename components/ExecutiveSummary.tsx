@@ -458,6 +458,22 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
     <DashboardFrame 
         title="REUNIÓN DE CALIDAD" 
         subtitle="REPORTE DE GESTIÓN ESTRATÉGICA"
+        context={
+            <>
+                <span className="px-3 py-1.5 rounded-full bg-slate-950 text-white text-[9px] font-black uppercase tracking-[0.2em]">
+                    Resumen
+                </span>
+                <span className="px-3 py-1.5 rounded-full bg-white border border-slate-200 text-slate-500 text-[9px] font-black uppercase tracking-[0.2em]">
+                    Año: {selectedYear}
+                </span>
+                <span className="px-3 py-1.5 rounded-full bg-white border border-slate-200 text-slate-500 text-[9px] font-black uppercase tracking-[0.2em]">
+                    Mes: {selectedMonth || 'TODOS'}
+                </span>
+                <span className="px-3 py-1.5 rounded-full bg-white border border-slate-200 text-slate-500 text-[9px] font-black uppercase tracking-[0.2em]">
+                    Sucursal: {selectedBranch || 'TODAS'}
+                </span>
+            </>
+        }
         onBack={onBack}
         isLoading={loading === LoadingState.LOADING}
         className="bg-slate-950 print:bg-white"

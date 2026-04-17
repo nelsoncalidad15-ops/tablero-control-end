@@ -582,22 +582,6 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
     <DashboardFrame 
         title="REUNIÓN DE CALIDAD" 
         subtitle="REPORTE DE GESTIÓN ESTRATÉGICA"
-        context={
-            <>
-                <span className="px-3 py-1.5 rounded-full bg-slate-950 text-white text-[9px] font-black uppercase tracking-[0.2em]">
-                    Resumen
-                </span>
-                <span className="px-3 py-1.5 rounded-full bg-white border border-slate-200 text-slate-500 text-[9px] font-black uppercase tracking-[0.2em]">
-                    Año: {selectedYear}
-                </span>
-                <span className="px-3 py-1.5 rounded-full bg-white border border-slate-200 text-slate-500 text-[9px] font-black uppercase tracking-[0.2em]">
-                    Mes: {selectedMonth || 'TODOS'}
-                </span>
-                <span className="px-3 py-1.5 rounded-full bg-white border border-slate-200 text-slate-500 text-[9px] font-black uppercase tracking-[0.2em]">
-                    Sucursal: {selectedBranches.length === 0 ? 'TODAS' : selectedBranches.join(' / ')}
-                </span>
-            </>
-        }
         onBack={onBack}
         isLoading={loading === LoadingState.LOADING}
         className="bg-slate-950 print:bg-white"
@@ -626,13 +610,6 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
             }
         `}} />
         <div className="relative space-y-12 pb-20 px-4 md:px-8 print:p-0 print:space-y-8">
-            {/* Report Cover Section */}
-            <ReportCover 
-                year={selectedYear} 
-                month={selectedMonth} 
-                branches={selectedBranches} 
-            />
-
             {/* Professional Tech Background Elements */}
             <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
                 <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] rounded-full bg-blue-600/10 blur-[120px] animate-pulse"></div>

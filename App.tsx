@@ -167,30 +167,15 @@ function App() {
             transition={{ duration: 0.7 }}
             className="overflow-hidden rounded-[2rem] border border-slate-200/80 bg-[linear-gradient(135deg,#0f172a,#111827)] px-5 py-8 text-white shadow-[0_34px_90px_rgba(15,23,42,0.16)] md:px-8 md:py-10"
           >
-            <div className="grid gap-8 lg:grid-cols-[1.25fr_0.75fr] lg:items-end">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.55em] text-sky-300/80">Panel ejecutivo</p>
-                <h2 className="mt-4 max-w-3xl text-[2.2rem] font-black uppercase italic leading-[0.92] tracking-tighter md:text-[3.6rem] lg:text-[4.2rem]">
-                  <span className="block text-white">Centro de</span>
-                  <span className="block text-transparent bg-clip-text bg-gradient-to-r from-sky-300 via-blue-400 to-indigo-400">Calidad</span>
-                </h2>
-                <p className="mt-5 max-w-2xl text-sm leading-7 text-slate-300/90 md:text-[15px]">
-                  Acceda a los módulos de análisis para revisar rendimiento, satisfacción y desvíos con una lectura clara y consistente.
-                </p>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
-                {[
-                  { label: 'Lectura', value: 'Ejecutiva' },
-                  { label: 'Enfoque', value: 'Operativo' },
-                  { label: 'Acceso', value: 'Unificado' },
-                ].map((stat) => (
-                  <div key={stat.label} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur">
-                    <p className="text-[9px] font-black uppercase tracking-[0.38em] text-slate-400">{stat.label}</p>
-                    <p className="mt-2 text-sm font-black tracking-tight text-white">{stat.value}</p>
-                  </div>
-                ))}
-              </div>
+            <div className="mx-auto max-w-4xl text-center">
+              <p className="text-[10px] font-black uppercase tracking-[0.55em] text-sky-300/80">Panel ejecutivo</p>
+              <h2 className="mt-4 text-[2.2rem] font-black uppercase italic leading-[0.92] tracking-tighter md:text-[3.6rem] lg:text-[4.2rem]">
+                <span className="block text-white">Centro de</span>
+                <span className="block text-transparent bg-clip-text bg-gradient-to-r from-sky-300 via-blue-400 to-indigo-400">Calidad</span>
+              </h2>
+              <p className="mx-auto mt-5 max-w-2xl text-sm leading-7 text-slate-300/90 md:text-[15px]">
+                Acceda a los módulos de análisis para revisar rendimiento, satisfacción y desvíos con una lectura clara y consistente.
+              </p>
             </div>
           </motion.section>
 

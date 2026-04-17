@@ -125,33 +125,39 @@ function App() {
 
   const QualitySelection = () => (
     <PageWrapper>
-      <div className="relative min-h-screen overflow-x-hidden overflow-y-auto bg-slate-950 font-sans text-white">
+      <div className="relative min-h-screen overflow-x-hidden overflow-y-auto bg-[radial-gradient(circle_at_top,_rgba(37,99,235,0.08),_transparent_24%),linear-gradient(180deg,_#f8fafc_0%,_#eef2ff_100%)] font-sans text-slate-950">
         <div className="pointer-events-none absolute inset-0">
-          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_center,_rgba(79,70,229,0.18),_transparent_26%),radial-gradient(circle_at_18%_14%,_rgba(56,189,248,0.11),_transparent_22%),radial-gradient(circle_at_82%_18%,_rgba(245,158,11,0.08),_transparent_20%),linear-gradient(180deg,_#020617_0%,_#050816_46%,_#020617_100%)]" />
-          <div className="absolute inset-x-0 top-0 h-40 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.045),transparent)] opacity-35" />
-          <div className="absolute -left-24 top-24 h-72 w-72 rounded-full bg-sky-500/10 blur-3xl" />
-          <div className="absolute bottom-8 right-0 h-80 w-80 rounded-full bg-violet-400/10 blur-3xl" />
-          <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px)', backgroundSize: '80px 80px' }} />
+          <div className="absolute inset-x-0 top-0 h-72 bg-[linear-gradient(180deg,rgba(15,23,42,0.04),transparent)]" />
+          <div className="absolute -right-24 top-24 h-72 w-72 rounded-full bg-blue-400/10 blur-3xl" />
+          <div className="absolute left-0 bottom-0 h-96 w-96 rounded-full bg-indigo-400/10 blur-3xl" />
+          <div
+            className="absolute inset-0 opacity-[0.05]"
+            style={{
+              backgroundImage:
+                'linear-gradient(rgba(15,23,42,0.10) 1px, transparent 1px), linear-gradient(90deg, rgba(15,23,42,0.10) 1px, transparent 1px)',
+              backgroundSize: '72px 72px',
+            }}
+          />
         </div>
 
-        <div className="relative mx-auto flex min-h-screen w-full max-w-[1700px] flex-col gap-4 px-4 py-4 md:px-6 md:py-5 lg:px-8">
+        <div className="relative mx-auto flex min-h-screen w-full max-w-[1600px] flex-col gap-5 px-4 py-4 md:px-6 md:py-5 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: -16 }}
             animate={{ opacity: 1, y: 0 }}
-            className="flex shrink-0 items-center justify-between rounded-[1.35rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.09),rgba(255,255,255,0.035))] px-4 py-3 shadow-[0_24px_80px_rgba(2,6,23,0.30)] backdrop-blur-xl md:px-5"
+            className="flex shrink-0 items-center justify-between rounded-[1.35rem] border border-slate-200/70 bg-white/85 px-4 py-3 shadow-[0_18px_50px_rgba(15,23,42,0.08)] backdrop-blur-xl md:px-5"
           >
             <div className="flex items-center gap-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white text-sm font-black italic text-slate-950 shadow-[0_10px_30px_rgba(255,255,255,0.12)] md:h-12 md:w-12 md:text-base">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-slate-950 text-sm font-black italic text-white shadow-[0_10px_30px_rgba(15,23,42,0.14)] md:h-12 md:w-12 md:text-base">
                 VW
               </div>
               <div>
                 <p className="text-[9px] font-bold uppercase tracking-[0.34em] text-slate-400 md:text-[10px]">Autosol Group</p>
-                <h1 className="text-lg font-black tracking-tight text-white md:text-xl lg:text-2xl">Centro de Calidad</h1>
+                <h1 className="text-lg font-black tracking-tight text-slate-950 md:text-xl lg:text-2xl">Centro de Calidad</h1>
               </div>
             </div>
-            <button onClick={handleBackToPortal} className="hidden md:inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[9px] font-black uppercase tracking-[0.3em] text-slate-300 transition-colors hover:bg-white/10 hover:text-white">
+            <button onClick={handleBackToPortal} className="hidden md:inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-950 px-4 py-2 text-[9px] font-black uppercase tracking-[0.3em] text-white shadow-[0_14px_32px_rgba(15,23,42,0.18)] transition-colors hover:bg-slate-800">
               <Icons.ArrowLeft className="h-4 w-4" />
-              Volver al Portal
+              Volver al portal
             </button>
           </motion.div>
 
@@ -159,93 +165,74 @@ function App() {
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7 }}
-            className="rounded-[1.9rem] border border-white/10 bg-[linear-gradient(135deg,rgba(5,8,22,0.94),rgba(10,15,33,0.88))] p-5 text-white shadow-[0_34px_100px_rgba(2,6,23,0.42)] backdrop-blur-xl md:p-6 lg:p-6"
+            className="overflow-hidden rounded-[2rem] border border-slate-200/80 bg-[linear-gradient(135deg,#0f172a,#111827)] px-5 py-8 text-white shadow-[0_34px_90px_rgba(15,23,42,0.16)] md:px-8 md:py-10"
           >
-            <div className="flex flex-col gap-5 md:gap-6 lg:flex-row lg:items-stretch">
-              <div className="flex flex-1 flex-col justify-between gap-4 md:gap-5">
-                <div className="max-w-4xl">
-                  <div className="mb-4 flex items-center gap-3">
-                    <div className="h-px w-10 bg-gradient-to-r from-cyan-400/80 to-transparent" />
-                  </div>
-                  <h2 className="max-w-3xl text-[2.35rem] font-black leading-[0.94] tracking-tight text-balance md:text-[3.15rem] lg:text-[3.45rem]">
-                    <span className="block">Visión operativa clara</span>
-                    <span className="block text-white/90">para decisiones rápidas.</span>
-                  </h2>
-                  <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300/88 md:text-[15px] md:leading-7">
-                    Seleccione el módulo de análisis para visualizar el rendimiento y la satisfacción del cliente en tiempo real.
-                  </p>
-                </div>
+            <div className="grid gap-8 lg:grid-cols-[1.25fr_0.75fr] lg:items-end">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.55em] text-sky-300/80">Panel ejecutivo</p>
+                <h2 className="mt-4 max-w-3xl text-[2.2rem] font-black uppercase italic leading-[0.92] tracking-tighter md:text-[3.6rem] lg:text-[4.2rem]">
+                  <span className="block text-white">Centro de</span>
+                  <span className="block text-transparent bg-clip-text bg-gradient-to-r from-sky-300 via-blue-400 to-indigo-400">Calidad</span>
+                </h2>
+                <p className="mt-5 max-w-2xl text-sm leading-7 text-slate-300/90 md:text-[15px]">
+                  Acceda a los módulos de análisis para revisar rendimiento, satisfacción y desvíos con una lectura clara y consistente.
+                </p>
               </div>
 
-              <div className="grid gap-3 self-stretch rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] lg:w-[320px]">
+              <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
                 {[
-                  { icon: Icons.Activity, label: 'Lectura', value: 'Rápida' },
-                  { icon: Icons.Monitor, label: 'Control', value: 'Unificado' },
-                  { icon: Icons.FileText, label: 'Reporte', value: 'Ejecutivo' },
-                ].map((item) => {
-                  const ItemIcon = item.icon;
-                  return (
-                    <div key={item.label} className="flex items-center justify-between rounded-[1.15rem] border border-white/10 bg-white/[0.04] px-4 py-3">
-                      <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-400/20 bg-cyan-400/10 text-cyan-200">
-                          <ItemIcon className="h-4.5 w-4.5" />
-                        </div>
-                        <div>
-                          <p className="text-[9px] font-black uppercase tracking-[0.32em] text-slate-400">{item.label}</p>
-                          <p className="mt-1 text-sm font-black text-white">{item.value}</p>
-                        </div>
-                      </div>
-                      <Icons.ArrowRight className="h-4 w-4 text-slate-500" />
-                    </div>
-                  );
-                })}
+                  { label: 'Lectura', value: 'Ejecutiva' },
+                  { label: 'Enfoque', value: 'Operativo' },
+                  { label: 'Acceso', value: 'Unificado' },
+                ].map((stat) => (
+                  <div key={stat.label} className="rounded-2xl border border-white/10 bg-white/5 px-4 py-3 backdrop-blur">
+                    <p className="text-[9px] font-black uppercase tracking-[0.38em] text-slate-400">{stat.label}</p>
+                    <p className="mt-2 text-sm font-black tracking-tight text-white">{stat.value}</p>
+                  </div>
+                ))}
               </div>
             </div>
           </motion.section>
-          
+
           <motion.section
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.1 }}
-            className="rounded-[1.85rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.03))] p-4 shadow-[0_28px_80px_rgba(2,6,23,0.30)] backdrop-blur-xl md:p-5"
+            className="rounded-[1.85rem] border border-slate-200/70 bg-white/80 p-4 shadow-[0_22px_70px_rgba(15,23,42,0.08)] backdrop-blur-xl md:p-5"
           >
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-4">
-            {[
-              { id: 'ventas', path: '/calidad/ventas', name: 'Ventas', icon: Icons.BarChart, color: 'from-orange-500 to-amber-500', desc: 'Satisfacción en salón y procesos comerciales' },
-              { id: 'postventa', path: '/calidad/postventa_selection', name: 'Postventa', icon: Icons.Wrench, color: 'from-blue-500 to-indigo-500', desc: 'Gestión de reclamos, taller y servicios' },
-              { id: 'pcgc', path: '/calidad/pcgc', name: 'PCGC', icon: Icons.ClipboardList, color: 'from-indigo-500 to-purple-500', desc: 'Programa de Calidad de Gestión y Auditoría' },
-              { id: 'plan_accion', path: '/calidad/plan_accion', name: 'Plan de Acción', icon: Icons.ClipboardCheck, color: 'from-emerald-500 to-teal-500', desc: 'Control y verificación de desvíos' },
-            ].map((item) => (
-              <motion.button 
-                key={item.id}
-                whileHover={{ y: -10 }}
-                whileTap={{ scale: 0.98 }}
-                onClick={() => navigate(item.path)}
-                className="group relative min-h-[190px] rounded-[1.65rem] border border-white/10 bg-[linear-gradient(180deg,rgba(11,16,32,0.90),rgba(15,23,42,0.80))] p-5 text-center transition-all hover:border-white/20 hover:bg-[linear-gradient(180deg,rgba(17,24,39,0.98),rgba(15,23,42,0.92))] hover:shadow-[0_18px_50px_rgba(15,23,42,0.34)] md:min-h-[210px] md:p-6"
-              >
-                <div className="flex h-full flex-col items-center justify-between">
-                  <div className="flex h-full w-full flex-col items-center justify-center gap-6">
-                    <div className={`flex h-20 w-20 items-center justify-center rounded-[1.8rem] border ${item.color.includes('orange') ? 'bg-orange-500/15 text-orange-300 border-orange-400/20' : item.color.includes('blue') ? 'bg-blue-500/15 text-blue-300 border-blue-400/20' : item.color.includes('indigo') ? 'bg-indigo-500/15 text-indigo-300 border-indigo-400/20' : 'bg-emerald-500/15 text-emerald-300 border-emerald-400/20'} shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]`}>
-                      <item.icon className="h-9 w-9" />
+              {[
+                { id: 'ventas', path: '/calidad/ventas', name: 'Ventas', icon: Icons.BarChart, color: 'orange', desc: 'Satisfacción en salón y procesos comerciales' },
+                { id: 'postventa', path: '/calidad/postventa_selection', name: 'Postventa', icon: Icons.Wrench, color: 'blue', desc: 'Gestión de reclamos, taller y servicios' },
+                { id: 'pcgc', path: '/calidad/pcgc', name: 'PCGC', icon: Icons.ClipboardList, color: 'indigo', desc: 'Programa de Calidad de Gestión y Auditoría' },
+                { id: 'plan_accion', path: '/calidad/plan_accion', name: 'Plan de Acción', icon: Icons.ClipboardCheck, color: 'emerald', desc: 'Control y verificación de desvíos' },
+              ].map((item) => (
+                <motion.button 
+                  key={item.id}
+                  whileHover={{ y: -8, scale: 1.01 }}
+                  whileTap={{ scale: 0.98 }}
+                  onClick={() => navigate(item.path)}
+                  className="group relative min-h-[176px] rounded-[1.65rem] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.92))] p-5 text-left transition-all hover:-translate-y-1 hover:border-slate-300 hover:shadow-[0_18px_50px_rgba(15,23,42,0.10)] md:min-h-[190px] md:p-6"
+                >
+                  <div className="flex h-full flex-col justify-between">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className={`flex h-12 w-12 items-center justify-center rounded-2xl border ${item.color === 'orange' ? 'bg-orange-500/12 text-orange-500 border-orange-200' : item.color === 'blue' ? 'bg-blue-500/12 text-blue-500 border-blue-200' : item.color === 'indigo' ? 'bg-indigo-500/12 text-indigo-500 border-indigo-200' : 'bg-emerald-500/12 text-emerald-500 border-emerald-200'} shadow-[0_10px_25px_rgba(15,23,42,0.06)]`}>
+                        <item.icon className="h-5.5 w-5.5" />
+                      </div>
+                      <div className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.28em] text-slate-500 transition-colors group-hover:bg-slate-100 group-hover:text-slate-700">
+                        abrir
+                      </div>
                     </div>
-                    <div>
-                      <h3 className="text-[1.45rem] font-black uppercase leading-none tracking-tight text-white md:text-[1.6rem]">{item.name}</h3>
-                      <p className="mt-3 text-[0.7rem] font-black uppercase tracking-[0.42em] text-slate-400">{item.desc}</p>
+                    <div className="mt-5">
+                      <h3 className="text-[1.1rem] font-black uppercase leading-tight tracking-tight text-slate-950 md:text-[1.2rem]">{item.name}</h3>
+                      <p className="mt-2 text-[0.78rem] leading-6 text-slate-500">{item.desc}</p>
+                    </div>
+                    <div className="mt-4 h-1 w-full overflow-hidden rounded-full bg-slate-100">
+                      <div className={`h-full w-1/2 rounded-full ${item.color === 'orange' ? 'bg-orange-400' : item.color === 'blue' ? 'bg-blue-400' : item.color === 'indigo' ? 'bg-indigo-400' : 'bg-emerald-400'} opacity-70 transition-all group-hover:w-full`} />
                     </div>
                   </div>
-                  <div className="mt-4 h-1 w-full overflow-hidden rounded-full bg-white/5">
-                    <div className="h-full w-1/2 rounded-full bg-blue-400 opacity-70 transition-all group-hover:w-full" />
-                  </div>
-                </div>
                 </motion.button>
-            ))}
-            </div>
-
-            <div className="flex justify-center pt-6">
-              <button onClick={handleBackToPortal} className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/5 px-5 py-3 text-[10px] font-black uppercase tracking-[0.32em] text-slate-300 transition-all hover:bg-white/10 hover:text-white">
-                <Icons.ArrowLeft className="h-4 w-4" />
-                Volver al Portal
-              </button>
+              ))}
             </div>
           </motion.section>
         </div>

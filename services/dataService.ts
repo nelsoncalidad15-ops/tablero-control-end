@@ -912,7 +912,7 @@ const parseSalesQualityCSV = (csvText: string): SalesQualityRecord[] => {
     for (let i = 1; i < rows.length; i++) {
       const currentLine = rows[i];
       if (currentLine.length < 3) continue;
-  
+
       const record: any = { id: `sq-row-${i}` };
       
       headers.forEach((header, index) => {
@@ -984,6 +984,14 @@ const parseSalesQualityCSV = (csvText: string): SalesQualityRecord[] => {
 
         record[header] = value;
       });
+
+      // AQ = "Entrega: ¿Cuál es su nivel de Satisfacción con el Estado del vehículo en la entrega?"
+      // Use the explicit column as the source of truth so we do not pick up a similar question by mistake.
+      const estadoVehiculoAQ = currentLine[42];
+      const estadoVehiculoAQScore = parseScore(estadoVehiculoAQ);
+      if (estadoVehiculoAQScore !== null) {
+        record.estado_vehiculo = estadoVehiculoAQScore;
+      }
 
       // Normalization
       if (!record.mes || normalizeMonth(record.mes) === 'Unknown') {

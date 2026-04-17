@@ -113,6 +113,14 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
 
   const reportMonths = useMemo(() => getClosedMonths(selectedMonth), [selectedMonth]);
 
+  const normalizeBranchKey = (value: string) => {
+    return String(value || '')
+      .normalize('NFD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .toUpperCase()
+      .trim();
+  };
+
   const isDate = (val: string) => {
     if (!val) return false;
     const clean = val.trim();
@@ -133,9 +141,24 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
   const filteredMetrics = useMemo(() => {
     const branchFilter = (d: any) => {
         if (!selectedBranch) return true;
-        if (selectedBranch === 'JUJUY') return d.sucursal === 'JUJUY' || d.codigo === '3059';
-        if (selectedBranch === 'SALTA') return d.sucursal === 'SALTA' || d.codigo === '3087';
-        return d.sucursal === selectedBranch;
+        const branchValue = normalizeBranchKey(d.sucursal || d.nombre_sucursal || d.concesionario || d.codigo || '');
+        if (selectedBranch === 'JUJUY') return branchValue === 'JUJUY' || branchValue === '3059';
+        if (selectedBranch === 'SALTA') return branchValue === 'SALTA' || branchValue === '3087' || branchValue === '3089';
+        return branchValue === normalizeBranchKey(selectedBranch);
+    };
+
+    const getDetailedQualityMonthData = (month: string) => {
+        const monthData = data.detailedQuality.filter(d => d.mes === month && branchFilter(d));
+        if (monthData.length > 0) return monthData;
+
+        // Salta's detailed sheet can arrive without a month marker in compact exports.
+        // In that case, fall back to the branch's rows so the CEM section doesn't render blank.
+        if (selectedBranch === 'SALTA') {
+            const branchData = data.detailedQuality.filter(d => branchFilter(d));
+            if (branchData.length > 0) return branchData;
+        }
+
+        return monthData;
     };
 
     const calculateCemMetrics = (month: string) => {
@@ -151,7 +174,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
     };
 
     const calculateLvsMetrics = (month: string) => {
-        const monthData = data.detailedQuality.filter(d => d.mes === month && branchFilter(d));
+        const monthData = getDetailedQualityMonthData(month);
         const scores = monthData.filter(d => d.q4_score !== null);
         const avg = scores.length > 0 ? scores.reduce((a, b) => a + (b.q4_score || 0), 0) / scores.length : 0;
         return { avg };
@@ -223,7 +246,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
     const lvsM1 = calculateLvsMetrics(reportMonths.mMinus1);
     const lvsM2 = calculateLvsMetrics(reportMonths.mMinus2);
 
-    const lvsDataM2 = data.detailedQuality.filter(d => d.mes === reportMonths.mMinus2 && branchFilter(d));
+    const lvsDataM2 = getDetailedQualityMonthData(reportMonths.mMinus2);
     const avgQ1 = lvsDataM2.filter(d => d.q1_score !== null).reduce((a, b) => a + (b.q1_score || 0), 0) / (lvsDataM2.filter(d => d.q1_score !== null).length || 1);
     const avgQ3 = lvsDataM2.filter(d => d.q3_score !== null).reduce((a, b) => a + (b.q3_score || 0), 0) / (lvsDataM2.filter(d => d.q3_score !== null).length || 1);
 

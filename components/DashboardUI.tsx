@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
 import { Icons } from './Icon';
@@ -7,6 +7,7 @@ import { toJpeg } from 'html-to-image';
 interface DashboardFrameProps {
   title: string;
   subtitle?: string;
+  context?: React.ReactNode;
   lastUpdated?: string;
   children: React.ReactNode;
   filters?: React.ReactNode;
@@ -19,6 +20,7 @@ interface DashboardFrameProps {
 export const DashboardFrame: React.FC<DashboardFrameProps> = ({ 
   title, 
   subtitle, 
+  context,
   lastUpdated, 
   children, 
   filters,
@@ -74,6 +76,11 @@ export const DashboardFrame: React.FC<DashboardFrameProps> = ({
                   <span className="w-1 h-1 rounded-full bg-blue-500 animate-pulse"></span>
                   {subtitle || 'Autosol Intelligence System'}
                 </p>
+                {context && (
+                  <div className="hidden md:flex flex-wrap items-center gap-2 mt-2">
+                    {context}
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -114,7 +121,7 @@ export const DashboardFrame: React.FC<DashboardFrameProps> = ({
       )}
 
       {/* Main Content Area */}
-      <div className="flex flex-col lg:flex-row gap-4 flex-1 items-start w-full px-4 md:px-6 pb-6">
+      <div className="flex flex-col lg:flex-row gap-6 flex-1 items-start w-full px-4 md:px-6 pb-8 lg:pb-10">
         {/* Filters Sidebar (Hidden in TV Mode) */}
         {!isTvMode && filters && (
           <motion.div 
@@ -331,6 +338,33 @@ const ManagementReportModal = ({ onClose, title }: { onClose: () => void, title:
     </div>
   );
 };
+
+export const EmptyStatePanel = ({ 
+  title, 
+  subtitle, 
+  icon: Icon = Icons.Info, 
+  action,
+  compact = false,
+}: { 
+  title: string; 
+  subtitle?: string; 
+  icon?: any;
+  action?: React.ReactNode;
+  compact?: boolean;
+}) => (
+  <div className={`flex flex-col items-center justify-center text-center ${compact ? 'py-8 px-4' : 'py-16 px-6'} rounded-[2rem] border border-dashed border-slate-200 bg-white/60 backdrop-blur-xl`}>
+    <div className="w-12 h-12 rounded-2xl bg-slate-950 text-white flex items-center justify-center shadow-lg shadow-slate-900/10">
+      <Icon className="w-5 h-5" />
+    </div>
+    <h4 className="mt-4 text-sm font-black text-slate-900 uppercase tracking-tight italic">{title}</h4>
+    {subtitle && (
+      <p className="mt-2 max-w-md text-[11px] leading-relaxed text-slate-500">
+        {subtitle}
+      </p>
+    )}
+    {action && <div className="mt-5">{action}</div>}
+  </div>
+);
 
 export const ChartWrapper = ({ title, subtitle, children, className, action, isDark = false }: { title: string, subtitle?: string, children: React.ReactNode, className?: string, action?: React.ReactNode, isDark?: boolean }) => {
   const chartRef = useRef<HTMLDivElement>(null);
@@ -605,6 +639,16 @@ export const DataTable = ({ data, columns, title, subtitle, pageSize = 10 }: {
   const totalPages = Math.ceil(data.length / pageSize);
   const currentData = data.slice((currentPage - 1) * pageSize, currentPage * pageSize);
 
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [data, pageSize]);
+
+  useEffect(() => {
+    if (currentPage > totalPages && totalPages > 0) {
+      setCurrentPage(totalPages);
+    }
+  }, [currentPage, totalPages]);
+
   return (
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
@@ -623,52 +667,65 @@ export const DataTable = ({ data, columns, title, subtitle, pageSize = 10 }: {
           </div>
         </div>
       )}
-      <div className="overflow-x-auto">
-        <table className="w-full text-left border-collapse">
-          <thead>
-            <tr className="bg-white/20 border-b border-white/40">
-              {columns.map((col, i) => (
-                <th key={i} className="px-6 py-3 text-[8px] font-black text-slate-400 uppercase tracking-widest">
-                  {col.header}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-white/40">
-            {currentData.map((row, i) => (
-              <tr key={i} className="hover:bg-white/40 transition-all group border-l-4 border-transparent hover:border-blue-600">
-                {columns.map((col, j) => (
-                  <td key={j} className="px-6 py-4 text-[9px] font-bold text-slate-600 group-hover:text-slate-900 transition-colors">
-                    {col.render ? col.render(row[col.accessor], row) : row[col.accessor]}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-      {totalPages > 1 && (
-        <div className="px-8 py-4 bg-white/20 border-t border-white/40 flex items-center justify-between">
-          <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
-            Página {currentPage} de {totalPages}
-          </span>
-          <div className="flex gap-2">
-            <button 
-              onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
-              disabled={currentPage === 1}
-              className="p-2 rounded-xl bg-white/50 border border-white/60 text-slate-400 disabled:opacity-30 hover:text-blue-600 hover:border-blue-100 transition-all shadow-sm backdrop-blur-md"
-            >
-              <Icons.ArrowLeft className="w-3.5 h-3.5" />
-            </button>
-            <button 
-              onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
-              disabled={currentPage === totalPages}
-              className="p-2 rounded-xl bg-white/50 border border-white/60 text-slate-400 disabled:opacity-30 hover:text-blue-600 hover:border-blue-100 transition-all shadow-sm backdrop-blur-md"
-            >
-              <Icons.ArrowLeft className="w-3.5 h-3.5 rotate-180" />
-            </button>
-          </div>
+      {data.length === 0 ? (
+        <div className="p-6">
+          <EmptyStatePanel
+            compact
+            icon={Icons.Search}
+            title="Sin registros"
+            subtitle="No hay datos para el filtro actual. Probá cambiar mes, sucursal o tipo para encontrar resultados."
+          />
         </div>
+      ) : (
+        <>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-white/20 border-b border-white/40">
+                  {columns.map((col, i) => (
+                    <th key={i} className="px-6 py-3 text-[8px] font-black text-slate-400 uppercase tracking-widest">
+                      {col.header}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-white/40">
+                {currentData.map((row, i) => (
+                  <tr key={i} className="hover:bg-white/40 transition-all group border-l-4 border-transparent hover:border-blue-600">
+                    {columns.map((col, j) => (
+                      <td key={j} className="px-6 py-4 text-[9px] font-bold text-slate-600 group-hover:text-slate-900 transition-colors">
+                        {col.render ? col.render(row[col.accessor], row) : row[col.accessor]}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          {totalPages > 1 && (
+            <div className="px-8 py-4 bg-white/20 border-t border-white/40 flex items-center justify-between">
+              <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest">
+                Página {currentPage} de {totalPages}
+              </span>
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                  disabled={currentPage === 1}
+                  className="p-2 rounded-xl bg-white/50 border border-white/60 text-slate-400 disabled:opacity-30 hover:text-blue-600 hover:border-blue-100 transition-all shadow-sm backdrop-blur-md"
+                >
+                  <Icons.ArrowLeft className="w-3.5 h-3.5" />
+                </button>
+                <button 
+                  onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                  disabled={currentPage === totalPages}
+                  className="p-2 rounded-xl bg-white/50 border border-white/60 text-slate-400 disabled:opacity-30 hover:text-blue-600 hover:border-blue-100 transition-all shadow-sm backdrop-blur-md"
+                >
+                  <Icons.ArrowLeft className="w-3.5 h-3.5 rotate-180" />
+                </button>
+              </div>
+            </div>
+          )}
+        </>
       )}
     </motion.div>
   );
@@ -676,18 +733,32 @@ export const DataTable = ({ data, columns, title, subtitle, pageSize = 10 }: {
 
 export const SkeletonLoader = ({ className }: { className?: string }) => {
   if (className) {
-    return <div className={`animate-pulse bg-slate-200 rounded-xl ${className}`}></div>;
+    return <div className={`animate-pulse bg-gradient-to-r from-slate-100 via-slate-200 to-slate-100 rounded-xl ${className}`}></div>;
   }
   return (
     <div className="space-y-6 animate-pulse">
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
         {[1,2,3,4].map(i => (
-          <div key={i} className="h-40 bg-slate-200 rounded-[2rem]"></div>
+          <div key={i} className="h-44 rounded-[2rem] border border-slate-100 bg-gradient-to-br from-white via-slate-100 to-white shadow-sm p-5 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="h-3 w-24 rounded-full bg-slate-200"></div>
+              <div className="h-8 w-8 rounded-xl bg-slate-200"></div>
+            </div>
+            <div className="h-12 w-20 rounded-2xl bg-slate-200"></div>
+            <div className="h-2 w-full rounded-full bg-slate-200"></div>
+            <div className="h-2 w-3/4 rounded-full bg-slate-200"></div>
+          </div>
         ))}
       </div>
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="h-80 bg-slate-200 rounded-[2rem]"></div>
-        <div className="h-80 bg-slate-200 rounded-[2rem]"></div>
+        <div className="h-80 rounded-[2rem] border border-slate-100 bg-gradient-to-br from-white via-slate-100 to-white shadow-sm p-6 space-y-4">
+          <div className="h-3 w-36 rounded-full bg-slate-200"></div>
+          <div className="h-[calc(100%-2.5rem)] rounded-[1.5rem] bg-slate-200"></div>
+        </div>
+        <div className="h-80 rounded-[2rem] border border-slate-100 bg-gradient-to-br from-white via-slate-100 to-white shadow-sm p-6 space-y-4">
+          <div className="h-3 w-44 rounded-full bg-slate-200"></div>
+          <div className="h-[calc(100%-2.5rem)] rounded-[1.5rem] bg-slate-200"></div>
+        </div>
       </div>
     </div>
   );

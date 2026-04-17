@@ -243,6 +243,8 @@ const BACKEND_WAKE_TIMEOUT_MS = 12000;
 const RETRYABLE_PROXY_ATTEMPTS = 2;
 
 let backendWakePromise: Promise<void> | null = null;
+const rawCsvTextCache = new Map<string, string>();
+const rawCsvPromiseCache = new Map<string, Promise<string>>();
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -553,10 +555,28 @@ const wakeBackendIfNeeded = async () => {
     await backendWakePromise;
 };
 
+export const primeBackendConnection = async () => {
+    try {
+        await wakeBackendIfNeeded();
+    } catch (error) {
+        console.warn('[DataService] Backend warm-up failed.', error);
+    }
+};
+
 const fetchFromProxy = async (sheetKey: string): Promise<string> => {
     if (isDirectCsvUrl(sheetKey)) {
         console.log(`[DataService] Fetching direct CSV URL: ${sheetKey}`);
         return fetchDirectCsv(sheetKey);
+    }
+
+    const cachedText = rawCsvTextCache.get(sheetKey);
+    if (cachedText) {
+        return cachedText;
+    }
+
+    const cachedPromise = rawCsvPromiseCache.get(sheetKey);
+    if (cachedPromise) {
+        return cachedPromise;
     }
 
     await wakeBackendIfNeeded();
@@ -565,55 +585,67 @@ const fetchFromProxy = async (sheetKey: string): Promise<string> => {
     
     console.log(`[DataService] Fetching from: ${url}`);
 
-    let lastError: unknown;
+    const requestPromise = (async () => {
+        let lastError: unknown;
 
-    for (let attempt = 1; attempt <= RETRYABLE_PROXY_ATTEMPTS; attempt++) {
-        const controller = new AbortController();
-        const timeoutId = setTimeout(() => controller.abort(), PROXY_REQUEST_TIMEOUT_MS);
+        for (let attempt = 1; attempt <= RETRYABLE_PROXY_ATTEMPTS; attempt++) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), PROXY_REQUEST_TIMEOUT_MS);
 
-        try {
-            const response = await fetch(url, { 
-                signal: controller.signal,
-                headers: buildRequestHeaders()
-            });
-            clearTimeout(timeoutId);
+            try {
+                const response = await fetch(url, { 
+                    signal: controller.signal,
+                    headers: buildRequestHeaders()
+                });
+                clearTimeout(timeoutId);
 
-            if (!response.ok) {
-                let errorDetail = response.statusText;
-                try {
-                    const errorJson = await response.json();
-                    errorDetail = errorJson.details || errorJson.error || response.statusText;
-                } catch (e) {
-                    // Not JSON, just use status text
+                if (!response.ok) {
+                    let errorDetail = response.statusText;
+                    try {
+                        const errorJson = await response.json();
+                        errorDetail = errorJson.details || errorJson.error || response.statusText;
+                    } catch (e) {
+                        // Not JSON, just use status text
+                    }
+                    throw new Error(errorDetail);
                 }
-                throw new Error(errorDetail);
-            }
-            return await response.text();
-        } catch (error: any) {
-            clearTimeout(timeoutId);
-            lastError = error;
-            console.error(`Error fetching from proxy for ${sheetKey} (attempt ${attempt}/${RETRYABLE_PROXY_ATTEMPTS}):`, error);
 
-            const isAbort = error?.name === 'AbortError';
-            const isNetwork = error instanceof TypeError;
-            const isRetryable = attempt < RETRYABLE_PROXY_ATTEMPTS && (isAbort || isNetwork);
+                const text = await response.text();
+                rawCsvTextCache.set(sheetKey, text);
+                return text;
+            } catch (error: any) {
+                clearTimeout(timeoutId);
+                lastError = error;
+                console.error(`Error fetching from proxy for ${sheetKey} (attempt ${attempt}/${RETRYABLE_PROXY_ATTEMPTS}):`, error);
 
-            if (isRetryable) {
-                await delay(1800);
-                continue;
-            }
+                const isAbort = error?.name === 'AbortError';
+                const isNetwork = error instanceof TypeError;
+                const isRetryable = attempt < RETRYABLE_PROXY_ATTEMPTS && (isAbort || isNetwork);
 
-            if (isAbort) {
-                throw new Error(`La peticion al backend excedio el tiempo limite (${Math.round(PROXY_REQUEST_TIMEOUT_MS / 1000)}s). Si el servicio esta en Render Free, espere un momento y vuelva a intentar porque puede estar despertando.`);
+                if (isRetryable) {
+                    await delay(1800);
+                    continue;
+                }
+
+                if (isAbort) {
+                    throw new Error(`La peticion al backend excedio el tiempo limite (${Math.round(PROXY_REQUEST_TIMEOUT_MS / 1000)}s). Si el servicio esta en Render Free, espere un momento y vuelva a intentar porque puede estar despertando.`);
+                }
+                if (isNetwork) {
+                    throw new Error(`No se pudo contactar al backend (${url}). Revise que VITE_API_URL apunte al servicio correcto y que Render este respondiendo.`);
+                }
+                throw error;
             }
-            if (isNetwork) {
-                throw new Error(`No se pudo contactar al backend (${url}). Revise que VITE_API_URL apunte al servicio correcto y que Render este respondiendo.`);
-            }
-            throw error;
         }
-    }
 
-    throw lastError instanceof Error ? lastError : new Error('No se pudo completar la solicitud al backend.');
+        throw lastError instanceof Error ? lastError : new Error('No se pudo completar la solicitud al backend.');
+    })();
+
+    rawCsvPromiseCache.set(sheetKey, requestPromise);
+    try {
+        return await requestPromise;
+    } finally {
+        rawCsvPromiseCache.delete(sheetKey);
+    }
 };
 
 export const fetchSheetData = async (sheetKey: string): Promise<AutoRecord[]> => {

@@ -1,4 +1,4 @@
-﻿import React, { useState } from 'react';
+﻿import React, { useEffect, useState } from 'react';
 import { Suspense, lazy } from 'react';
 import { Routes, Route, useNavigate, useLocation, Navigate, useParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'motion/react';
@@ -6,6 +6,7 @@ import Portal from './components/Portal';
 import { Icons } from './components/Icon';
 import { AppConfig, AreaConfig } from './types';
 import { DEFAULT_CONFIG, SALES_QUALITY_SHEET_KEY, SALES_CLAIMS_SHEET_KEY, AREAS } from './constants';
+import { primeBackendConnection } from './services/dataService';
 
 const Dashboard = lazy(() => import('./components/Dashboard'));
 const QualityDashboard = lazy(() => import('./components/QualityDashboard'));
@@ -36,6 +37,10 @@ function App() {
   const [config, setConfig] = useState<AppConfig>(DEFAULT_CONFIG);
   const [printReportLocation, setPrintReportLocation] = useState<'JUJUY' | 'SALTA' | null>(null);
   const [reportConfig, setReportConfig] = useState<{ location: 'JUJUY' | 'SALTA', month: string | null, template: any } | null>(null);
+
+  useEffect(() => {
+    primeBackendConnection();
+  }, []);
 
   const handleSaveConfig = (newConfig: AppConfig) => {
     setConfig(newConfig);
@@ -562,4 +567,5 @@ function App() {
 }
 
 export default App;
+
 

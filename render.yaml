@@ -40,6 +40,16 @@ services:
         sync: false
       - key: LINK_FACTURACION
         sync: false
+      - key: LINK_GARANTIA
+        sync: false
+      - key: LINK_GARANTIA_Q1
+        sync: false
+      - key: LINK_GARANTIA_Q2
+        sync: false
+      - key: LINK_GARANTIA_Q3
+        sync: false
+      - key: LINK_GARANTIA_Q4
+        sync: false
       - key: LINK_RRHH_NOTAS
         sync: false
       - key: LINK_RRHH_RELAT

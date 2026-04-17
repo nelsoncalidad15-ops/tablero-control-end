@@ -1,7 +1,7 @@
 
 /// <reference types="vite/client" />
 import Papa from 'papaparse';
-import { AutoRecord, QualityRecord, SalesQualityRecord, SalesClaimsRecord, DetailedQualityRecord, PostventaKpiRecord, BillingRecord, PCGCRecord, CemOsRecord, InternalPostventaRecord, ActionPlanRecord, CourseGrade, RelatorioItem, CollaboratorContact, CoursePhase } from '../types';
+import { AutoRecord, QualityRecord, SalesQualityRecord, SalesClaimsRecord, DetailedQualityRecord, PostventaKpiRecord, BillingRecord, PCGCRecord, CemOsRecord, InternalPostventaRecord, ActionPlanRecord, CourseGrade, RelatorioItem, CollaboratorContact, CoursePhase, WarrantyRecord } from '../types';
 import { MOCK_DATA } from '../constants';
 import { buildApiUrl } from './apiConfig';
 import { getStoredDashboardPassword } from './apiConfig';
@@ -102,6 +102,23 @@ const pickFirstValidMonth = (...values: Array<string | undefined>) => {
         if (SPANISH_MONTHS.includes(extracted)) return extracted;
     }
     return 'Unknown';
+};
+
+const normalizeWarrantyLot = (value: string) => {
+    if (!value) return 'Sin lote';
+    const clean = String(value).trim();
+    if (!clean) return 'Sin lote';
+
+    const directMatch = clean.match(/\b(7|14|21|28)\b/);
+    if (directMatch) return directMatch[1];
+
+    const dateMatch = clean.match(/(\d{1,2})[/-]\d{1,2}[/-]\d{2,4}/);
+    if (dateMatch) {
+      const day = parseInt(dateMatch[1], 10);
+      if ([7, 14, 21, 28].includes(day)) return String(day);
+    }
+
+    return clean;
 };
 
 const parseNumber = (val: string): number => {
@@ -714,6 +731,16 @@ export const fetchPostventaBillingData = async (sheetKey: string): Promise<Billi
       return parsePostventaBillingCSV(text);
     } catch (error) {
       console.error("Error loading postventa billing data", error);
+      throw error;
+    }
+};
+
+export const fetchWarrantyData = async (sheetKey: string): Promise<WarrantyRecord[]> => {
+    try {
+      const text = await fetchFromProxy(sheetKey);
+      return parseWarrantyCSV(text);
+    } catch (error) {
+      console.error("Error loading warranty data", error);
       throw error;
     }
 };
@@ -1396,6 +1423,65 @@ const parsePostventaBillingCSV = (csvText: string): BillingRecord[] => {
 
         if (record.mes && record.mes !== 'Unknown') {
             records.push(record as BillingRecord);
+        }
+    }
+    return records;
+};
+
+const parseWarrantyCSV = (csvText: string): WarrantyRecord[] => {
+    const rows = parseCSV(csvText);
+    if (rows.length < 2) return [];
+
+    const headers = rows[0].map(cleanHeader);
+    const records: WarrantyRecord[] = [];
+
+    for (let i = 1; i < rows.length; i++) {
+        const currentLine = rows[i];
+        if (!currentLine || currentLine.every(cell => !String(cell || '').trim())) continue;
+
+        const record: any = { id: `warranty-row-${i}` };
+
+        headers.forEach((header, index) => {
+            const value = currentLine[index] || '';
+
+            if (header === 'mes') record.mes = value;
+            else if (header === 'no' || header === 'no.' || header === 'nro' || header === 'numero') record.numero = value;
+            else if (header === 'claim' || header.includes('claim')) record.claim = value;
+            else if (header === 'tipo') record.tipo = value;
+            else if (header === 'vin') record.vin = value;
+            else if (header === 'work') record.work = parseNumber(value);
+            else if (header === 'e work' || header === 'e.work' || header === 'ework') record.e_work = parseNumber(value);
+            else if (header === 'material') record.material = parseNumber(value);
+            else if (header === 'e material' || header === 'e.material' || header === 'ematerial') record.e_material = parseNumber(value);
+            else if (header === 'total') record.total = parseNumber(value);
+            else if (header === 'fecha') record.fecha = value;
+            else if (header.includes('cargo ipsos')) record.cargo_ipsos = value;
+            else if (header === 'cargo') record.cargo = value;
+            else if (header.includes('control')) record.control = value;
+            else if (header.includes('coincidencia')) record.coincidencia = value;
+            else if (header.includes('justificacion')) record.justificacion = value;
+
+            record[header] = value;
+        });
+
+        if (!record.mes || normalizeMonth(record.mes) === 'Unknown') {
+            record.mes = pickFirstValidMonth(record.mes, record.fecha);
+        }
+        if (!record.mes || record.mes === 'Unknown') record.mes = 'Unknown';
+        else record.mes = normalizeMonth(record.mes);
+
+        record.lote = normalizeWarrantyLot(record.fecha);
+
+        record.work = Number(record.work || 0);
+        record.e_work = Number(record.e_work || 0);
+        record.material = Number(record.material || 0);
+        record.e_material = Number(record.e_material || 0);
+        record.total = Number(record.total || (record.work + record.e_work + record.material + record.e_material));
+        record.tipo = record.tipo || 'Sin Tipo';
+        record.claim = record.claim || record.numero || `Claim ${i}`;
+
+        if (record.claim && String(record.claim).trim() !== '') {
+            records.push(record as WarrantyRecord);
         }
     }
     return records;

@@ -321,6 +321,29 @@ export interface InternalPostventaRecord {
   [key: string]: any;
 }
 
+export interface WarrantyRecord {
+  id: string;
+  mes: string;
+  numero: string;
+  claim: string;
+  tipo: string;
+  vin: string;
+  work: number;
+  e_work: number;
+  material: number;
+  e_material: number;
+  total: number;
+  fecha: string;
+  cargo: string;
+  control: string;
+  coincidencia: string;
+  cargo_ipsos: string;
+  justificacion: string;
+  lote: string;
+  trimestre?: string;
+  [key: string]: any;
+}
+
 export interface ActionPlanRecord {
   id: string;
   nro: string;
@@ -414,6 +437,10 @@ export interface AppConfig {
     action_plan?: string;
     action_plan_sales?: string;
     action_plan_form?: string;
+    warranty_q1?: string;
+    warranty_q2?: string;
+    warranty_q3?: string;
+    warranty_q4?: string;
     hr_relatorio?: string;
     hr_contacts?: string;
     hr_phases?: string;

@@ -14,6 +14,7 @@ const DetailedQualityPostventa = lazy(() => import('./components/DetailedQuality
 const PostventaDashboard = lazy(() => import('./components/PostventaDashboard'));
 const PostventaKpiDashboard = lazy(() => import('./components/PostventaKpiDashboard'));
 const PostventaBillingDashboard = lazy(() => import('./components/PostventaBillingDashboard'));
+const PostventaWarrantyDashboard = lazy(() => import('./components/PostventaWarrantyDashboard'));
 const SalesQualityDashboard = lazy(() => import('./components/SalesQualityDashboard'));
 const InternalPostventaDashboard = lazy(() => import('./components/InternalPostventaDashboard'));
 const ActionPlanDashboard = lazy(() => import('./components/ActionPlanDashboard'));
@@ -256,17 +257,19 @@ function App() {
             transition={{ duration: 0.7, delay: 0.08 }}
             className="rounded-[2.25rem] border border-white/10 bg-white/5 p-4 shadow-[0_30px_90px_rgba(2,6,23,0.45)] backdrop-blur-2xl md:p-5"
           >
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              {([
-                { id: 'operativo', path: '/postventa/operativo', name: 'Control Operativo', icon: Icons.Wrench, color: 'blue', desc: 'Gestión de taller' },
-                { id: 'gestion_kpis', path: '/postventa/kpis', name: 'Gestión KPIs', icon: Icons.BarChart, color: 'indigo', desc: 'Indicadores clave' },
-                { id: 'facturacion', path: '/postventa/facturacion', name: 'Facturación', icon: Icons.Banknote, color: 'amber', desc: 'Avance de ventas' }
-              ] as const).map((item) => {
-                const colorClasses = {
-                  blue: "bg-blue-500/20 text-blue-400 shadow-blue-500/40 border-blue-500/30",
-                  indigo: "bg-indigo-500/20 text-indigo-400 shadow-indigo-500/40 border-indigo-500/30",
-                  amber: "bg-amber-500/20 text-amber-400 shadow-amber-500/40 border-amber-500/30",
-                }[item.color];
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            {([
+              { id: 'operativo', path: '/postventa/operativo', name: 'Control Operativo', icon: Icons.Wrench, color: 'blue', desc: 'Gestión de taller' },
+              { id: 'gestion_kpis', path: '/postventa/kpis', name: 'Gestión KPIs', icon: Icons.BarChart, color: 'indigo', desc: 'Indicadores clave' },
+              { id: 'facturacion', path: '/postventa/facturacion', name: 'Facturación', icon: Icons.Banknote, color: 'amber', desc: 'Avance de ventas' },
+              { id: 'garantia', path: '/postventa/garantia', name: 'Garantía', icon: Icons.ShieldCheck, color: 'emerald', desc: 'Lote vs PPT' }
+            ] as const).map((item) => {
+              const colorClasses = {
+                blue: "bg-blue-500/20 text-blue-400 shadow-blue-500/40 border-blue-500/30",
+                indigo: "bg-indigo-500/20 text-indigo-400 shadow-indigo-500/40 border-indigo-500/30",
+                amber: "bg-amber-500/20 text-amber-400 shadow-amber-500/40 border-amber-500/30",
+                emerald: "bg-emerald-500/20 text-emerald-400 shadow-emerald-500/40 border-emerald-500/30",
+              }[item.color];
 
                 return (
                   <motion.button
@@ -509,13 +512,25 @@ function App() {
       );
     } else if (effectiveType === 'executive') {
         dashboardContent = <ExecutiveSummary config={config} onBack={handleBack} />;
-    } else if (effectiveType === 'postventa') {
-      if (subType === 'operativo') {
+      } else if (effectiveType === 'postventa') {
+        if (subType === 'operativo') {
         dashboardContent = <PostventaDashboard sheetUrl={resolveDataSource('postventa', config.sheetUrls.postventa, FRONTEND_ONLY_POSTVENTA)} onBack={handleBack} />;
       } else if (subType === 'kpis') {
         dashboardContent = <PostventaKpiDashboard sheetUrl={resolveDataSource('postventa_kpis', config.sheetUrls.postventa_kpis || '', FRONTEND_ONLY_POSTVENTA)} onBack={handleBack} />;
       } else if (subType === 'facturacion') {
         dashboardContent = <PostventaBillingDashboard sheetUrl={resolveDataSource('postventa_billing', config.sheetUrls.postventa_billing || '', FRONTEND_ONLY_POSTVENTA)} onBack={handleBack} />;
+      } else if (subType === 'garantia') {
+        dashboardContent = (
+          <PostventaWarrantyDashboard
+            sheetUrls={{
+              q1: config.sheetUrls.warranty_q1 || '',
+              q2: config.sheetUrls.warranty_q2 || '',
+              q3: config.sheetUrls.warranty_q3 || '',
+              q4: config.sheetUrls.warranty_q4 || '',
+            }}
+            onBack={handleBack}
+          />
+        );
       }
     } else if (area) {
       const areaId = area.id as keyof typeof config.sheetUrls;
@@ -577,6 +592,7 @@ function App() {
             <Route path="/postventa/operativo" element={<DashboardView type="postventa" subType="operativo" />} />
             <Route path="/postventa/kpis" element={<DashboardView type="postventa" subType="kpis" />} />
             <Route path="/postventa/facturacion" element={<DashboardView type="postventa" subType="facturacion" />} />
+            <Route path="/postventa/garantia" element={<DashboardView type="postventa" subType="garantia" />} />
             
             <Route path="/dashboard/:areaId" element={<DashboardView type="generic" />} />
             

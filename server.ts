@@ -91,6 +91,10 @@ async function startServer() {
     // Action Plan
     action_plan: process.env.LINK_PLAN_ACCION || process.env.SHEET_URL_ACTION_PLAN,
     action_plan_sales: process.env.LINK_PLAN_ACCION || process.env.SHEET_URL_ACTION_PLAN_SALES,
+    warranty_q1: process.env.LINK_GARANTIA_Q1 || process.env.LINK_GARANTIA || process.env.SHEET_URL_WARRANTY_Q1,
+    warranty_q2: process.env.LINK_GARANTIA_Q2 || process.env.SHEET_URL_WARRANTY_Q2,
+    warranty_q3: process.env.LINK_GARANTIA_Q3 || process.env.SHEET_URL_WARRANTY_Q3,
+    warranty_q4: process.env.LINK_GARANTIA_Q4 || process.env.SHEET_URL_WARRANTY_Q4,
     
     // Others
     pcgc: process.env.SHEET_URL_PCGC,

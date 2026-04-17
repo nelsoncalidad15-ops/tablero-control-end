@@ -28,6 +28,10 @@ export const CEM_OS_SHEET_KEY = "cem_os";
 export const CEM_OS_SALTA_SHEET_KEY = "cem_os_salta";
 export const ACTION_PLAN_SHEET_KEY = "action_plan";
 export const ACTION_PLAN_SALES_SHEET_KEY = "action_plan_sales";
+export const WARRANTY_Q1_SHEET_KEY = "https://docs.google.com/spreadsheets/d/e/2PACX-1vSZK-_lMU0dlNzJYdSq6zYegMaifYMpDfmXKonF2-Zv4ym_Wel6wT9RyyYMPEZR_g/pubhtml?gid=143278582&single=true";
+export const WARRANTY_Q2_SHEET_KEY = "";
+export const WARRANTY_Q3_SHEET_KEY = "";
+export const WARRANTY_Q4_SHEET_KEY = "";
 export const HR_GRADES_SHEET_KEY = "hr_grades";
 export const HR_RELATORIO_SHEET_KEY = "hr_relatorio";
 export const HR_CONTACTS_SHEET_KEY = "hr_contacts";
@@ -152,6 +156,10 @@ export const DEFAULT_CONFIG = {
     internal_postventa: INTERNAL_POSTVENTA_SHEET_KEY,
     action_plan: ACTION_PLAN_SHEET_KEY,
     action_plan_sales: ACTION_PLAN_SALES_SHEET_KEY,
+    warranty_q1: WARRANTY_Q1_SHEET_KEY,
+    warranty_q2: WARRANTY_Q2_SHEET_KEY,
+    warranty_q3: WARRANTY_Q3_SHEET_KEY,
+    warranty_q4: WARRANTY_Q4_SHEET_KEY,
     hr_relatorio: HR_RELATORIO_SHEET_KEY,
     hr_contacts: HR_CONTACTS_SHEET_KEY,
     hr_phases: HR_PHASES_SHEET_KEY
@@ -168,6 +176,10 @@ export const DEFAULT_CONFIG = {
     internal_postventa: string;
     action_plan: string;
     action_plan_sales: string;
+    warranty_q1: string;
+    warranty_q2: string;
+    warranty_q3: string;
+    warranty_q4: string;
     hr_relatorio: string;
     hr_contacts: string;
     hr_phases: string;

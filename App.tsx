@@ -227,200 +227,221 @@ function App() {
 
   const PostventaSelection = () => (
     <PageWrapper>
-      <div className="min-h-screen relative bg-slate-950 flex items-center justify-center p-4 overflow-hidden">
-         {/* Immersive Background */}
-         <motion.div 
-            initial={{ scale: 1.1, opacity: 0 }}
-            animate={{ scale: 1, opacity: 0.3 }}
-            className="absolute inset-0 z-0"
-            style={{
-                backgroundImage: 'url("https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?q=80&w=2800&auto=format&fit=crop")',
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                filter: 'brightness(0.4) contrast(1.1) saturate(0)'
-            }}
-        />
-        <div className="absolute inset-0 z-0 bg-gradient-to-b from-slate-950/20 via-slate-950/80 to-slate-950"></div>
+      <div className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(37,99,235,0.10),_transparent_24%),linear-gradient(180deg,_#0f172a_0%,_#020617_100%)] px-4 py-6 text-white md:px-6 md:py-8">
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute inset-0 opacity-[0.08]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px)', backgroundSize: '72px 72px' }} />
+          <div className="absolute -left-24 top-20 h-72 w-72 rounded-full bg-blue-500/10 blur-3xl" />
+          <div className="absolute right-0 top-36 h-80 w-80 rounded-full bg-indigo-500/10 blur-3xl" />
+        </div>
 
-        <motion.div 
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="relative z-10 bg-white/5 backdrop-blur-3xl border border-white/10 rounded-[4rem] shadow-2xl p-12 md:p-20 w-full text-center"
-        >
-          <div className="mb-20">
-            <h2 className="text-6xl lg:text-8xl font-black text-white mb-6 uppercase italic tracking-tighter leading-[0.9]">Área de <br/> <span className="text-transparent bg-clip-text bg-gradient-to-r from-indigo-500 to-purple-400">Postventa</span></h2>
-            <p className="text-indigo-400 font-black uppercase text-[12px] md:text-[14px] tracking-[0.6em] opacity-80">Operations & Service Management</p>
+        <div className="relative mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-[1600px] flex-col justify-center gap-8">
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mx-auto w-full max-w-3xl text-center"
+          >
+            <p className="text-[10px] font-black uppercase tracking-[0.55em] text-blue-300/80">Área de postventa</p>
+            <h2 className="mt-4 text-[2.7rem] font-black uppercase italic leading-[0.9] tracking-tighter text-white md:text-[3.8rem] lg:text-[4.4rem]">
+              <span className="block">Control</span>
+              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-sky-300 via-blue-400 to-indigo-400">Postventa</span>
+            </h2>
+            <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-slate-300/85 md:text-[15px]">
+              Gestión de taller, indicadores y facturación con una navegación clara, compacta y visualmente más premium.
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.08 }}
+            className="rounded-[2.25rem] border border-white/10 bg-white/5 p-4 shadow-[0_30px_90px_rgba(2,6,23,0.45)] backdrop-blur-2xl md:p-5"
+          >
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              {([
+                { id: 'operativo', path: '/postventa/operativo', name: 'Control Operativo', icon: Icons.Wrench, color: 'blue', desc: 'Gestión de taller' },
+                { id: 'gestion_kpis', path: '/postventa/kpis', name: 'Gestión KPIs', icon: Icons.BarChart, color: 'indigo', desc: 'Indicadores clave' },
+                { id: 'facturacion', path: '/postventa/facturacion', name: 'Facturación', icon: Icons.Banknote, color: 'amber', desc: 'Avance de ventas' }
+              ] as const).map((item) => {
+                const colorClasses = {
+                  blue: "bg-blue-500/20 text-blue-400 shadow-blue-500/40 border-blue-500/30",
+                  indigo: "bg-indigo-500/20 text-indigo-400 shadow-indigo-500/40 border-indigo-500/30",
+                  amber: "bg-amber-500/20 text-amber-400 shadow-amber-500/40 border-amber-500/30",
+                }[item.color];
+
+                return (
+                  <motion.button
+                    key={item.id}
+                    whileHover={{ y: -6, scale: 1.01 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => navigate(item.path)}
+                    className="group relative overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))] p-7 text-center transition-all hover:border-white/20 hover:bg-white/[0.08] hover:shadow-[0_18px_50px_rgba(15,23,42,0.24)] sm:p-8"
+                  >
+                    <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                    <div className={`${colorClasses} mx-auto flex h-20 w-20 items-center justify-center rounded-[1.5rem] border shadow-[0_18px_40px_rgba(15,23,42,0.16)] transition-transform duration-500 group-hover:scale-105 group-hover:-translate-y-1 sm:h-24 sm:w-24`}>
+                      <item.icon className="h-8 w-8 sm:h-10 sm:w-10" strokeWidth={2.5} />
+                    </div>
+                    <h3 className="mt-6 text-[1.25rem] font-black uppercase leading-tight tracking-tight text-white transition-colors group-hover:text-blue-300 sm:text-[1.45rem]">{item.name}</h3>
+                    <p className="mx-auto mt-2 max-w-[240px] text-[0.76rem] font-medium uppercase tracking-[0.22em] leading-6 text-slate-300/70">{item.desc}</p>
+                  </motion.button>
+                );
+              })}
+            </div>
+          </motion.div>
+
+          <div className="flex justify-center pt-1">
+            <button onClick={handleBackToPortal} className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/5 px-5 py-3 text-[10px] font-black uppercase tracking-[0.32em] text-slate-300 transition-all hover:bg-white/10 hover:text-white">
+              <Icons.ArrowLeft className="h-4 w-4" />
+              Volver al portal
+            </button>
           </div>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
-            {([
-              { id: 'operativo', path: '/postventa/operativo', name: 'Control Operativo', icon: Icons.Wrench, color: 'blue', desc: 'Gestión de taller' },
-              { id: 'gestion_kpis', path: '/postventa/kpis', name: 'Gestión KPIs', icon: Icons.BarChart, color: 'indigo', desc: 'Indicadores clave' },
-              { id: 'facturacion', path: '/postventa/facturacion', name: 'Facturación', icon: Icons.Banknote, color: 'amber', desc: 'Avance de ventas' }
-            ] as const).map((item) => {
-              const colorClasses = {
-                blue: "bg-blue-500/20 text-blue-400 shadow-blue-500/40 border-blue-500/30",
-                indigo: "bg-indigo-500/20 text-indigo-400 shadow-indigo-500/40 border-indigo-500/30",
-                amber: "bg-amber-500/20 text-amber-400 shadow-amber-500/40 border-amber-500/30",
-              }[item.color];
-
-              return (
-                <motion.button 
-                  key={item.id}
-                  whileHover={{ y: -15, backgroundColor: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.3)' }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => navigate(item.path)}
-                  className="p-12 bg-white/5 border border-white/10 rounded-[3rem] transition-all group text-center flex flex-col items-center relative overflow-hidden shadow-2xl"
-                >
-                  <div className={`${colorClasses} w-36 h-36 rounded-[2.5rem] flex items-center justify-center mb-10 shadow-2xl border group-hover:scale-110 group-hover:-rotate-6 transition-all duration-700`}>
-                    <item.icon className="w-16 h-16" strokeWidth={2.5} />
-                  </div>
-                  <h3 className="font-black text-white uppercase tracking-tight leading-tight text-3xl mb-4 group-hover:text-blue-400 transition-colors">{item.name}</h3>
-                  <p className="text-blue-400 text-[13px] font-bold uppercase tracking-[0.25em] leading-relaxed max-w-[240px]">{item.desc}</p>
-                  <div className="absolute -bottom-8 -right-8 w-32 h-32 bg-white/5 rounded-full blur-3xl group-hover:bg-white/10 transition-colors"></div>
-                </motion.button>
-              );
-            })}
-          </div>
-
-          <button onClick={handleBackToPortal} className="mt-20 text-white/40 font-black uppercase text-[12px] tracking-[0.6em] hover:text-white transition-colors flex items-center gap-6 mx-auto group">
-            <Icons.ArrowLeft className="w-6 h-6 group-hover:-translate-x-3 transition-transform" />
-            Volver al Portal Principal
-          </button>
-        </motion.div>
+        </div>
       </div>
     </PageWrapper>
   );
 
   const PostventaQualitySelection = () => (
     <PageWrapper>
-      <div className="min-h-screen relative bg-slate-950 flex items-center justify-center p-4 overflow-hidden">
-         {/* Immersive Background */}
-         <motion.div 
-            initial={{ scale: 1.1, opacity: 0 }}
-            animate={{ scale: 1, opacity: 0.3 }}
-            className="absolute inset-0 z-0"
-            style={{
-                backgroundImage: 'url("https://images.unsplash.com/photo-1486262715619-67b85e0b08d3?q=80&w=2800&auto=format&fit=crop")',
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                filter: 'brightness(0.4) contrast(1.1) saturate(0)'
-            }}
-        />
-        <div className="absolute inset-0 z-0 bg-gradient-to-b from-slate-950/20 via-slate-950/80 to-slate-950"></div>
+      <div className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(59,130,246,0.09),_transparent_24%),linear-gradient(180deg,_#0f172a_0%,_#020617_100%)] px-4 py-6 text-white md:px-6 md:py-8">
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute inset-0 opacity-[0.08]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px)', backgroundSize: '72px 72px' }} />
+          <div className="absolute -right-24 top-20 h-72 w-72 rounded-full bg-blue-500/10 blur-3xl" />
+          <div className="absolute left-0 bottom-0 h-80 w-80 rounded-full bg-indigo-500/10 blur-3xl" />
+        </div>
 
-        <motion.div 
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="relative z-10 bg-white/5 backdrop-blur-3xl border border-white/10 rounded-[4rem] shadow-2xl p-12 md:p-20 w-full text-center"
-        >
-          <div className="mb-20">
-            <h2 className="text-6xl lg:text-8xl font-black text-white mb-6 uppercase italic tracking-tighter leading-[0.9]">Calidad <br/> <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-500 to-indigo-400">Postventa</span></h2>
-            <p className="text-blue-400 font-black uppercase text-[12px] md:text-[14px] tracking-[0.6em] opacity-80">Satisfaction & Quality Monitoring</p>
+        <div className="relative mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-[1600px] flex-col justify-center gap-8">
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mx-auto w-full max-w-3xl text-center"
+          >
+            <p className="text-[10px] font-black uppercase tracking-[0.55em] text-blue-300/80">Calidad postventa</p>
+            <h2 className="mt-4 text-[2.7rem] font-black uppercase italic leading-[0.9] tracking-tighter text-white md:text-[3.8rem] lg:text-[4.4rem]">
+              <span className="block">Gestión de</span>
+              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-sky-300 via-blue-400 to-indigo-400">Calidad</span>
+            </h2>
+            <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-slate-300/85 md:text-[15px]">
+              Seguimiento de reclamos, refuerzo e instancias internas con una presentación más limpia y profesional.
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.08 }}
+            className="rounded-[2.25rem] border border-white/10 bg-white/5 p-4 shadow-[0_30px_90px_rgba(2,6,23,0.45)] backdrop-blur-2xl md:p-5"
+          >
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              {([
+                { id: 'claims', path: '/calidad/postventa/claims', name: 'Gestión de Reclamos', icon: Icons.AlertCircle, color: 'blue', desc: 'Seguimiento de quejas' },
+                { id: 'refuerzo', path: '/calidad/refuerzo', name: 'Refuerzo', icon: Icons.Activity, color: 'indigo', desc: 'Análisis detallado' },
+                { id: 'internal', path: '/calidad/postventa/internal_surveys', name: 'Encuesta Interna', icon: Icons.ClipboardCheck, color: 'blue', desc: 'Satisfacción post-servicio' }
+              ] as const).map((item) => {
+                const colorClasses = {
+                  blue: "bg-blue-500/20 text-blue-400 shadow-blue-500/40 border-blue-500/30",
+                  indigo: "bg-indigo-500/20 text-indigo-400 shadow-indigo-500/40 border-indigo-500/30",
+                }[item.color];
+
+                return (
+                  <motion.button
+                    key={item.id}
+                    whileHover={{ y: -6, scale: 1.01 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => navigate(item.path)}
+                    className="group relative overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))] p-7 text-center transition-all hover:border-white/20 hover:bg-white/[0.08] hover:shadow-[0_18px_50px_rgba(15,23,42,0.24)] sm:p-8"
+                  >
+                    <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                    <div className={`${colorClasses} mx-auto flex h-20 w-20 items-center justify-center rounded-[1.5rem] border shadow-[0_18px_40px_rgba(15,23,42,0.16)] transition-transform duration-500 group-hover:scale-105 group-hover:-translate-y-1 sm:h-24 sm:w-24`}>
+                      <item.icon className="h-8 w-8 sm:h-10 sm:w-10" strokeWidth={2.5} />
+                    </div>
+                    <h3 className="mt-6 text-[1.2rem] font-black uppercase leading-tight tracking-tight text-white transition-colors group-hover:text-blue-300 sm:text-[1.35rem]">{item.name}</h3>
+                    <p className="mx-auto mt-2 max-w-[240px] text-[0.76rem] font-medium uppercase tracking-[0.22em] leading-6 text-slate-300/70">{item.desc}</p>
+                  </motion.button>
+                );
+              })}
+            </div>
+          </motion.div>
+
+          <div className="flex justify-center pt-1">
+            <button onClick={() => navigate('/calidad')} className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/5 px-5 py-3 text-[10px] font-black uppercase tracking-[0.32em] text-slate-300 transition-all hover:bg-white/10 hover:text-white">
+              <Icons.ArrowLeft className="h-4 w-4" />
+              Volver a selección
+            </button>
           </div>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
-            {([
-              { id: 'claims', path: '/calidad/postventa/claims', name: 'Gestión de Reclamos', icon: Icons.AlertCircle, color: 'blue', desc: 'Seguimiento de quejas' },
-              { id: 'refuerzo', path: '/calidad/refuerzo', name: 'Refuerzo', icon: Icons.Activity, color: 'indigo', desc: 'Análisis detallado' },
-              { id: 'internal', path: '/calidad/postventa/internal_surveys', name: 'Encuesta Interna', icon: Icons.ClipboardCheck, color: 'blue', desc: 'Satisfacción post-servicio' }
-            ] as const).map((item) => {
-              const colorClasses = {
-                blue: "bg-blue-500/20 text-blue-400 shadow-blue-500/40 border-blue-500/30",
-                indigo: "bg-indigo-500/20 text-indigo-400 shadow-indigo-500/40 border-indigo-500/30",
-              }[item.color];
-
-              return (
-                <motion.button 
-                  key={item.id}
-                  whileHover={{ y: -15, backgroundColor: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.3)' }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => navigate(item.path)}
-                  className="p-12 bg-white/5 border border-white/10 rounded-[3rem] transition-all group text-center flex flex-col items-center relative overflow-hidden shadow-2xl"
-                >
-                  <div className={`${colorClasses} w-36 h-36 rounded-[2.5rem] flex items-center justify-center mb-10 shadow-2xl border group-hover:scale-110 group-hover:rotate-6 transition-all duration-700`}>
-                    <item.icon className="w-16 h-16" strokeWidth={2.5} />
-                  </div>
-                  <h3 className="font-black text-white uppercase tracking-tight leading-tight text-3xl mb-4 group-hover:text-blue-400 transition-colors">{item.name}</h3>
-                  <p className="text-white/40 text-[13px] font-bold uppercase tracking-[0.25em] leading-relaxed max-w-[240px]">{item.desc}</p>
-                  <div className="absolute -bottom-8 -right-8 w-32 h-32 bg-white/5 rounded-full blur-3xl group-hover:bg-white/10 transition-colors"></div>
-                </motion.button>
-              );
-            })}
-          </div>
-
-          <button onClick={() => navigate('/calidad')} className="mt-20 text-white/40 font-black uppercase text-[12px] tracking-[0.6em] hover:text-white transition-colors flex items-center gap-6 mx-auto group">
-            <Icons.ArrowLeft className="w-6 h-6 group-hover:-translate-x-3 transition-transform" />
-            Volver a Selección de Calidad
-          </button>
-        </motion.div>
+        </div>
       </div>
     </PageWrapper>
   );
 
   const VentasSelection = () => (
     <PageWrapper>
-      <div className="min-h-screen relative bg-slate-950 flex items-center justify-center p-4 overflow-hidden">
-         {/* Immersive Background */}
-         <motion.div 
-            initial={{ scale: 1.1, opacity: 0 }}
-            animate={{ scale: 1, opacity: 0.3 }}
-            className="absolute inset-0 z-0"
-            style={{
-                backgroundImage: 'url("https://images.unsplash.com/photo-1560179707-f14e90ef3623?q=80&w=2800&auto=format&fit=crop")',
-                backgroundSize: 'cover',
-                backgroundPosition: 'center',
-                filter: 'brightness(0.4) contrast(1.1) saturate(0)'
-            }}
-        />
-        <div className="absolute inset-0 z-0 bg-gradient-to-b from-slate-950/20 via-slate-950/80 to-slate-950"></div>
+      <div className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(249,115,22,0.10),_transparent_24%),linear-gradient(180deg,_#0f172a_0%,_#020617_100%)] px-4 py-6 text-white md:px-6 md:py-8">
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute inset-0 opacity-[0.08]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px)', backgroundSize: '72px 72px' }} />
+          <div className="absolute -left-24 top-20 h-72 w-72 rounded-full bg-orange-500/10 blur-3xl" />
+          <div className="absolute right-0 top-36 h-80 w-80 rounded-full bg-amber-500/10 blur-3xl" />
+        </div>
 
-        <motion.div 
-          initial={{ scale: 0.9, opacity: 0 }}
-          animate={{ scale: 1, opacity: 1 }}
-          className="relative z-10 bg-white/5 backdrop-blur-3xl border border-white/10 rounded-[4rem] shadow-2xl p-12 md:p-20 w-full text-center"
-        >
-          <div className="mb-20">
-            <h2 className="text-6xl lg:text-8xl font-black text-white mb-6 uppercase italic tracking-tighter leading-[0.9]">Calidad <br/> <span className="text-transparent bg-clip-text bg-gradient-to-r from-orange-500 to-amber-400">Ventas</span></h2>
-            <p className="text-orange-400 font-black uppercase text-[12px] md:text-[14px] tracking-[0.6em] opacity-80">Satisfaction & Performance Analysis</p>
+        <div className="relative mx-auto flex min-h-[calc(100vh-3rem)] w-full max-w-[1600px] flex-col justify-center gap-8">
+          <motion.div
+            initial={{ opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="mx-auto w-full max-w-3xl text-center"
+          >
+            <p className="text-[10px] font-black uppercase tracking-[0.55em] text-orange-300/80">Calidad ventas</p>
+            <h2 className="mt-4 text-[2.7rem] font-black uppercase italic leading-[0.9] tracking-tighter text-white md:text-[3.8rem] lg:text-[4.4rem]">
+              <span className="block">Control de</span>
+              <span className="block text-transparent bg-clip-text bg-gradient-to-r from-orange-300 via-amber-400 to-yellow-400">Ventas</span>
+            </h2>
+            <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-slate-300/85 md:text-[15px]">
+              Encuestas, reclamos y CEM OS con una navegación más compacta, elegante y lista para operar.
+            </p>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 18 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.08 }}
+            className="rounded-[2.25rem] border border-white/10 bg-white/5 p-4 shadow-[0_30px_90px_rgba(2,6,23,0.45)] backdrop-blur-2xl md:p-5"
+          >
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              {([
+                { id: 'surveys', path: '/calidad/ventas/surveys', name: 'Encuestas Internas', icon: Icons.ClipboardCheck, color: 'blue', desc: 'Satisfacción en salón' },
+                { id: 'claims', path: '/calidad/ventas/claims', name: 'Gestión de Reclamos', icon: Icons.AlertCircle, color: 'orange', desc: 'Seguimiento de quejas' },
+                { id: 'cem_os', path: '/calidad/ventas/cem_os', name: 'CEM OS', icon: Icons.BarChart, color: 'indigo', desc: 'Análisis de satisfacción general' }
+              ] as const).map((item) => {
+                const colorClasses = {
+                  blue: "bg-blue-500/20 text-blue-400 shadow-blue-500/40 border-blue-500/30",
+                  orange: "bg-orange-500/20 text-orange-400 shadow-orange-500/40 border-orange-500/30",
+                  indigo: "bg-indigo-500/20 text-indigo-400 shadow-indigo-500/40 border-indigo-500/30",
+                }[item.color];
+
+                return (
+                  <motion.button
+                    key={item.id}
+                    whileHover={{ y: -6, scale: 1.01 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => navigate(item.path)}
+                    className="group relative overflow-hidden rounded-[2rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.06),rgba(255,255,255,0.03))] p-7 text-center transition-all hover:border-white/20 hover:bg-white/[0.08] hover:shadow-[0_18px_50px_rgba(15,23,42,0.24)] sm:p-8"
+                  >
+                    <div className="absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
+                    <div className={`${colorClasses} mx-auto flex h-20 w-20 items-center justify-center rounded-[1.5rem] border shadow-[0_18px_40px_rgba(15,23,42,0.16)] transition-transform duration-500 group-hover:scale-105 group-hover:-translate-y-1 sm:h-24 sm:w-24`}>
+                      <item.icon className="h-8 w-8 sm:h-10 sm:w-10" strokeWidth={2.5} />
+                    </div>
+                    <h3 className="mt-6 text-[1.2rem] font-black uppercase leading-tight tracking-tight text-white transition-colors group-hover:text-orange-300 sm:text-[1.35rem]">{item.name}</h3>
+                    <p className="mx-auto mt-2 max-w-[240px] text-[0.76rem] font-medium uppercase tracking-[0.22em] leading-6 text-slate-300/70">{item.desc}</p>
+                  </motion.button>
+                );
+              })}
+            </div>
+          </motion.div>
+
+          <div className="flex justify-center pt-1">
+            <button onClick={() => navigate('/calidad')} className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/5 px-5 py-3 text-[10px] font-black uppercase tracking-[0.32em] text-slate-300 transition-all hover:bg-white/10 hover:text-white">
+              <Icons.ArrowLeft className="h-4 w-4" />
+              Volver a selección
+            </button>
           </div>
-          
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-8">
-            {([
-              { id: 'surveys', path: '/calidad/ventas/surveys', name: 'Encuestas Internas', icon: Icons.ClipboardCheck, color: 'blue', desc: 'Satisfacción en salón' },
-              { id: 'claims', path: '/calidad/ventas/claims', name: 'Gestión de Reclamos', icon: Icons.AlertCircle, color: 'orange', desc: 'Seguimiento de quejas' },
-              { id: 'cem_os', path: '/calidad/ventas/cem_os', name: 'CEM OS', icon: Icons.BarChart, color: 'indigo', desc: 'Análisis de satisfacción general' }
-            ] as const).map((item) => {
-              const colorClasses = {
-                blue: "bg-blue-500/20 text-blue-400 shadow-blue-500/40 border-blue-500/30",
-                orange: "bg-orange-500/20 text-orange-400 shadow-orange-500/40 border-orange-500/30",
-                indigo: "bg-indigo-500/20 text-indigo-400 shadow-indigo-500/40 border-indigo-500/30",
-              }[item.color];
-
-              return (
-                <motion.button 
-                  key={item.id}
-                  whileHover={{ y: -15, backgroundColor: 'rgba(255,255,255,0.08)', borderColor: 'rgba(255,255,255,0.3)' }}
-                  whileTap={{ scale: 0.98 }}
-                  onClick={() => navigate(item.path)}
-                  className="p-12 bg-white/5 border border-white/10 rounded-[3rem] transition-all group text-center flex flex-col items-center relative overflow-hidden shadow-2xl"
-                >
-                  <div className={`${colorClasses} w-36 h-36 rounded-[2.5rem] flex items-center justify-center mb-10 shadow-2xl border group-hover:scale-110 group-hover:rotate-6 transition-all duration-700`}>
-                    <item.icon className="w-16 h-16" strokeWidth={2.5} />
-                  </div>
-                  <h3 className="font-black text-white uppercase tracking-tight leading-tight text-3xl mb-4 group-hover:text-orange-400 transition-colors">{item.name}</h3>
-                  <p className="text-white/40 text-[13px] font-bold uppercase tracking-[0.25em] leading-relaxed max-w-[240px]">{item.desc}</p>
-                  <div className="absolute -bottom-8 -right-8 w-32 h-32 bg-white/5 rounded-full blur-3xl group-hover:bg-white/10 transition-colors"></div>
-                </motion.button>
-              );
-            })}
-          </div>
-
-          <button onClick={() => navigate('/calidad')} className="mt-20 text-white/40 font-black uppercase text-[12px] tracking-[0.6em] hover:text-white transition-colors flex items-center gap-6 mx-auto group">
-            <Icons.ArrowLeft className="w-6 h-6 group-hover:-translate-x-3 transition-transform" />
-            Volver a Selección de Calidad
-          </button>
-        </motion.div>
+        </div>
       </div>
     </PageWrapper>
   );

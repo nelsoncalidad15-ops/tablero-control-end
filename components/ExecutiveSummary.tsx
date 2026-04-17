@@ -1,4 +1,4 @@
-
+﻿
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { Icons } from './Icon';
@@ -136,9 +136,9 @@ const GaugeMetric: React.FC<{
     );
 };
 
-const ReportCover: React.FC<{ year: number, month: string, branch: string }> = ({ year, month, branch }) => {
+const ReportCover: React.FC<{ year: number, month: string, branches: string[] }> = ({ year, month, branches }) => {
     return (
-        <div className="min-h-[85vh] flex flex-col items-center justify-center relative overflow-hidden rounded-[4rem] border border-white/10 bg-slate-950 mb-20 group">
+        <div className="relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-slate-950/95 mb-10 group px-8 py-6">
             {/* Animated Background Elements */}
             <div className="absolute inset-0 overflow-hidden">
                 <motion.div 
@@ -162,53 +162,40 @@ const ReportCover: React.FC<{ year: number, month: string, branch: string }> = (
                 <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(#3b82f6 1px, transparent 1px)', backgroundSize: '60px 60px' }}></div>
             </div>
 
-            <div className="relative z-10 flex flex-col items-center text-center px-8">
-                <motion.div 
-                    initial={{ y: 50, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ duration: 1 }}
-                    className="w-24 h-24 bg-white rounded-[2.5rem] flex items-center justify-center text-slate-950 shadow-[0_0_50px_rgba(255,255,255,0.2)] mb-12 transform -rotate-6 group-hover:rotate-0 transition-transform duration-700"
-                >
-                    <Icons.Activity className="w-12 h-12" />
-                </motion.div>
-
-                <motion.div
-                    initial={{ y: 30, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.3, duration: 1 }}
-                >
-                    <h1 className="text-[12vw] font-black text-white leading-[0.85] tracking-tighter italic uppercase mb-8">
-                        Reporte<br />
-                        <span className="text-blue-500">Gerencial</span>
-                    </h1>
-                </motion.div>
-
-                <motion.div
-                    initial={{ y: 20, opacity: 0 }}
-                    animate={{ y: 0, opacity: 1 }}
-                    transition={{ delay: 0.6, duration: 1 }}
-                    className="flex flex-col items-center space-y-6"
-                >
-                    <div className="h-px w-40 bg-gradient-to-r from-transparent via-blue-500 to-transparent"></div>
-                    
-                    <div className="flex items-center gap-8">
-                        <div className="text-right">
-                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.5em] mb-1">Periodo</p>
-                            <p className="text-2xl font-black text-white uppercase italic">{month || 'Anual'} {year}</p>
+            <div className="relative z-10 flex flex-col gap-4">
+                <div className="flex items-center justify-between gap-4">
+                    <div className="flex items-center gap-4">
+                        <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-slate-950 shadow-[0_0_30px_rgba(255,255,255,0.12)]">
+                            <Icons.Activity className="w-7 h-7" />
                         </div>
-                        <div className="w-px h-12 bg-white/10"></div>
-                        <div className="text-left">
-                            <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.5em] mb-1">Sucursal</p>
-                            <p className="text-2xl font-black text-white uppercase italic">{branch || 'Todas'}</p>
+                        <div>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.5em] mb-1">Sala de situación</p>
+                            <h1 className="text-3xl md:text-4xl font-black text-white tracking-tighter italic uppercase leading-none">
+                                Panel ejecutivo
+                            </h1>
                         </div>
                     </div>
-
-                    <div className="pt-12">
-                        <div className="px-10 py-4 bg-white/5 backdrop-blur-md border border-white/10 rounded-full">
-                            <p className="text-[11px] font-black text-blue-400 uppercase tracking-[0.6em]">Autosol Intelligence System • Enterprise Edition</p>
-                        </div>
+                    <div className="hidden md:flex items-center gap-3">
+                        <span className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-[0.35em] text-slate-300">
+                            {year}
+                        </span>
+                        <span className="px-4 py-2 rounded-full bg-blue-500/15 border border-blue-400/20 text-[10px] font-black uppercase tracking-[0.35em] text-blue-300">
+                            {month || 'Anual'}
+                        </span>
                     </div>
-                </motion.div>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                    <span className="px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-[0.2em] text-slate-300">
+                        Periodo: {month || 'Anual'}
+                    </span>
+                    <span className="px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-[0.2em] text-slate-300">
+                        Sucursales: {branches.length === 0 ? 'Todas' : branches.join(' / ')}
+                    </span>
+                    <span className="px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-[0.2em] text-slate-300">
+                        Monitoreo ejecutivo en tiempo real
+                    </span>
+                </div>
             </div>
 
             {/* Bottom Decorative Bar */}
@@ -246,7 +233,7 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
   // Filters
   const [selectedYear, setSelectedYear] = useState<number>(2026);
   const [selectedMonth, setSelectedMonth] = useState<string>('');
-  const [selectedBranch, setSelectedBranch] = useState<string>('');
+  const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
 
   useEffect(() => {
     const loadAllData = async () => {
@@ -301,7 +288,7 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
         return list.filter(d => {
             const matchYear = !selectedYear || d.anio === selectedYear || (d.fecha_reclamo && d.fecha_reclamo.includes(selectedYear.toString()));
             const matchMonth = !month || d.mes === month;
-            const matchBranch = !selectedBranch || d.sucursal === selectedBranch;
+            const matchBranch = selectedBranches.length === 0 || selectedBranches.includes(d.sucursal);
             return matchYear && matchMonth && matchBranch;
         });
     };
@@ -336,7 +323,7 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
         closedCemOs: closedMonth ? filterByYearMonthBranch(data.cemOs, closedMonth) : [],
         closedInternalPostventa: closedMonth ? filterByYearMonthBranch(data.internalPostventa, closedMonth) : []
     };
-  }, [data, selectedYear, selectedMonth, selectedBranch]);
+  }, [data, selectedYear, selectedMonth, selectedBranches]);
 
   const metrics = useMemo(() => {
     const calculateAvg = (list: any[], key: string) => {
@@ -391,7 +378,7 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
 
     // 6. Evolución Anual de Reclamos (Postventa Internal)
     const postventaEvolution = MONTHS.map(m => {
-        const count = data.quality.filter(d => d.mes === m && (!selectedYear || d.anio === selectedYear) && (!selectedBranch || d.sucursal === selectedBranch)).length;
+        const count = data.quality.filter(d => d.mes === m && (!selectedYear || d.anio === selectedYear) && (selectedBranches.length === 0 || selectedBranches.includes(d.sucursal))).length;
         return { name: m, value: count };
     });
 
@@ -427,7 +414,7 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
 
     // 9. Volumen Anual de Reclamos (Sales Internal)
     const salesClaimsEvolution = MONTHS.map(m => {
-        const count = data.salesClaims.filter(d => d.mes === m && (!selectedYear || d.anio === selectedYear) && (!selectedBranch || d.sucursal === selectedBranch)).length;
+        const count = data.salesClaims.filter(d => d.mes === m && (!selectedYear || d.anio === selectedYear) && (selectedBranches.length === 0 || selectedBranches.includes(d.sucursal))).length;
         return { name: m, value: count };
     });
 
@@ -452,7 +439,7 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
         topAdvisors,
         salesClaimsEvolution
     };
-  }, [filteredData, data.quality, data.salesClaims, selectedYear, selectedBranch]);
+  }, [filteredData, data.quality, data.salesClaims, selectedYear, selectedBranches]);
 
   return (
     <DashboardFrame 
@@ -470,7 +457,7 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
                     Mes: {selectedMonth || 'TODOS'}
                 </span>
                 <span className="px-3 py-1.5 rounded-full bg-white border border-slate-200 text-slate-500 text-[9px] font-black uppercase tracking-[0.2em]">
-                    Sucursal: {selectedBranch || 'TODAS'}
+                    Sucursal: {selectedBranches.length === 0 ? 'TODAS' : selectedBranches.join(' / ')}
                 </span>
             </>
         }
@@ -506,7 +493,7 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
             <ReportCover 
                 year={selectedYear} 
                 month={selectedMonth} 
-                branch={selectedBranch} 
+                branches={selectedBranches} 
             />
 
             {/* Professional Tech Background Elements */}
@@ -518,24 +505,39 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
             </div>
 
             {/* Header Section with Glassmorphism */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-6 bg-white/5 backdrop-blur-2xl p-8 rounded-[2.5rem] shadow-2xl border border-white/10 print:hidden">
-                <div className="flex items-center gap-5">
-                    <div className="w-14 h-14 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-2xl shadow-blue-600/20 transform -rotate-2">
-                        <Icons.Activity className="w-7 h-7" />
+            <div className="flex flex-col gap-5 bg-white/5 backdrop-blur-2xl p-6 md:p-8 rounded-[2.5rem] shadow-2xl border border-white/10 print:hidden">
+                <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-5">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-2xl shadow-blue-600/20 transform -rotate-2 shrink-0">
+                            <Icons.Activity className="w-6 h-6" />
+                        </div>
+                        <div>
+                            <p className="text-[9px] font-black text-blue-400 uppercase tracking-[0.45em] mb-2">Sala de situación</p>
+                            <h2 className="text-2xl md:text-3xl font-black text-white tracking-tighter italic leading-none">Panel ejecutivo</h2>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mt-2">Resumen operativo y estratégico</p>
+                        </div>
                     </div>
-                    <div>
-                        <h2 className="text-3xl font-black text-white tracking-tighter italic leading-none">PANEL DE CONTROL</h2>
-                        <p className="text-[10px] font-black text-blue-400 uppercase tracking-[0.4em] mt-2">Monitoreo Estratégico Autosol</p>
+
+                    <div className="flex flex-wrap items-center gap-2">
+                        <span className="px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-[0.2em] text-slate-300">
+                            Año: {selectedYear}
+                        </span>
+                        <span className="px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-[0.2em] text-slate-300">
+                            Mes: {selectedMonth || 'Todos'}
+                        </span>
+                        <span className="px-3 py-1.5 rounded-full bg-blue-500/15 border border-blue-400/20 text-[9px] font-black uppercase tracking-[0.2em] text-blue-300">
+                            Sucursales: {selectedBranches.length === 0 ? 'Todas' : selectedBranches.join(' / ')}
+                        </span>
                     </div>
                 </div>
-                
-                <div className="flex flex-wrap items-center gap-4 w-full md:w-auto">
-                    <div className="flex bg-white/5 p-1.5 rounded-2xl border border-white/10 backdrop-blur-md shadow-inner">
+
+                <div className="flex flex-col gap-4">
+                    <div className="flex bg-white/5 p-1.5 rounded-2xl border border-white/10 backdrop-blur-md shadow-inner overflow-x-auto">
                         {YEARS.map(y => (
                             <button
                                 key={y}
                                 onClick={() => setSelectedYear(y)}
-                                className={`px-8 py-2.5 rounded-xl text-[11px] font-black transition-all duration-500 ${
+                                className={`px-8 py-2.5 rounded-xl text-[11px] font-black transition-all duration-500 whitespace-nowrap ${
                                     selectedYear === y ? 'bg-blue-600 text-white shadow-xl scale-105' : 'text-slate-500 hover:text-white'
                                 }`}
                             >
@@ -544,27 +546,62 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
                         ))}
                     </div>
 
-                    <select 
-                        value={selectedMonth}
-                        onChange={(e) => setSelectedMonth(e.target.value)}
-                        className="bg-white/5 backdrop-blur-md border border-white/10 text-white text-[11px] font-black rounded-2xl px-8 py-3.5 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all uppercase tracking-widest shadow-sm"
-                    >
-                        <option value="" className="bg-slate-900">Todos los Meses</option>
-                        {MONTHS.map(m => <option key={m} value={m} className="bg-slate-900">{m}</option>)}
-                    </select>
+                    <div className="grid grid-cols-1 gap-4">
+                        <div className="flex flex-wrap items-center gap-2 p-2 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md shadow-inner">
+                            <button
+                                onClick={() => setSelectedMonth('')}
+                                className={`px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] transition-all border ${selectedMonth === '' ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-500/20' : 'bg-transparent text-slate-400 border-transparent hover:text-white hover:border-white/10'}`}
+                            >
+                                Todos
+                            </button>
+                            {MONTHS.map(m => (
+                                <button
+                                    key={m}
+                                    onClick={() => setSelectedMonth(m)}
+                                    className={`px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border ${selectedMonth === m ? 'bg-white text-slate-950 border-white shadow-lg' : 'bg-white/0 text-slate-300 border-transparent hover:text-white hover:bg-white/5'}`}
+                                >
+                                    {m.substring(0, 3)}
+                                </button>
+                            ))}
+                        </div>
 
-                    <select 
-                        value={selectedBranch}
-                        onChange={(e) => setSelectedBranch(e.target.value)}
-                        className="bg-white/5 backdrop-blur-md border border-white/10 text-white text-[11px] font-black rounded-2xl px-8 py-3.5 focus:ring-2 focus:ring-blue-500/20 outline-none transition-all uppercase tracking-widest shadow-sm"
-                    >
-                        <option value="" className="bg-slate-900">Todas las Sucursales</option>
-                        {availableBranches.map(b => <option key={b} value={b} className="bg-slate-900">{b}</option>)}
-                    </select>
+                        <div className="flex flex-wrap items-center gap-2 p-2 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md shadow-inner">
+                            <button
+                                onClick={() => setSelectedBranches([])}
+                                className={`px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] transition-all border ${selectedBranches.length === 0 ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-500/20' : 'bg-transparent text-slate-400 border-transparent hover:text-white hover:border-white/10'}`}
+                            >
+                                Todas
+                            </button>
+                            {availableBranches.map(branch => {
+                                const active = selectedBranches.includes(branch);
+                                return (
+                                    <button
+                                        key={branch}
+                                        onClick={() => setSelectedBranches(prev => active ? prev.filter(b => b !== branch) : [...prev, branch])}
+                                        className={`px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] transition-all border ${active ? 'bg-white text-slate-950 border-white shadow-lg' : 'bg-white/0 text-slate-300 border-transparent hover:text-white hover:bg-white/5'}`}
+                                    >
+                                        {branch}
+                                    </button>
+                                );
+                            })}
+                        </div>
+
+                        <div className="flex flex-wrap items-center gap-2 px-1">
+                            {selectedBranches.length > 0 ? (
+                                selectedBranches.map(branch => (
+                                    <span key={branch} className="px-2.5 py-1 rounded-full bg-white/10 border border-white/10 text-[9px] font-black uppercase tracking-[0.18em] text-slate-200">
+                                        {branch}
+                                    </span>
+                                ))
+                            ) : (
+                                <span className="px-2.5 py-1 rounded-full bg-white/10 border border-white/10 text-[9px] font-black uppercase tracking-[0.18em] text-slate-400">
+                                    Todas las sucursales
+                                </span>
+                            )}
+                        </div>
+                    </div>
                 </div>
-            </div>
-
-            {/* Main KPIs with Gauges */}
+            </div>            {/* Main KPIs with Gauges */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 <GaugeMetric 
                     title="VENTAS OS (EXTERNO)" 
@@ -765,3 +802,4 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
 };
 
 export default ExecutiveSummary;
+

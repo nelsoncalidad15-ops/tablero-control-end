@@ -125,33 +125,91 @@ function App() {
 
   const QualitySelection = () => (
     <PageWrapper>
-      <div className="min-h-screen relative bg-[#020617] flex items-center justify-center p-4 overflow-hidden">
-        {/* Immersive Background */}
-        <div className="absolute inset-0 z-0 overflow-hidden">
-            <div className="absolute top-[-10%] left-[-10%] w-[40%] h-[40%] bg-blue-600/20 blur-[120px] rounded-full animate-pulse"></div>
-            <div className="absolute bottom-[-10%] right-[-10%] w-[40%] h-[40%] bg-indigo-600/20 blur-[120px] rounded-full animate-pulse" style={{ animationDelay: '1s' }}></div>
+      <div className="relative min-h-screen overflow-x-hidden overflow-y-auto bg-slate-950 font-sans text-white">
+        <div className="pointer-events-none absolute inset-0">
+          <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_center,_rgba(79,70,229,0.18),_transparent_26%),radial-gradient(circle_at_18%_14%,_rgba(56,189,248,0.11),_transparent_22%),radial-gradient(circle_at_82%_18%,_rgba(245,158,11,0.08),_transparent_20%),linear-gradient(180deg,_#020617_0%,_#050816_46%,_#020617_100%)]" />
+          <div className="absolute inset-x-0 top-0 h-40 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.045),transparent)] opacity-35" />
+          <div className="absolute -left-24 top-24 h-72 w-72 rounded-full bg-sky-500/10 blur-3xl" />
+          <div className="absolute bottom-8 right-0 h-80 w-80 rounded-full bg-violet-400/10 blur-3xl" />
+          <div className="absolute inset-0 opacity-[0.06]" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.08) 1px, transparent 1px)', backgroundSize: '80px 80px' }} />
         </div>
 
-        <motion.div 
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="relative z-10 w-full"
-        >
-          <div className="text-center mb-16">
-            <motion.div
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                className="inline-flex items-center gap-3 px-6 py-2 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-[10px] font-black uppercase tracking-[0.4em] mb-8"
-            >
-                <Icons.ShieldCheck className="w-3 h-3" /> Intelligence Hub
-            </motion.div>
-            <h2 className="text-6xl lg:text-7xl font-black text-white mb-6 uppercase italic tracking-tighter leading-[0.9]">
-                CENTRO DE <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-indigo-400">CALIDAD</span>
-            </h2>
-            <p className="text-slate-400 font-medium text-base md:text-lg max-w-2xl mx-auto">Seleccione el módulo de análisis para visualizar el rendimiento y la satisfacción del cliente en tiempo real.</p>
-          </div>
+        <div className="relative mx-auto flex min-h-screen w-full max-w-[1700px] flex-col gap-4 px-4 py-4 md:px-6 md:py-5 lg:px-8">
+          <motion.div
+            initial={{ opacity: 0, y: -16 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="flex shrink-0 items-center justify-between rounded-[1.35rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.09),rgba(255,255,255,0.035))] px-4 py-3 shadow-[0_24px_80px_rgba(2,6,23,0.30)] backdrop-blur-xl md:px-5"
+          >
+            <div className="flex items-center gap-4">
+              <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-white/10 bg-white text-sm font-black italic text-slate-950 shadow-[0_10px_30px_rgba(255,255,255,0.12)] md:h-12 md:w-12 md:text-base">
+                VW
+              </div>
+              <div>
+                <p className="text-[9px] font-bold uppercase tracking-[0.34em] text-slate-400 md:text-[10px]">Autosol Group</p>
+                <h1 className="text-lg font-black tracking-tight text-white md:text-xl lg:text-2xl">Centro de Calidad</h1>
+              </div>
+            </div>
+            <button onClick={handleBackToPortal} className="hidden md:inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[9px] font-black uppercase tracking-[0.3em] text-slate-300 transition-colors hover:bg-white/10 hover:text-white">
+              <Icons.ArrowLeft className="h-4 w-4" />
+              Volver al Portal
+            </button>
+          </motion.div>
+
+          <motion.section
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7 }}
+            className="rounded-[1.9rem] border border-white/10 bg-[linear-gradient(135deg,rgba(5,8,22,0.94),rgba(10,15,33,0.88))] p-5 text-white shadow-[0_34px_100px_rgba(2,6,23,0.42)] backdrop-blur-xl md:p-6 lg:p-6"
+          >
+            <div className="flex flex-col gap-5 md:gap-6 lg:flex-row lg:items-stretch">
+              <div className="flex flex-1 flex-col justify-between gap-4 md:gap-5">
+                <div className="max-w-4xl">
+                  <div className="mb-4 flex items-center gap-3">
+                    <div className="h-px w-10 bg-gradient-to-r from-cyan-400/80 to-transparent" />
+                  </div>
+                  <h2 className="max-w-3xl text-[2.35rem] font-black leading-[0.94] tracking-tight text-balance md:text-[3.15rem] lg:text-[3.45rem]">
+                    <span className="block">Visión operativa clara</span>
+                    <span className="block text-white/90">para decisiones rápidas.</span>
+                  </h2>
+                  <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-300/88 md:text-[15px] md:leading-7">
+                    Seleccione el módulo de análisis para visualizar el rendimiento y la satisfacción del cliente en tiempo real.
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid gap-3 self-stretch rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] lg:w-[320px]">
+                {[
+                  { icon: Icons.Activity, label: 'Lectura', value: 'Rápida' },
+                  { icon: Icons.Monitor, label: 'Control', value: 'Unificado' },
+                  { icon: Icons.FileText, label: 'Reporte', value: 'Ejecutivo' },
+                ].map((item) => {
+                  const ItemIcon = item.icon;
+                  return (
+                    <div key={item.label} className="flex items-center justify-between rounded-[1.15rem] border border-white/10 bg-white/[0.04] px-4 py-3">
+                      <div className="flex items-center gap-3">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-cyan-400/20 bg-cyan-400/10 text-cyan-200">
+                          <ItemIcon className="h-4.5 w-4.5" />
+                        </div>
+                        <div>
+                          <p className="text-[9px] font-black uppercase tracking-[0.32em] text-slate-400">{item.label}</p>
+                          <p className="mt-1 text-sm font-black text-white">{item.value}</p>
+                        </div>
+                      </div>
+                      <Icons.ArrowRight className="h-4 w-4 text-slate-500" />
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          </motion.section>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 max-w-7xl mx-auto">
+          <motion.section
+            initial={{ opacity: 0, y: 24 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.7, delay: 0.1 }}
+            className="rounded-[1.85rem] border border-white/10 bg-[linear-gradient(180deg,rgba(255,255,255,0.07),rgba(255,255,255,0.03))] p-4 shadow-[0_28px_80px_rgba(2,6,23,0.30)] backdrop-blur-xl md:p-5"
+          >
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-4">
             {[
               { id: 'ventas', path: '/calidad/ventas', name: 'Ventas', icon: Icons.BarChart, color: 'from-orange-500 to-amber-500', desc: 'Satisfacción en salón y procesos comerciales' },
               { id: 'postventa', path: '/calidad/postventa_selection', name: 'Postventa', icon: Icons.Wrench, color: 'from-blue-500 to-indigo-500', desc: 'Gestión de reclamos, taller y servicios' },
@@ -163,35 +221,34 @@ function App() {
                 whileHover={{ y: -10 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={() => navigate(item.path)}
-                className="group relative p-8 bg-white/5 border border-white/10 rounded-[2.5rem] text-left transition-all hover:bg-white/[0.08] hover:border-white/20 overflow-hidden"
+                className="group relative min-h-[190px] rounded-[1.65rem] border border-white/10 bg-[linear-gradient(180deg,rgba(11,16,32,0.90),rgba(15,23,42,0.80))] p-5 text-center transition-all hover:border-white/20 hover:bg-[linear-gradient(180deg,rgba(17,24,39,0.98),rgba(15,23,42,0.92))] hover:shadow-[0_18px_50px_rgba(15,23,42,0.34)] md:min-h-[210px] md:p-6"
               >
-                <div className={`w-14 h-14 rounded-2xl bg-gradient-to-br ${item.color} flex items-center justify-center text-white mb-8 shadow-lg group-hover:scale-110 transition-transform duration-500`}>
-                  <item.icon className="w-6 h-6" />
+                <div className="flex h-full flex-col items-center justify-between">
+                  <div className="flex h-full w-full flex-col items-center justify-center gap-6">
+                    <div className={`flex h-20 w-20 items-center justify-center rounded-[1.8rem] border ${item.color.includes('orange') ? 'bg-orange-500/15 text-orange-300 border-orange-400/20' : item.color.includes('blue') ? 'bg-blue-500/15 text-blue-300 border-blue-400/20' : item.color.includes('indigo') ? 'bg-indigo-500/15 text-indigo-300 border-indigo-400/20' : 'bg-emerald-500/15 text-emerald-300 border-emerald-400/20'} shadow-[inset_0_1px_0_rgba(255,255,255,0.12)]`}>
+                      <item.icon className="h-9 w-9" />
+                    </div>
+                    <div>
+                      <h3 className="text-[1.45rem] font-black uppercase leading-none tracking-tight text-white md:text-[1.6rem]">{item.name}</h3>
+                      <p className="mt-3 text-[0.7rem] font-black uppercase tracking-[0.42em] text-slate-400">{item.desc}</p>
+                    </div>
+                  </div>
+                  <div className="mt-4 h-1 w-full overflow-hidden rounded-full bg-white/5">
+                    <div className="h-full w-1/2 rounded-full bg-blue-400 opacity-70 transition-all group-hover:w-full" />
+                  </div>
                 </div>
-                <h3 className="text-2xl font-black text-white uppercase italic tracking-tight mb-3">{item.name}</h3>
-                <p className="text-slate-400 text-xs font-medium leading-relaxed">{item.desc}</p>
-                
-                {/* Decorative element */}
-                <div className="absolute -bottom-4 -right-4 w-20 h-20 bg-white/5 rounded-full blur-2xl group-hover:bg-white/10 transition-colors"></div>
-              </motion.button>
+                </motion.button>
             ))}
-          </div>
+            </div>
 
-          <div className="mt-20 flex flex-col items-center gap-8">
-            <motion.button 
-                whileHover={{ scale: 1.05 }}
-                whileTap={{ scale: 0.95 }}
-                onClick={() => navigate('/report')}
-                className="px-12 py-5 bg-gradient-to-r from-blue-600 to-indigo-600 text-white rounded-[2rem] font-black text-xs uppercase tracking-[0.3em] shadow-2xl shadow-blue-500/20 flex items-center gap-4 group"
-            >
-                <Icons.FileText className="w-5 h-5 group-hover:rotate-12 transition-transform" />
-                Generar Reporte Profesional
-            </motion.button>
-            <button onClick={handleBackToPortal} className="text-slate-500 font-black uppercase text-[10px] tracking-[0.4em] hover:text-white transition-colors flex items-center gap-3">
-              <Icons.ArrowLeft className="w-4 h-4" /> Volver al Portal
-            </button>
-          </div>
-        </motion.div>
+            <div className="flex justify-center pt-6">
+              <button onClick={handleBackToPortal} className="inline-flex items-center gap-3 rounded-full border border-white/10 bg-white/5 px-5 py-3 text-[10px] font-black uppercase tracking-[0.32em] text-slate-300 transition-all hover:bg-white/10 hover:text-white">
+                <Icons.ArrowLeft className="h-4 w-4" />
+                Volver al Portal
+              </button>
+            </div>
+          </motion.section>
+        </div>
       </div>
     </PageWrapper>
   );

@@ -77,7 +77,8 @@ const DetailedQualityPostventa: React.FC<DetailedQualityPostventaProps> = ({ she
       if (!key) return false;
       if (key === "0") return false;
       const branchKey = normalizeBranchKey(item.sucursal);
-      const dedupeKey = `${branchKey}::${key}`;
+      const monthKey = String(item.mes || '').trim().toUpperCase();
+      const dedupeKey = `${branchKey}::${monthKey}::${key}`;
       if (seen.has(dedupeKey)) return false;
       seen.add(dedupeKey);
       return true;

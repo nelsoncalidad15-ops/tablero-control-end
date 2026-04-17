@@ -368,12 +368,13 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
   }, [config]);
 
   const availableBranches = useMemo(() => {
-    const branches = new Set<string>();
-    data.salesQuality.forEach(d => d.sucursal && branches.add(d.sucursal));
-    data.quality.forEach(d => d.sucursal && branches.add(d.sucursal));
-    data.detailedQuality.forEach(d => d.sucursal && branches.add(d.sucursal));
-    data.cemOs.forEach(d => d.sucursal && branches.add(d.sucursal));
-    return Array.from(branches).filter(b => b !== 'Unknown').sort();
+    const allowed = ['JUJUY', 'SALTA'];
+    return allowed.filter(branch =>
+      data.salesQuality.some(d => d.sucursal === branch) ||
+      data.quality.some(d => d.sucursal === branch) ||
+      data.detailedQuality.some(d => d.sucursal === branch) ||
+      data.cemOs.some(d => d.sucursal === branch)
+    );
   }, [data]);
 
   const filteredData = useMemo(() => {

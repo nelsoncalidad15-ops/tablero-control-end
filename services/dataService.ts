@@ -940,6 +940,13 @@ const parseSalesQualityCSV = (csvText: string): SalesQualityRecord[] => {
         // STANDARD FIELDS
         else if (header.includes('mes de entrega') || header === 'mes') record.mes = value;
         else if (header.includes('anio') || header.includes('ano')) record.anio = parseInt(value) || 2026;
+        else if (header.includes('codigo de conc') || header.includes('codigo de conces')) {
+            record.codigo = value.trim();
+            record.sucursal = normalizeBranch(value);
+        }
+        else if (header.includes('nombre del taller')) {
+            record.sucursal = normalizeBranch(value);
+        }
         else if (header.includes('sucursal')) record.sucursal = value;
         else if (header.includes('modelo')) record.modelo = value;
         else if (header.includes('vendedor')) record.vendedor = value;

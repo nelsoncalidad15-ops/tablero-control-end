@@ -46,13 +46,8 @@ const Portal: React.FC<PortalProps> = ({ onSelectArea }) => {
                         VW
                     </div>
                     <div>
-                        <p className="text-[9px] font-bold uppercase tracking-[0.34em] text-slate-400 md:text-[10px]">Autosol Group</p>
                         <h1 className="text-lg font-black tracking-tight text-white md:text-xl lg:text-2xl">Centro de Control Operativo</h1>
                     </div>
-                </div>
-                <div className="hidden items-center gap-2 md:flex">
-                    <span className="rounded-full border border-white/10 bg-white/5 px-3 py-1 text-[9px] font-black uppercase tracking-[0.3em] text-slate-300">Lectura rápida</span>
-                    <span className="rounded-full border border-cyan-400/20 bg-cyan-400/10 px-3 py-1 text-[9px] font-black uppercase tracking-[0.3em] text-cyan-200">Tiempo real</span>
                 </div>
             </motion.div>
 
@@ -68,7 +63,6 @@ const Portal: React.FC<PortalProps> = ({ onSelectArea }) => {
                             <div className="max-w-4xl">
                                 <div className="mb-4 flex items-center gap-3">
                                     <div className="h-px w-10 bg-gradient-to-r from-cyan-400/80 to-transparent" />
-                                    <p className="text-[9px] font-bold uppercase tracking-[0.38em] text-cyan-200/80">Visión ejecutiva</p>
                                 </div>
                                 <h2 className="max-w-3xl text-[2.35rem] font-black leading-[0.94] tracking-tight text-balance md:text-[3.15rem] lg:text-[3.45rem]">
                                     <span className="block">Visión operativa clara</span>
@@ -83,9 +77,9 @@ const Portal: React.FC<PortalProps> = ({ onSelectArea }) => {
 
                         <div className="grid gap-3 self-stretch rounded-[1.5rem] border border-white/10 bg-white/[0.03] p-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.04)]">
                             {[
-                                { icon: Icons.Activity, label: 'Lectura rápida', value: '2 segundos' },
-                                { icon: Icons.Monitor, label: 'Monitoreo', value: 'Tiempo real' },
-                                { icon: Icons.FileText, label: 'Reporte', value: 'Directo' },
+                                { icon: Icons.Activity, label: 'Monitoreo', value: 'Directo' },
+                                { icon: Icons.Monitor, label: 'Control', value: 'Centralizado' },
+                                { icon: Icons.FileText, label: 'Reporte', value: 'Ejecutivo' },
                             ].map((item) => {
                                 const ItemIcon = item.icon;
                                 return (
@@ -115,7 +109,6 @@ const Portal: React.FC<PortalProps> = ({ onSelectArea }) => {
                 >
                     <div className="mb-4 flex items-center justify-between">
                         <div>
-                            <p className="text-[9px] font-bold uppercase tracking-[0.32em] text-slate-400">Acceso rápido</p>
                             <h3 className="mt-1 text-xl font-black tracking-tight text-white md:text-2xl">Áreas principales</h3>
                         </div>
                     </div>

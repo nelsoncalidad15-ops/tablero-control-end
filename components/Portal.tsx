@@ -78,13 +78,6 @@ const Portal: React.FC<PortalProps> = ({ onSelectArea }) => {
                                     Calidad, postventa, RRHH y seguimiento ejecutivo en una sola vista.
                                     La idea es leer rápido, detectar desvíos y actuar.
                                 </p>
-                                <div className="mt-5 flex flex-wrap gap-2">
-                                    {['Contexto fijo', 'Acceso directo', 'Comparación rápida'].map(label => (
-                                        <span key={label} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.3em] text-slate-300">
-                                            {label}
-                                        </span>
-                                    ))}
-                                </div>
                             </div>
                         </div>
 
@@ -179,12 +172,6 @@ const Portal: React.FC<PortalProps> = ({ onSelectArea }) => {
                     </div>
                 </motion.section>
 
-                <div className="flex justify-center pt-2">
-                    <button className="group inline-flex items-center gap-3 rounded-full border border-cyan-400/20 bg-[linear-gradient(90deg,#2463ff,#5b45ff)] px-7 py-3 text-[11px] font-black uppercase tracking-[0.32em] text-white shadow-[0_18px_50px_rgba(36,99,255,0.32)] transition-all hover:translate-y-[-1px] hover:shadow-[0_22px_60px_rgba(36,99,255,0.40)]">
-                        <Icons.FileText className="h-4 w-4" />
-                        Generar reporte profesional
-                    </button>
-                </div>
             </div>
         </div>
     </div>

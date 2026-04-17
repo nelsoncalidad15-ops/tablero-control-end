@@ -1186,6 +1186,7 @@ const parseDetailedQualityCSV = (csvText: string): DetailedQualityRecord[] => {
       if (currentLine.length < 5) continue; 
 
       const record: any = { id: `dq-row-${i}` };
+      record.mes_raw = currentLine[0] || '';
       
       headers.forEach((header, index) => {
         const value = currentLine[index] || '';
@@ -1264,6 +1265,7 @@ const parseDetailedQualityCSV = (csvText: string): DetailedQualityRecord[] => {
       }
 
       // Ensure mandatory fields have defaults
+      if (!record.mes || record.mes === 'Unknown') record.mes = normalizeMonth(record.mes_raw);
       if (!record.mes || record.mes === 'Unknown') record.mes = pickFirstValidMonth(record.fecha_servicio, record.mes);
       if (!record.sucursal && isFlatSaltaFormat) record.sucursal = 'SALTA';
       if (!record.asesor) record.asesor = 'Sin Asesor';

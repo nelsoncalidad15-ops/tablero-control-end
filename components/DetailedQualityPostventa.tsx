@@ -116,7 +116,7 @@ const DetailedQualityPostventa: React.FC<DetailedQualityPostventaProps> = ({ she
       if (!key) return false;
       if (key === "0") return false;
       const branchKey = normalizeBranchKey(item.sucursal);
-      const monthKey = normalizeMonthKey(item.mes).toUpperCase();
+      const monthKey = normalizeMonthKey(item.mes || item.mes_raw).toUpperCase();
       const dedupeKey = `${branchKey}::${monthKey}::${key}`;
       if (seen.has(dedupeKey)) return false;
       seen.add(dedupeKey);
@@ -125,13 +125,13 @@ const DetailedQualityPostventa: React.FC<DetailedQualityPostventaProps> = ({ she
   }, [data]);
 
   const availableMonths = useMemo(() => {
-    const months = [...new Set(uniqueData.map(d => d.mes))];
+    const months = [...new Set(uniqueData.map(d => normalizeMonthKey(d.mes || d.mes_raw)))];
     return months.sort((a, b) => MONTHS.indexOf(a) - MONTHS.indexOf(b));
   }, [uniqueData]);
 
   const filteredData = useMemo(() => {
     return uniqueData.filter(item => {
-      const matchMonth = !selectedMonth || selectedMonth === "" ? true : normalizeMonthKey(item.mes) === normalizeMonthKey(selectedMonth);
+      const matchMonth = !selectedMonth || selectedMonth === "" ? true : normalizeMonthKey(item.mes || item.mes_raw) === normalizeMonthKey(selectedMonth);
       const matchAsesor = !selectedAsesor || selectedAsesor === "" ? true : normalizeAdvisorName(item.asesor) === selectedAsesor;
       const matchLvs = selectedLvsScore !== null ? item.q4_score === selectedLvsScore : true;
       const matchCategory = !selectedCategory || selectedCategory === "" ? true : item.categorizacion?.trim() === selectedCategory;

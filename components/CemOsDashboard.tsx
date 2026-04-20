@@ -26,6 +26,37 @@ interface CemOsDashboardProps {
 
 const COLORS = ['#001E50', '#00B0F0', '#10b981', '#64748b', '#ef4444', '#334155'];
 
+const normalizeAdvisorName = (value?: string | null) => {
+  if (!value) return '';
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/\s+/g, ' ')
+    .replace(/\s*,\s*/g, ', ')
+    .trim()
+    .toUpperCase();
+};
+
+const prettifyAdvisorName = (value?: string | null) => {
+  const normalized = normalizeAdvisorName(value);
+  if (!normalized) return '';
+
+  const toTitle = (part: string) =>
+    part
+      .toLowerCase()
+      .split(' ')
+      .filter(Boolean)
+      .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(' ');
+
+  const [last, ...rest] = normalized.split(',').map(part => part.trim()).filter(Boolean);
+  if (rest.length > 0) {
+    return `${toTitle(last)}, ${toTitle(rest.join(' '))}`;
+  }
+
+  return toTitle(last);
+};
+
 const isValidDateValue = (val: string) => {
   if (!val) return false;
   const clean = val.trim();
@@ -78,7 +109,7 @@ const CemOsDashboard: React.FC<CemOsDashboardProps> = ({
     return data.filter(d => {
       const matchMonth = selectedMonths.length === 0 || selectedMonths.includes(d.mes);
       const matchCanal = !selectedCanal || d.canal_ventas === selectedCanal;
-      const matchVend = !selectedVendedor || d.vendedor === selectedVendedor;
+      const matchVend = !selectedVendedor || normalizeAdvisorName(d.vendedor) === normalizeAdvisorName(selectedVendedor);
       const matchEstado = !selectedEstadoUnidad || d.estado_unidad === selectedEstadoUnidad;
       const matchCodigo = !selectedCodigo || d.codigo === selectedCodigo;
       const matchZona = !selectedZona || d.zona === selectedZona;
@@ -172,34 +203,33 @@ const CemOsDashboard: React.FC<CemOsDashboardProps> = ({
 
   // Advisor Performance (Active vs Responded)
   const advisorStats = useMemo(() => {
-    const advisors: Record<string, { active: number, responded: number }> = {};
+    const advisors: Record<string, { active: number, responded: number, displayName: string }> = {};
     
     filteredData.forEach(d => {
-      if (!d.vendedor) return;
+      const key = normalizeAdvisorName(d.vendedor);
+      if (!key) return;
       
-      const name = d.vendedor;
-
-      if (!advisors[name]) advisors[name] = { active: 0, responded: 0 };
+      if (!advisors[key]) advisors[key] = { active: 0, responded: 0, displayName: prettifyAdvisorName(d.vendedor) };
       
       const hasLink = isValidDateValue(d.fecha_link_llega);
       const hasResponded = d.cem_score !== null;
       
       if (hasLink) {
-        advisors[name].active += 1;
+        advisors[key].active += 1;
       }
       if (hasResponded) {
-        advisors[name].responded += 1;
+        advisors[key].responded += 1;
       }
     });
 
     return Object.entries(advisors)
-      .map(([name, stats]) => ({ name, ...stats }))
+      .map(([, stats]) => ({ name: stats.displayName, active: stats.active, responded: stats.responded }))
       .filter(s => s.active > 0) // Only those with surveys sent
       .sort((a, b) => b.active - a.active);
   }, [filteredData]);
 
   const advisorRanking = useMemo(() => {
-    const advisors: Record<string, number> = {};
+    const advisors: Record<string, { count: number; displayName: string }> = {};
     // User requested: NO FILTRES POR CODIGO(SUCURSAL) PONE TODOS LOS ASESORES COMERCIALES.
     // But we should still respect the month filter if one is active globally
     const rankingData = data.filter(d => {
@@ -208,18 +238,19 @@ const CemOsDashboard: React.FC<CemOsDashboardProps> = ({
     });
 
     rankingData.forEach(d => {
-      if (!d.vendedor || d.cem_score === null) return;
-      const name = d.vendedor;
-      advisors[name] = (advisors[name] || 0) + 1;
+      const key = normalizeAdvisorName(d.vendedor);
+      if (!key || d.cem_score === null) return;
+      if (!advisors[key]) advisors[key] = { count: 0, displayName: prettifyAdvisorName(d.vendedor) };
+      advisors[key].count += 1;
     });
     return Object.entries(advisors)
-      .map(([name, count]) => ({ name, count }))
-      .sort((a, b) => b.count - a.count)
+      .map(([, stats]) => ({ name: stats.displayName, count: stats.count }))
+      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'es'))
       .slice(0, 15);
   }, [data, selectedMonths]);
 
   const detailedRankingStats = useMemo(() => {
-    const advisors: Record<string, { count: number, totalScore: number }> = {};
+    const advisors: Record<string, { count: number, totalScore: number, displayName: string }> = {};
     // Use unified filters
     const baseData = data.filter(d => {
       const matchMonth = selectedMonths.length === 0 || selectedMonths.includes(d.mes);
@@ -230,21 +261,21 @@ const CemOsDashboard: React.FC<CemOsDashboardProps> = ({
     });
 
     baseData.forEach(d => {
-      if (!d.vendedor || d.cem_score === null) return;
-      const name = d.vendedor;
-      if (!advisors[name]) advisors[name] = { count: 0, totalScore: 0 };
-      advisors[name].count += 1;
-      advisors[name].totalScore += d.cem_score;
+      const key = normalizeAdvisorName(d.vendedor);
+      if (!key || d.cem_score === null) return;
+      if (!advisors[key]) advisors[key] = { count: 0, totalScore: 0, displayName: prettifyAdvisorName(d.vendedor) };
+      advisors[key].count += 1;
+      advisors[key].totalScore += d.cem_score;
     });
 
     return Object.entries(advisors)
-      .map(([name, stats]) => ({
-        name,
+      .map(([, stats]) => ({
+        name: stats.displayName,
         count: stats.count,
         avg: stats.totalScore / stats.count
       }))
       .filter(s => s.count > 0)
-      .sort((a, b) => b.count - a.count);
+      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'es'));
   }, [data, selectedMonths, selectedCodigo, selectedZona, selectedCanal]);
 
   const COLORS_CHART = ['#001E50', '#00B0F0', '#10b981', '#64748b', '#ef4444', '#334155'];

@@ -317,13 +317,13 @@ const DetailedQualityPostventa: React.FC<DetailedQualityPostventaProps> = ({ she
     >
       <div className="min-h-screen bg-slate-50/50 -m-6 p-8 space-y-10 pb-32">
         {/* Modern Header with Stats */}
-        <div className="mt-[168px] flex flex-col lg:flex-row justify-between items-start lg:items-center bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm relative overflow-hidden">
+        <div className="mt-24 flex flex-col lg:flex-row justify-between items-start lg:items-center bg-white p-8 lg:p-10 rounded-[3rem] border border-slate-100 shadow-sm relative overflow-hidden">
           <div className="relative z-10">
             <div className="flex items-center gap-4 mb-4">
               <div className="w-12 h-12 bg-blue-600 rounded-2xl flex items-center justify-center text-white shadow-lg shadow-blue-500/20">
                 <Icons.ShieldCheck className="w-6 h-6" />
               </div>
-              <h1 className="text-5xl font-black text-slate-900 tracking-tighter uppercase leading-none">
+              <h1 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tighter uppercase leading-none">
                 REFUERZO <span className="text-blue-600">CALIDAD</span>
               </h1>
             </div>
@@ -334,17 +334,17 @@ const DetailedQualityPostventa: React.FC<DetailedQualityPostventaProps> = ({ she
           
           <div className="mt-8 lg:mt-0 flex items-center gap-10 relative z-10">
             <div className="text-right">
-              <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.4em] block mb-2">Muestra Analizada</span>
+              <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.35em] block mb-2">Muestra Analizada</span>
               <div className="flex items-baseline justify-end gap-2">
-                <span className="text-6xl font-black text-slate-900 leading-none">{metrics.total}</span>
+                <span className="text-5xl md:text-6xl font-black text-slate-900 leading-none">{metrics.total}</span>
                 <span className="text-xs font-black text-blue-500 uppercase tracking-widest">Casos</span>
               </div>
             </div>
             <div className="h-16 w-px bg-slate-100"></div>
             <div className="text-right">
-              <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.4em] block mb-2">Promedio LVS</span>
+              <span className="text-[10px] font-black text-slate-300 uppercase tracking-[0.35em] block mb-2">Promedio LVS</span>
               <div className="flex items-baseline justify-end gap-2">
-                <span className="text-6xl font-black text-slate-900 leading-none">{metrics.q4.avg.toFixed(2)}</span>
+                <span className="text-5xl md:text-6xl font-black text-slate-900 leading-none">{metrics.q4.avg.toFixed(2)}</span>
                 <span className="text-xs font-black text-blue-500 uppercase tracking-widest">/ 5.0</span>
               </div>
             </div>
@@ -433,7 +433,7 @@ const DetailedQualityPostventa: React.FC<DetailedQualityPostventaProps> = ({ she
         </div>
         </div>
 
-        <div className="h-[148px]"></div>
+        <div className="h-8 md:h-12"></div>
 
         {/* KPI Cards Grid - Modern Style */}
         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-8">
@@ -446,7 +446,7 @@ const DetailedQualityPostventa: React.FC<DetailedQualityPostventaProps> = ({ she
             <motion.div 
               key={i}
               whileHover={{ y: -8, scale: 1.02 }}
-              className="bg-white p-10 rounded-[3rem] border border-slate-100 shadow-sm relative overflow-hidden group"
+              className="bg-white p-8 rounded-[3rem] border border-slate-100 shadow-sm relative overflow-hidden group"
             >
               <div className="flex justify-between items-start mb-12">
                 <div className="flex items-center gap-4">
@@ -459,8 +459,8 @@ const DetailedQualityPostventa: React.FC<DetailedQualityPostventaProps> = ({ she
                   {kpi.q}
                 </div>
               </div>
-              <div className="flex items-baseline gap-2 mb-10">
-                <span className="text-7xl font-black text-slate-900 tracking-tighter leading-none">{kpi.val.toFixed(2)}</span>
+              <div className="flex items-baseline gap-2 mb-8">
+                <span className="text-6xl xl:text-7xl font-black text-slate-900 tracking-tighter leading-none">{kpi.val.toFixed(2)}</span>
                 <span className="text-xl font-black text-blue-500">/5.0</span>
               </div>
               <div className="space-y-4">

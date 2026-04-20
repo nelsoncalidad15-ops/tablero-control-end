@@ -1260,7 +1260,17 @@ const parseDetailedQualityCSV = (csvText: string): DetailedQualityRecord[] => {
         else if (header.includes('fecha de servicio') || header.includes('fecha servicio')) record.fecha_servicio = value;
         else if (header.includes('vin') || header.includes('chasis')) record.vin = value;
         else if (header.includes('modelo')) record.modelo = value;
-        else if (header.includes('or') || header.includes('orden')) record.orden = value;
+        else if (
+          header === 'or' ||
+          header === 'orden' ||
+          header === 'orden de reparacion' ||
+          header === 'orden de reparaciÃ³n' ||
+          header === 'nro or' ||
+          header === 'nro de or' ||
+          header === 'numero de or'
+        ) {
+          record.orden = value;
+        }
         else if (header.includes('asesor')) record.asesor = cleanAsesorName(value);
         else if (header.includes('apellido asesor de servicio')) record.asesor_apellido = value.trim();
         else if (header.includes('nombre asesor de servicio')) record.asesor_nombre = value.trim();

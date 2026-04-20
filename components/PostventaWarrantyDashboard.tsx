@@ -81,6 +81,23 @@ const WarrantyTooltip = ({ active, payload, label }: any) => {
   );
 };
 
+const StackTotalLabel = (props: any) => {
+  const { x, y, width, value } = props;
+  if (value == null || Number(value) <= 0) return null;
+  return (
+    <text
+      x={x + width / 2}
+      y={y - 8}
+      textAnchor="middle"
+      fill="#0f172a"
+      fontSize="10"
+      fontWeight="900"
+    >
+      {compactMoney(Number(value))}
+    </text>
+  );
+};
+
 const WarrantyLoadingView = () => (
   <div className="space-y-4">
     <div className="rounded-[1.5rem] border border-slate-200/70 bg-[#fcfcfd]/90 px-5 py-4 shadow-[0_10px_30px_rgba(15,23,42,0.05)] backdrop-blur-xl">
@@ -516,7 +533,7 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart
                     data={monthlyLotMatrixData.map(item => ({ ...item }))}
-                    margin={{ top: 18, right: 12, left: 0, bottom: 8 }}
+                    margin={{ top: 36, right: 12, left: 0, bottom: 8 }}
                     barCategoryGap="18%"
                     barGap={2}
                   >
@@ -527,19 +544,7 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
                     {LOTS.map(lot => (
                       <React.Fragment key={lot}>
                         <Bar dataKey={`lot_${lot}_work`} name={`Lote ${lot} Work`} stackId={`lot_${lot}`} fill={COLORS.work} radius={[8, 8, 0, 0]}>
-                          <LabelList
-                            content={(props: any) => {
-                              const { x, y, width, payload } = props;
-                              if (!payload) return null;
-                              const total = payload[`lot_${lot}_total`];
-                              if (!total) return null;
-                              return (
-                                <text x={x + width / 2} y={y - 6} textAnchor="middle" fill="#0f172a" fontSize="10" fontWeight="900">
-                                  {compactMoney(Number(total))}
-                                </text>
-                              );
-                            }}
-                          />
+                          <LabelList dataKey={`lot_${lot}_total`} position="top" content={StackTotalLabel} />
                         </Bar>
                         <Bar dataKey={`lot_${lot}_material`} name={`Lote ${lot} Material`} stackId={`lot_${lot}`} fill={COLORS.material} radius={[8, 8, 0, 0]} />
                       </React.Fragment>

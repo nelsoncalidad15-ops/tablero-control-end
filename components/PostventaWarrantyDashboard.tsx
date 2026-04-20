@@ -45,9 +45,9 @@ const MONTH_ORDER = [
 ];
 
 const COLORS = {
-  work: '#2563eb',
-  material: '#f59e0b',
-  total: '#14b8a6',
+  work: '#1d4ed8',
+  material: '#d97706',
+  total: '#0f766e',
 };
 
 const money = (value: number) =>
@@ -70,7 +70,7 @@ const resolveMonthOptions = (rows: WarrantyRecord[]) => {
 const WarrantyTooltip = ({ active, payload, label }: any) => {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-2xl border border-slate-200/80 bg-white px-4 py-3 shadow-[0_18px_45px_rgba(15,23,42,0.12)]">
+    <div className="rounded-2xl border border-slate-200/80 bg-[#fcfcfd] px-4 py-3 shadow-[0_18px_45px_rgba(15,23,42,0.10)]">
       <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">{label}</p>
       {payload.map((item: any) => (
         <p key={item.dataKey} className="mt-2 text-sm font-black" style={{ color: item.color }}>
@@ -83,18 +83,18 @@ const WarrantyTooltip = ({ active, payload, label }: any) => {
 
 const WarrantyLoadingView = () => (
   <div className="space-y-4">
-    <div className="rounded-[1.5rem] border border-slate-200 bg-white/85 px-5 py-4 shadow-[0_10px_30px_rgba(15,23,42,0.06)] backdrop-blur-xl">
-      <div className="h-3 w-40 rounded-full bg-slate-100" />
-      <div className="mt-3 h-7 w-56 rounded-full bg-slate-100" />
-      <div className="mt-3 h-3 w-80 rounded-full bg-slate-100" />
+    <div className="rounded-[1.5rem] border border-slate-200/70 bg-[#fcfcfd]/90 px-5 py-4 shadow-[0_10px_30px_rgba(15,23,42,0.05)] backdrop-blur-xl">
+      <div className="h-3 w-40 rounded-full bg-slate-100/90" />
+      <div className="mt-3 h-7 w-56 rounded-full bg-slate-100/90" />
+      <div className="mt-3 h-3 w-80 rounded-full bg-slate-100/90" />
     </div>
     <div className="grid gap-4 lg:grid-cols-2">
-      <div className="h-[320px] rounded-[2rem] border border-slate-200 bg-white/90 animate-pulse shadow-[0_18px_60px_rgba(15,23,42,0.06)]" />
-      <div className="h-[320px] rounded-[2rem] border border-slate-200 bg-white/90 animate-pulse shadow-[0_18px_60px_rgba(15,23,42,0.06)]" />
+      <div className="h-[320px] rounded-[2rem] border border-slate-200/70 bg-[#fcfcfd]/90 animate-pulse shadow-[0_18px_60px_rgba(15,23,42,0.05)]" />
+      <div className="h-[320px] rounded-[2rem] border border-slate-200/70 bg-[#fcfcfd]/90 animate-pulse shadow-[0_18px_60px_rgba(15,23,42,0.05)]" />
     </div>
     <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
-      <div className="h-[420px] rounded-[2rem] border border-slate-200 bg-white/90 animate-pulse shadow-[0_18px_60px_rgba(15,23,42,0.06)]" />
-      <div className="h-[420px] rounded-[2rem] border border-slate-200 bg-white/90 animate-pulse shadow-[0_18px_60px_rgba(15,23,42,0.06)]" />
+      <div className="h-[420px] rounded-[2rem] border border-slate-200/70 bg-[#fcfcfd]/90 animate-pulse shadow-[0_18px_60px_rgba(15,23,42,0.05)]" />
+      <div className="h-[420px] rounded-[2rem] border border-slate-200/70 bg-[#fcfcfd]/90 animate-pulse shadow-[0_18px_60px_rgba(15,23,42,0.05)]" />
     </div>
   </div>
 );
@@ -314,30 +314,30 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
   };
 
   return (
-    <div className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(37,99,235,0.10),_transparent_26%),linear-gradient(180deg,_#f8fbff_0%,_#eef3ff_100%)] px-4 py-4 text-slate-900 md:px-6 md:py-6">
+    <div className="relative min-h-screen overflow-hidden bg-[radial-gradient(circle_at_top,_rgba(15,23,42,0.04),_transparent_28%),linear-gradient(180deg,_#f7f8fb_0%,_#eef2f7_100%)] px-4 py-4 text-slate-900 md:px-6 md:py-6">
       <div className="pointer-events-none absolute inset-0">
         <div
-          className="absolute inset-0 opacity-[0.08]"
+          className="absolute inset-0 opacity-[0.05]"
           style={{
             backgroundImage:
-              'linear-gradient(rgba(37,99,235,0.08) 1px, transparent 1px), linear-gradient(90deg, rgba(37,99,235,0.08) 1px, transparent 1px)',
+              'linear-gradient(rgba(15,23,42,0.06) 1px, transparent 1px), linear-gradient(90deg, rgba(15,23,42,0.06) 1px, transparent 1px)',
             backgroundSize: '88px 88px',
           }}
         />
-        <div className="absolute -left-28 top-24 h-80 w-80 rounded-full bg-sky-400/12 blur-3xl" />
-        <div className="absolute right-0 top-32 h-96 w-96 rounded-full bg-indigo-400/12 blur-3xl" />
+        <div className="absolute -left-28 top-24 h-80 w-80 rounded-full bg-slate-500/8 blur-3xl" />
+        <div className="absolute right-0 top-32 h-96 w-96 rounded-full bg-blue-500/8 blur-3xl" />
       </div>
 
       <div className="relative mx-auto flex min-h-[calc(100vh-2rem)] w-full max-w-[1600px] flex-col gap-5">
         <motion.div
           initial={{ opacity: 0, y: -12 }}
           animate={{ opacity: 1, y: 0 }}
-          className="flex items-center justify-between rounded-[1.5rem] border border-slate-200 bg-white/80 px-4 py-3 shadow-[0_10px_30px_rgba(15,23,42,0.06)] backdrop-blur-xl md:px-5"
+          className="flex items-center justify-between rounded-[1.5rem] border border-slate-200/70 bg-white/85 px-4 py-3 shadow-[0_10px_30px_rgba(15,23,42,0.05)] backdrop-blur-xl md:px-5"
         >
           <div className="flex items-center gap-4">
             <button
               onClick={onBack}
-              className="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500 transition-colors hover:border-sky-200 hover:text-sky-700"
+              className="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-white text-slate-500 transition-colors hover:border-slate-300 hover:text-slate-800"
             >
               <Icons.ArrowLeft className="h-4 w-4" />
             </button>
@@ -346,8 +346,8 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
               <h1 className="text-xl font-black italic tracking-tight text-slate-950 md:text-2xl">Garantia</h1>
             </div>
           </div>
-          <div className="hidden items-center gap-3 rounded-full border border-sky-100 bg-sky-50 px-4 py-2 text-[10px] font-black uppercase tracking-[0.3em] text-sky-700 md:flex">
-            <Icons.ShieldCheck className="h-4 w-4 text-sky-500" />
+          <div className="hidden items-center gap-3 rounded-full border border-slate-200 bg-slate-50 px-4 py-2 text-[10px] font-black uppercase tracking-[0.3em] text-slate-600 md:flex">
+            <Icons.ShieldCheck className="h-4 w-4 text-slate-500" />
             Lote vs PPT
           </div>
         </motion.div>
@@ -356,7 +356,7 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.08 }}
-          className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-[0_18px_60px_rgba(15,23,42,0.06)] md:p-5"
+          className="rounded-[2rem] border border-slate-200/70 bg-white/90 p-4 shadow-[0_18px_60px_rgba(15,23,42,0.05)] md:p-5"
         >
           <div className="grid gap-4 xl:grid-cols-[1.25fr_0.75fr_0.75fr_auto]">
             <div className="space-y-2">
@@ -364,7 +364,7 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
               <select
                 value={monthFilter}
                 onChange={e => setMonthFilter(e.target.value)}
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-black text-slate-950 outline-none transition-colors focus:border-sky-300"
+                className="w-full rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3 text-sm font-black text-slate-950 outline-none transition-colors focus:border-slate-300"
               >
                 <option value="Todos">Todos los meses</option>
                 {monthOptions.map(month => <option key={month} value={month}>{month}</option>)}
@@ -375,7 +375,7 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
               <select
                 value={typeFilter}
                 onChange={e => setTypeFilter(e.target.value)}
-                className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-black text-slate-950 outline-none transition-colors focus:border-sky-300"
+                className="w-full rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3 text-sm font-black text-slate-950 outline-none transition-colors focus:border-slate-300"
               >
                 <option value="Todos">Todos los tipos</option>
                 {typeOptions.map(type => <option key={type} value={type}>{type}</option>)}
@@ -383,7 +383,7 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
             </div>
             <div className="space-y-2">
               <label className="text-[9px] font-black uppercase tracking-[0.35em] text-slate-400">Buscar Claim</label>
-              <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3">
+              <div className="flex items-center gap-3 rounded-2xl border border-slate-200/80 bg-slate-50/80 px-4 py-3">
                 <Icons.Search className="h-4 w-4 text-slate-400" />
                 <input
                   value={search}
@@ -409,8 +409,8 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
               onClick={() => setLotFilter('Todos')}
               className={`rounded-full border px-4 py-2 text-[10px] font-black uppercase tracking-[0.26em] transition-all ${
                 lotFilter === 'Todos'
-                  ? 'border-sky-300 bg-sky-50 text-sky-700'
-                  : 'border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-100'
+                  ? 'border-slate-300 bg-slate-100 text-slate-700'
+                  : 'border-slate-200/80 bg-slate-50/80 text-slate-500 hover:bg-slate-100'
               }`}
             >
               Todos
@@ -421,8 +421,8 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
                 onClick={() => setLotFilter(lot)}
                 className={`rounded-full border px-4 py-2 text-[10px] font-black uppercase tracking-[0.26em] transition-all ${
                   lotFilter === lot
-                    ? 'border-sky-300 bg-sky-50 text-sky-700'
-                    : 'border-slate-200 bg-slate-50 text-slate-500 hover:bg-slate-100'
+                    ? 'border-slate-300 bg-slate-100 text-slate-700'
+                    : 'border-slate-200/80 bg-slate-50/80 text-slate-500 hover:bg-slate-100'
                 }`}
               >
                 Lote {lot}
@@ -433,22 +433,22 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
         <motion.section
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-[0_24px_80px_rgba(15,23,42,0.08)] md:p-6"
+          className="rounded-[2rem] border border-slate-200/70 bg-white/90 p-5 shadow-[0_24px_80px_rgba(15,23,42,0.06)] md:p-6"
         >
           <div className="flex items-center justify-between gap-3">
             <div>
               <p className="text-[10px] font-black uppercase tracking-[0.45em] text-slate-400">Indicadores</p>
               <h3 className="mt-1 text-2xl font-black text-slate-950">Garantía operativa</h3>
             </div>
-            <div className="rounded-full border border-sky-100 bg-sky-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.28em] text-sky-700">
+            <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.28em] text-slate-700">
               Total {money(summary.totalBilled)}
             </div>
           </div>
 
           <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
             {lotSummaryData.map(item => (
-              <div key={item.lot} className="rounded-[1.25rem] border border-slate-200 bg-white p-4 shadow-sm">
-                <p className="text-[9px] font-black uppercase tracking-[0.35em] text-slate-400">Lote {item.lot}</p>
+              <div key={item.lot} className="rounded-[1.25rem] border border-slate-200/70 bg-gradient-to-br from-white to-slate-50/70 p-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
+                <p className="text-[9px] font-black uppercase tracking-[0.35em] text-slate-500">Lote {item.lot}</p>
                 <p className="mt-2 text-2xl font-black italic text-slate-950 leading-none">{money(item.total)}</p>
                 <div className="mt-3 flex items-center justify-between gap-2 text-[10px] font-bold text-slate-500">
                   <span>W {money(item.work)}</span>
@@ -467,26 +467,26 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
             <p className="mt-2 text-sm opacity-90">{error}</p>
           </div>
         ) : detailRows.length === 0 ? (
-          <div className="rounded-[2rem] border border-slate-200 bg-white p-10 text-center shadow-[0_18px_60px_rgba(15,23,42,0.06)]">
+          <div className="rounded-[2rem] border border-slate-200/70 bg-white/90 p-10 text-center shadow-[0_18px_60px_rgba(15,23,42,0.05)]">
             <Icons.Search className="mx-auto mb-4 h-12 w-12 text-slate-200" />
             <h3 className="text-xl font-black text-slate-950">No se encontraron datos</h3>
             <p className="mt-2 text-sm text-slate-500">Proba ajustar mes, tipo, lote o la busqueda por claim.</p>
           </div>
         ) : (
           <>
-            <div ref={monthlyChartRef} className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-[0_18px_60px_rgba(15,23,42,0.06)] md:p-5">
+            <div ref={monthlyChartRef} className="rounded-[2rem] border border-slate-200/70 bg-white/90 p-4 shadow-[0_18px_60px_rgba(15,23,42,0.05)] md:p-5">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-[0.45em] text-slate-400">Mes x lote</p>
                   <h3 className="mt-1 text-xl font-black text-slate-950">Facturación mensual por lote</h3>
                 </div>
                 <div className="flex items-center gap-2">
-                  <div className="rounded-full border border-sky-100 bg-sky-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.28em] text-sky-700">
+                  <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.28em] text-slate-700">
                     Total {money(summary.totalBilled)}
                   </div>
                   <button
                     onClick={() => downloadImage(monthlyChartRef.current, `garantia_mes_lote_${Date.now()}.png`)}
-                    className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.26em] text-slate-500 shadow-sm transition-colors hover:border-sky-200 hover:text-sky-700"
+                    className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.26em] text-slate-500 shadow-sm transition-colors hover:border-slate-300 hover:text-slate-800"
                   >
                     Imagen
                   </button>
@@ -537,7 +537,7 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
               </div>
             </div>
 
-            <div ref={typeChartRef} className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-[0_18px_60px_rgba(15,23,42,0.06)] md:p-5">
+            <div ref={typeChartRef} className="rounded-[2rem] border border-slate-200/70 bg-white/90 p-4 shadow-[0_18px_60px_rgba(15,23,42,0.05)] md:p-5">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-[0.45em] text-slate-400">Tipo y volumen</p>
@@ -545,21 +545,21 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
                 </div>
                 <button
                   onClick={() => downloadImage(typeChartRef.current, `garantia_tipos_${Date.now()}.png`)}
-                  className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.26em] text-slate-500 shadow-sm transition-colors hover:border-sky-200 hover:text-sky-700"
+                  className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.26em] text-slate-500 shadow-sm transition-colors hover:border-slate-300 hover:text-slate-800"
                 >
                   Imagen
                 </button>
               </div>
               <div className="mt-4 space-y-3">
                 {typeSummary.slice(0, 6).map(item => (
-                  <div key={item.tipo} className="rounded-[1.1rem] border border-slate-100 bg-slate-50/80 p-3">
+                  <div key={item.tipo} className="rounded-[1.1rem] border border-slate-100 bg-slate-50/70 p-3">
                     <div className="flex items-center justify-between gap-3">
                       <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-700">{item.tipo}</p>
                       <p className="text-sm font-black text-slate-950">{money(item.total)}</p>
                     </div>
                     <div className="mt-2 h-2 overflow-hidden rounded-full bg-white">
                       <div
-                        className="h-full rounded-full bg-sky-500"
+                        className="h-full rounded-full bg-slate-700"
                         style={{ width: `${Math.max(6, Math.min(100, (item.total / (typeSummary[0]?.total || 1)) * 100))}%` }}
                       />
                     </div>
@@ -568,7 +568,7 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
               </div>
             </div>
 
-            <div ref={detailTableRef} className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-[0_18px_60px_rgba(15,23,42,0.06)] md:p-5">
+            <div ref={detailTableRef} className="rounded-[2rem] border border-slate-200/70 bg-white/90 p-4 shadow-[0_18px_60px_rgba(15,23,42,0.05)] md:p-5">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-[0.45em] text-slate-400">Detalle</p>
@@ -578,7 +578,7 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
                   <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-400">{detailRows.length} filas</p>
                   <button
                     onClick={exportExcel}
-                    className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.26em] text-slate-500 shadow-sm transition-colors hover:border-sky-200 hover:text-sky-700"
+                    className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.26em] text-slate-500 shadow-sm transition-colors hover:border-slate-300 hover:text-slate-800"
                   >
                     Excel
                   </button>
@@ -603,7 +603,7 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
                       <tr key={`${row.id}-${idx}`} className="rounded-[1rem] bg-slate-50">
                         <td className="rounded-l-[1rem] px-3 py-3 text-sm font-black text-slate-950">{row.claim}</td>
                         <td className="px-3 py-3 text-xs font-bold uppercase tracking-[0.22em] text-slate-500">{row.mes}</td>
-                        <td className="px-3 py-3 text-sm font-black text-sky-700">{row.lote}</td>
+                        <td className="px-3 py-3 text-sm font-black text-slate-700">{row.lote}</td>
                         <td className="px-3 py-3 text-xs font-bold uppercase tracking-[0.22em] text-slate-500">{row.tipo}</td>
                         <td className="px-3 py-3 text-right text-sm font-black text-indigo-700">{money((row.work || 0) + (row.e_work || 0))}</td>
                         <td className="px-3 py-3 text-right text-sm font-black text-amber-700">{money((row.material || 0) + (row.e_material || 0))}</td>

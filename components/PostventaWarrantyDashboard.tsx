@@ -195,6 +195,20 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
     });
   }, [rows, typeFilter, lotFilter, search]);
 
+  const annualChartRows = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return rows.filter(row => {
+      const matchType = typeFilter === 'Todos' || (row.tipo || 'Sin Tipo') === typeFilter;
+      const matchLot = lotFilter === 'Todos' || row.lote === lotFilter;
+      const matchSearch =
+        !q ||
+        [row.claim, row.vin, row.numero, row.justificacion, row.cargo, row.control]
+          .filter(Boolean)
+          .some(value => String(value).toLowerCase().includes(q));
+      return matchType && matchLot && matchSearch;
+    });
+  }, [rows, typeFilter, lotFilter, search]);
+
   const summary = useMemo(() => {
     const totalWork = chartRows.reduce((sum, row) => sum + (row.work || 0) + (row.e_work || 0), 0);
     const totalMaterial = chartRows.reduce((sum, row) => sum + (row.material || 0) + (row.e_material || 0), 0);
@@ -204,6 +218,11 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
 
     return { totalWork, totalMaterial, totalBilled, totalClaims, average };
   }, [chartRows]);
+
+  const annualTotalBilled = useMemo(
+    () => annualChartRows.reduce((sum, row) => sum + (row.total || 0), 0),
+    [annualChartRows]
+  );
 
   const typeSummary = useMemo(() => {
     const groups: Record<string, { tipo: string; count: number; total: number }> = {};
@@ -247,7 +266,7 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
   const monthlyLotMatrixData = useMemo(() => {
     const groups: Record<string, Record<string, number | string>> = {};
 
-    chartRows.forEach(row => {
+    annualChartRows.forEach(row => {
       const month = row.mes || 'Sin mes';
       if (!groups[month]) groups[month] = { mes: month };
 
@@ -271,7 +290,7 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
       if (orderA !== -1 || orderB !== -1) return (orderA === -1 ? 99 : orderA) - (orderB === -1 ? 99 : orderB);
       return String(a.mes).localeCompare(String(b.mes), 'es');
     });
-  }, [chartRows]);
+  }, [annualChartRows]);
 
   const exportExcel = () => {
     const headers = ['MES', 'No.', 'Claim', 'Tipo', 'VIN', 'Work', 'e.Work', 'Material', 'e.Material', 'Total', 'Lote', 'FECHA', 'CARGO', 'CONTROL', 'COINCIDENCIA', 'CARGO IPSOS', 'JUSTIFICACION'];
@@ -440,9 +459,9 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
               <p className="text-[10px] font-black uppercase tracking-[0.45em] text-slate-400">Indicadores</p>
               <h3 className="mt-1 text-2xl font-black text-slate-950">Garantía operativa</h3>
             </div>
-            <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.28em] text-slate-700">
-              Total {money(summary.totalBilled)}
-            </div>
+                  <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.28em] text-slate-700">
+                    Total {money(annualTotalBilled)}
+                  </div>
           </div>
 
           <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -478,7 +497,7 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-[0.45em] text-slate-400">Mes x lote</p>
-                  <h3 className="mt-1 text-xl font-black text-slate-950">Facturación mensual por lote</h3>
+                  <h3 className="mt-1 text-xl font-black text-slate-950">Facturación anual por lote</h3>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.28em] text-slate-700">
@@ -527,13 +546,6 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
                     ))}
                   </BarChart>
                 </ResponsiveContainer>
-              </div>
-              <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-black uppercase tracking-[0.26em] text-slate-500">
-                <span className="rounded-full bg-slate-50 px-3 py-1 shadow-sm">Work</span>
-                <span className="rounded-full bg-slate-50 px-3 py-1 shadow-sm">Material</span>
-                {LOTS.map(lot => (
-                  <span key={lot} className="rounded-full bg-white px-3 py-1 shadow-sm">Lote {lot}</span>
-                ))}
               </div>
             </div>
 

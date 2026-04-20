@@ -1,5 +1,6 @@
 ﻿import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'motion/react';
+import { toPng } from 'html-to-image';
 import {
   Area,
   AreaChart,
@@ -107,6 +108,9 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
   const [typeFilter, setTypeFilter] = useState<string>('Todos');
   const [lotFilter, setLotFilter] = useState<string>('Todos');
   const [search, setSearch] = useState('');
+  const monthlyChartRef = React.useRef<HTMLDivElement | null>(null);
+  const typeChartRef = React.useRef<HTMLDivElement | null>(null);
+  const detailTableRef = React.useRef<HTMLDivElement | null>(null);
   const cacheKey = useMemo(
     () => ['warranty-dashboard', sheetUrls.q1, sheetUrls.q2 || '', sheetUrls.q3 || '', sheetUrls.q4 || ''].join('|'),
     [sheetUrls.q1, sheetUrls.q2, sheetUrls.q3, sheetUrls.q4]
@@ -162,7 +166,7 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
     return unique.sort((a, b) => a.localeCompare(b, 'es'));
   }, [rows]);
 
-  const filteredRows = useMemo(() => {
+  const chartRows = useMemo(() => {
     const q = search.trim().toLowerCase();
     return rows.filter(row => {
       const matchMonth = monthFilter === 'Todos' || row.mes === monthFilter;
@@ -177,30 +181,44 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
     });
   }, [rows, monthFilter, typeFilter, lotFilter, search]);
 
+  const detailRows = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    return rows.filter(row => {
+      const matchType = typeFilter === 'Todos' || (row.tipo || 'Sin Tipo') === typeFilter;
+      const matchLot = lotFilter === 'Todos' || row.lote === lotFilter;
+      const matchSearch =
+        !q ||
+        [row.claim, row.vin, row.numero, row.justificacion, row.cargo, row.control]
+          .filter(Boolean)
+          .some(value => String(value).toLowerCase().includes(q));
+      return matchType && matchLot && matchSearch;
+    });
+  }, [rows, typeFilter, lotFilter, search]);
+
   const summary = useMemo(() => {
-    const totalWork = filteredRows.reduce((sum, row) => sum + (row.work || 0) + (row.e_work || 0), 0);
-    const totalMaterial = filteredRows.reduce((sum, row) => sum + (row.material || 0) + (row.e_material || 0), 0);
-    const totalBilled = filteredRows.reduce((sum, row) => sum + (row.total || 0), 0);
-    const totalClaims = filteredRows.length;
+    const totalWork = chartRows.reduce((sum, row) => sum + (row.work || 0) + (row.e_work || 0), 0);
+    const totalMaterial = chartRows.reduce((sum, row) => sum + (row.material || 0) + (row.e_material || 0), 0);
+    const totalBilled = chartRows.reduce((sum, row) => sum + (row.total || 0), 0);
+    const totalClaims = chartRows.length;
     const average = totalClaims > 0 ? totalBilled / totalClaims : 0;
 
     return { totalWork, totalMaterial, totalBilled, totalClaims, average };
-  }, [filteredRows]);
+  }, [chartRows]);
 
   const typeSummary = useMemo(() => {
     const groups: Record<string, { tipo: string; count: number; total: number }> = {};
-    filteredRows.forEach(row => {
+    chartRows.forEach(row => {
       const key = row.tipo || 'Sin Tipo';
       if (!groups[key]) groups[key] = { tipo: key, count: 0, total: 0 };
       groups[key].count += 1;
       groups[key].total += row.total || 0;
     });
     return Object.values(groups).sort((a, b) => b.total - a.total);
-  }, [filteredRows]);
+  }, [chartRows]);
 
   const annualTrendData = useMemo(() => {
     const groups: Record<string, { mes: string; work: number; material: number; total: number }> = {};
-    filteredRows.forEach(row => {
+    chartRows.forEach(row => {
       const key = row.mes || 'Sin mes';
       if (!groups[key]) groups[key] = { mes: key, work: 0, material: 0, total: 0 };
       groups[key].work += (row.work || 0) + (row.e_work || 0);
@@ -214,22 +232,22 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
       if (orderA !== -1 || orderB !== -1) return (orderA === -1 ? 99 : orderA) - (orderB === -1 ? 99 : orderB);
       return String(a.mes).localeCompare(String(b.mes), 'es');
     });
-  }, [filteredRows]);
+  }, [chartRows]);
 
   const lotSummaryData = useMemo(() => {
     return LOTS.map(lot => {
-      const rowsForLot = filteredRows.filter(row => row.lote === lot);
+      const rowsForLot = chartRows.filter(row => row.lote === lot);
       const work = rowsForLot.reduce((sum, row) => sum + (row.work || 0) + (row.e_work || 0), 0);
       const material = rowsForLot.reduce((sum, row) => sum + (row.material || 0) + (row.e_material || 0), 0);
       const total = rowsForLot.reduce((sum, row) => sum + (row.total || 0), 0);
       return { lot, work, material, total };
     });
-  }, [filteredRows]);
+  }, [chartRows]);
 
   const monthlyLotMatrixData = useMemo(() => {
     const groups: Record<string, Record<string, number | string>> = {};
 
-    filteredRows.forEach(row => {
+    chartRows.forEach(row => {
       const month = row.mes || 'Sin mes';
       if (!groups[month]) groups[month] = { mes: month };
 
@@ -253,11 +271,11 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
       if (orderA !== -1 || orderB !== -1) return (orderA === -1 ? 99 : orderA) - (orderB === -1 ? 99 : orderB);
       return String(a.mes).localeCompare(String(b.mes), 'es');
     });
-  }, [filteredRows]);
+  }, [chartRows]);
 
-  const exportCsv = () => {
+  const exportExcel = () => {
     const headers = ['MES', 'No.', 'Claim', 'Tipo', 'VIN', 'Work', 'e.Work', 'Material', 'e.Material', 'Total', 'Lote', 'FECHA', 'CARGO', 'CONTROL', 'COINCIDENCIA', 'CARGO IPSOS', 'JUSTIFICACION'];
-    const lines = filteredRows.map(row => [
+    const lines = detailRows.map(row => [
       row.mes,
       row.numero,
       row.claim,
@@ -277,13 +295,22 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
       row.justificacion,
     ].map(val => `"${String(val ?? '').replace(/"/g, '""')}"`).join(','));
 
-    const blob = new Blob([[headers.join(','), ...lines].join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const blob = new Blob([[headers.join('\t'), ...lines].join('\n')], { type: 'application/vnd.ms-excel;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
     link.href = url;
-    link.download = `garantia_lote_vs_ppt_${Date.now()}.csv`;
+    link.download = `garantia_detalle_${Date.now()}.xls`;
     link.click();
     URL.revokeObjectURL(url);
+  };
+
+  const downloadImage = async (node: HTMLDivElement | null, filename: string) => {
+    if (!node) return;
+    const dataUrl = await toPng(node, { cacheBust: true, pixelRatio: 2 });
+    const link = document.createElement('a');
+    link.href = dataUrl;
+    link.download = filename;
+    link.click();
   };
 
   return (
@@ -368,11 +395,11 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
             </div>
             <div className="flex items-end">
               <button
-                onClick={exportCsv}
+                onClick={exportExcel}
                 className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 px-4 py-3 text-[10px] font-black uppercase tracking-[0.28em] text-white transition-colors hover:bg-slate-800"
               >
                 <Icons.Download className="h-4 w-4" />
-                Descargar
+                Excel
               </button>
             </div>
           </div>
@@ -439,7 +466,7 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
             <p className="text-lg font-black">No se pudieron cargar los datos</p>
             <p className="mt-2 text-sm opacity-90">{error}</p>
           </div>
-        ) : filteredRows.length === 0 ? (
+        ) : detailRows.length === 0 ? (
           <div className="rounded-[2rem] border border-slate-200 bg-white p-10 text-center shadow-[0_18px_60px_rgba(15,23,42,0.06)]">
             <Icons.Search className="mx-auto mb-4 h-12 w-12 text-slate-200" />
             <h3 className="text-xl font-black text-slate-950">No se encontraron datos</h3>
@@ -447,95 +474,115 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
           </div>
         ) : (
           <>
-            <div className="grid gap-4 xl:grid-cols-[1.25fr_0.75fr]">
-              <div className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-[0_18px_60px_rgba(15,23,42,0.06)] md:p-5">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.45em] text-slate-400">Mes x lote</p>
-                    <h3 className="mt-1 text-xl font-black text-slate-950">Facturación mensual por lote</h3>
-                  </div>
+            <div ref={monthlyChartRef} className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-[0_18px_60px_rgba(15,23,42,0.06)] md:p-5">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.45em] text-slate-400">Mes x lote</p>
+                  <h3 className="mt-1 text-xl font-black text-slate-950">Facturación mensual por lote</h3>
+                </div>
+                <div className="flex items-center gap-2">
                   <div className="rounded-full border border-sky-100 bg-sky-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.28em] text-sky-700">
                     Total {money(summary.totalBilled)}
                   </div>
-                </div>
-
-                <div className="mt-4 h-[390px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={monthlyLotMatrixData.map(item => ({ ...item }))}
-                      margin={{ top: 18, right: 12, left: 0, bottom: 8 }}
-                      barCategoryGap="18%"
-                      barGap={2}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                      <XAxis dataKey="mes" tick={{ fill: '#64748b', fontSize: 11, fontWeight: 700 }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} tickFormatter={(v) => compactMoney(Number(v))} />
-                      <Tooltip content={<WarrantyTooltip />} />
-                      {LOTS.map(lot => (
-                        <React.Fragment key={lot}>
-                          <Bar dataKey={`lot_${lot}_work`} name={`Lote ${lot} Work`} stackId={`lot_${lot}`} fill={COLORS.work} radius={[8, 8, 0, 0]}>
-                            <LabelList
-                              content={(props: any) => {
-                                const { x, y, width, payload } = props;
-                                if (!payload) return null;
-                                const total = payload[`lot_${lot}_total`];
-                                if (!total) return null;
-                                return (
-                                  <text x={x + width / 2} y={y - 6} textAnchor="middle" fill="#0f172a" fontSize="10" fontWeight="900">
-                                    {compactMoney(Number(total))}
-                                  </text>
-                                );
-                              }}
-                            />
-                          </Bar>
-                          <Bar dataKey={`lot_${lot}_material`} name={`Lote ${lot} Material`} stackId={`lot_${lot}`} fill={COLORS.material} radius={[8, 8, 0, 0]} />
-                        </React.Fragment>
-                      ))}
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-                <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-black uppercase tracking-[0.26em] text-slate-500">
-                  <span className="rounded-full bg-slate-50 px-3 py-1 shadow-sm">Work</span>
-                  <span className="rounded-full bg-slate-50 px-3 py-1 shadow-sm">Material</span>
-                  {LOTS.map(lot => (
-                    <span key={lot} className="rounded-full bg-white px-3 py-1 shadow-sm">Lote {lot}</span>
-                  ))}
+                  <button
+                    onClick={() => downloadImage(monthlyChartRef.current, `garantia_mes_lote_${Date.now()}.png`)}
+                    className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.26em] text-slate-500 shadow-sm transition-colors hover:border-sky-200 hover:text-sky-700"
+                  >
+                    Imagen
+                  </button>
                 </div>
               </div>
 
-              <div className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-[0_18px_60px_rgba(15,23,42,0.06)] md:p-5">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.45em] text-slate-400">Tipo y volumen</p>
-                    <h3 className="mt-1 text-xl font-black text-slate-950">Top tipos</h3>
-                  </div>
-                </div>
-                <div className="mt-4 space-y-3">
-                  {typeSummary.slice(0, 6).map(item => (
-                    <div key={item.tipo} className="rounded-[1.1rem] border border-slate-100 bg-slate-50/80 p-3">
-                      <div className="flex items-center justify-between gap-3">
-                        <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-700">{item.tipo}</p>
-                        <p className="text-sm font-black text-slate-950">{money(item.total)}</p>
-                      </div>
-                      <div className="mt-2 h-2 overflow-hidden rounded-full bg-white">
-                        <div
-                          className="h-full rounded-full bg-sky-500"
-                          style={{ width: `${Math.max(6, Math.min(100, (item.total / (typeSummary[0]?.total || 1)) * 100))}%` }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
+              <div className="mt-4 h-[390px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={monthlyLotMatrixData.map(item => ({ ...item }))}
+                    margin={{ top: 18, right: 12, left: 0, bottom: 8 }}
+                    barCategoryGap="18%"
+                    barGap={2}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                    <XAxis dataKey="mes" tick={{ fill: '#64748b', fontSize: 11, fontWeight: 700 }} axisLine={false} tickLine={false} />
+                    <YAxis tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} tickFormatter={(v) => compactMoney(Number(v))} />
+                    <Tooltip content={<WarrantyTooltip />} />
+                    {LOTS.map(lot => (
+                      <React.Fragment key={lot}>
+                        <Bar dataKey={`lot_${lot}_work`} name={`Lote ${lot} Work`} stackId={`lot_${lot}`} fill={COLORS.work} radius={[8, 8, 0, 0]}>
+                          <LabelList
+                            content={(props: any) => {
+                              const { x, y, width, payload } = props;
+                              if (!payload) return null;
+                              const total = payload[`lot_${lot}_total`];
+                              if (!total) return null;
+                              return (
+                                <text x={x + width / 2} y={y - 6} textAnchor="middle" fill="#0f172a" fontSize="10" fontWeight="900">
+                                  {compactMoney(Number(total))}
+                                </text>
+                              );
+                            }}
+                          />
+                        </Bar>
+                        <Bar dataKey={`lot_${lot}_material`} name={`Lote ${lot} Material`} stackId={`lot_${lot}`} fill={COLORS.material} radius={[8, 8, 0, 0]} />
+                      </React.Fragment>
+                    ))}
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-black uppercase tracking-[0.26em] text-slate-500">
+                <span className="rounded-full bg-slate-50 px-3 py-1 shadow-sm">Work</span>
+                <span className="rounded-full bg-slate-50 px-3 py-1 shadow-sm">Material</span>
+                {LOTS.map(lot => (
+                  <span key={lot} className="rounded-full bg-white px-3 py-1 shadow-sm">Lote {lot}</span>
+                ))}
               </div>
             </div>
 
-            <div className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-[0_18px_60px_rgba(15,23,42,0.06)] md:p-5">
+            <div ref={typeChartRef} className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-[0_18px_60px_rgba(15,23,42,0.06)] md:p-5">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.45em] text-slate-400">Tipo y volumen</p>
+                  <h3 className="mt-1 text-xl font-black text-slate-950">Top tipos</h3>
+                </div>
+                <button
+                  onClick={() => downloadImage(typeChartRef.current, `garantia_tipos_${Date.now()}.png`)}
+                  className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.26em] text-slate-500 shadow-sm transition-colors hover:border-sky-200 hover:text-sky-700"
+                >
+                  Imagen
+                </button>
+              </div>
+              <div className="mt-4 space-y-3">
+                {typeSummary.slice(0, 6).map(item => (
+                  <div key={item.tipo} className="rounded-[1.1rem] border border-slate-100 bg-slate-50/80 p-3">
+                    <div className="flex items-center justify-between gap-3">
+                      <p className="text-xs font-black uppercase tracking-[0.22em] text-slate-700">{item.tipo}</p>
+                      <p className="text-sm font-black text-slate-950">{money(item.total)}</p>
+                    </div>
+                    <div className="mt-2 h-2 overflow-hidden rounded-full bg-white">
+                      <div
+                        className="h-full rounded-full bg-sky-500"
+                        style={{ width: `${Math.max(6, Math.min(100, (item.total / (typeSummary[0]?.total || 1)) * 100))}%` }}
+                      />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div ref={detailTableRef} className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-[0_18px_60px_rgba(15,23,42,0.06)] md:p-5">
               <div className="flex items-center justify-between gap-3">
                 <div>
                   <p className="text-[10px] font-black uppercase tracking-[0.45em] text-slate-400">Detalle</p>
                   <h3 className="mt-1 text-xl font-black text-slate-950">Registros filtrados</h3>
                 </div>
-                <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-400">{filteredRows.length} filas</p>
+                <div className="flex items-center gap-2">
+                  <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-400">{detailRows.length} filas</p>
+                  <button
+                    onClick={exportExcel}
+                    className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.26em] text-slate-500 shadow-sm transition-colors hover:border-sky-200 hover:text-sky-700"
+                  >
+                    Excel
+                  </button>
+                </div>
               </div>
               <div className="mt-4 max-h-[520px] overflow-auto pr-1">
                 <table className="w-full border-separate border-spacing-y-2">
@@ -552,7 +599,7 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
                     </tr>
                   </thead>
                   <tbody>
-                    {filteredRows.slice(0, 60).map((row, idx) => (
+                    {detailRows.slice(0, 60).map((row, idx) => (
                       <tr key={`${row.id}-${idx}`} className="rounded-[1rem] bg-slate-50">
                         <td className="rounded-l-[1rem] px-3 py-3 text-sm font-black text-slate-950">{row.claim}</td>
                         <td className="px-3 py-3 text-xs font-bold uppercase tracking-[0.22em] text-slate-500">{row.mes}</td>
@@ -566,7 +613,7 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
                         </td>
                       </tr>
                     ))}
-                    {!filteredRows.length && (
+                    {!detailRows.length && (
                       <tr>
                         <td colSpan={8} className="rounded-[1rem] px-3 py-6 text-center text-sm text-slate-500">No hay datos para este filtro.</td>
                       </tr>
@@ -583,3 +630,6 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
 };
 
 export default WarrantyDashboard;
+
+
+

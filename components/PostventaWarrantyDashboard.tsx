@@ -6,10 +6,9 @@ import {
   Bar,
   BarChart,
   CartesianGrid,
-  Cell,
+  LabelList,
   Legend,
-  Pie,
-  PieChart,
+  Treemap,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -85,6 +84,42 @@ const WarrantyTooltip = ({ active, payload, label }: any) => {
   );
 };
 
+const TypeTreemapCell = ({ x, y, width, height, name, value, index }: any) => {
+  const fill = PIE_COLORS[index % PIE_COLORS.length];
+  const label = String(name || '');
+  const safeWidth = Number(width || 0);
+  const safeHeight = Number(height || 0);
+  if (safeWidth <= 0 || safeHeight <= 0) return null;
+
+  const isCompact = safeWidth < 140 || safeHeight < 80;
+  const title = label.length > (isCompact ? 12 : 20) ? `${label.slice(0, isCompact ? 12 : 20)}...` : label;
+
+  return (
+    <g>
+      <rect
+        x={x}
+        y={y}
+        width={width}
+        height={height}
+        rx={18}
+        ry={18}
+        fill={fill}
+        fillOpacity={0.14}
+        stroke="#ffffff"
+        strokeWidth={2}
+      />
+      <text x={x + 14} y={y + 24} fill="#64748b" fontSize="10" fontWeight="800" letterSpacing="3">
+        {title}
+      </text>
+      {!isCompact && (
+        <text x={x + 14} y={y + 50} fill="#0f172a" fontSize="18" fontWeight="900" fontStyle="italic">
+          {compactMoney(Number(value || 0))}
+        </text>
+      )}
+    </g>
+  );
+};
+
 const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrls, onBack }) => {
   const [rows, setRows] = useState<WarrantyRecord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -157,18 +192,17 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
     return { totalWork, totalMaterial, totalBilled, totalClaims, average };
   }, [filteredRows]);
 
-  const lotChartData = useMemo(() => {
-    const groups: Record<string, { lote: string; work: number; material: number; total: number; claims: number }> = {};
+  const lotSeriesData = useMemo(() => {
+    const map: Record<string, { lote: string; work: number; material: number; total: number; claims: number }> = {};
     filteredRows.forEach(row => {
       const key = row.lote || 'Sin lote';
-      if (!groups[key]) groups[key] = { lote: key, work: 0, material: 0, total: 0, claims: 0 };
-      groups[key].work += (row.work || 0) + (row.e_work || 0);
-      groups[key].material += (row.material || 0) + (row.e_material || 0);
-      groups[key].total += row.total || 0;
-      groups[key].claims += 1;
+      if (!map[key]) map[key] = { lote: key, work: 0, material: 0, total: 0, claims: 0 };
+      map[key].work += (row.work || 0) + (row.e_work || 0);
+      map[key].material += (row.material || 0) + (row.e_material || 0);
+      map[key].total += row.total || 0;
+      map[key].claims += 1;
     });
-
-    return Object.values(groups).sort((a, b) => {
+    return Object.values(map).sort((a, b) => {
       const orderA = LOTS.indexOf(a.lote as any);
       const orderB = LOTS.indexOf(b.lote as any);
       if (orderA !== -1 || orderB !== -1) return (orderA === -1 ? 99 : orderA) - (orderB === -1 ? 99 : orderB);
@@ -296,72 +330,6 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
         <motion.section
           initial={{ opacity: 0, y: 16 }}
           animate={{ opacity: 1, y: 0 }}
-          className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-[0_24px_80px_rgba(15,23,42,0.08)] md:p-6"
-        >
-          <div className="grid gap-5 lg:grid-cols-[1.15fr_0.85fr]">
-            <div className="flex flex-col justify-between gap-4">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.5em] text-sky-500/80">Lote vs PPT</p>
-                <h2 className="mt-3 text-[2.2rem] font-black uppercase italic leading-[0.92] tracking-tighter text-slate-950 md:text-[3.1rem] lg:text-[3.7rem]">
-                  <span className="block">Garantia</span>
-                  <span className="block text-transparent bg-clip-text bg-gradient-to-r from-sky-500 via-blue-500 to-indigo-500">Operativa</span>
-                </h2>
-                <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-500 md:text-[15px]">
-                  Seguimiento por mes, tipo, claim y lote para entender cuanto se factura realmente por garantia y donde se concentra el volumen.
-                </p>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                {[
-                  { label: 'Casos', value: String(summary.totalClaims), tone: 'bg-sky-50 text-sky-700 border-sky-100' },
-                  { label: 'Work + e.Work', value: money(summary.totalWork), tone: 'bg-indigo-50 text-indigo-700 border-indigo-100' },
-                  { label: 'Material + e.Material', value: money(summary.totalMaterial), tone: 'bg-amber-50 text-amber-700 border-amber-100' },
-                  { label: 'Total', value: money(summary.totalBilled), tone: 'bg-emerald-50 text-emerald-700 border-emerald-100' },
-                ].map(item => (
-                  <div key={item.label} className={`rounded-[1.3rem] border p-4 ${item.tone}`}>
-                    <p className="text-[9px] font-black uppercase tracking-[0.35em] opacity-70">{item.label}</p>
-                    <p className="mt-2 text-2xl font-black italic leading-none md:text-[2.1rem]">{item.value}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            <div className="rounded-[1.8rem] border border-slate-200 bg-slate-50/80 p-4 md:p-5">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.45em] text-slate-400">Indicadores</p>
-                  <h3 className="mt-1 text-lg font-black text-slate-950">Resumen operativo</h3>
-                </div>
-                <div className="rounded-full border border-sky-100 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.28em] text-sky-700">
-                  Promedio {money(summary.average)}
-                </div>
-              </div>
-
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <div className="rounded-[1.2rem] border border-white bg-white p-4 shadow-sm">
-                  <p className="text-[9px] font-black uppercase tracking-[0.35em] text-slate-400">Lotes activos</p>
-                  <p className="mt-2 text-3xl font-black italic text-slate-950">{lotChartData.length}</p>
-                </div>
-                <div className="rounded-[1.2rem] border border-white bg-white p-4 shadow-sm">
-                  <p className="text-[9px] font-black uppercase tracking-[0.35em] text-slate-400">Tipos</p>
-                  <p className="mt-2 text-3xl font-black italic text-slate-950">{typeSummary.length}</p>
-                </div>
-                <div className="rounded-[1.2rem] border border-white bg-white p-4 shadow-sm">
-                  <p className="text-[9px] font-black uppercase tracking-[0.35em] text-slate-400">Claims top</p>
-                  <p className="mt-2 text-3xl font-black italic text-slate-950">{topClaims.length}</p>
-                </div>
-                <div className="rounded-[1.2rem] border border-white bg-white p-4 shadow-sm">
-                  <p className="text-[9px] font-black uppercase tracking-[0.35em] text-slate-400">Meses</p>
-                  <p className="mt-2 text-3xl font-black italic text-slate-950">{monthTrendData.length}</p>
-                </div>
-              </div>
-            </div>
-          </div>
-        </motion.section>
-
-        <motion.section
-          initial={{ opacity: 0, y: 16 }}
-          animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.08 }}
           className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-[0_18px_60px_rgba(15,23,42,0.06)] md:p-5"
         >
@@ -438,6 +406,74 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
           </div>
         </motion.section>
 
+        <motion.section
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-[0_24px_80px_rgba(15,23,42,0.08)] md:p-6"
+        >
+          <div className="grid gap-5 lg:grid-cols-[1.15fr_0.85fr]">
+            <div className="flex flex-col justify-between gap-4">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.5em] text-sky-500/80">Lote vs PPT</p>
+                <h2 className="mt-3 text-[2.2rem] font-black uppercase italic leading-[0.92] tracking-tighter text-slate-950 md:text-[3.1rem] lg:text-[3.7rem]">
+                  <span className="block">Garantia</span>
+                  <span className="block text-transparent bg-clip-text bg-gradient-to-r from-sky-500 via-blue-500 to-indigo-500">Operativa</span>
+                </h2>
+                <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-500 md:text-[15px]">
+                  Seguimiento por mes, tipo, claim y lote para entender cuanto se factura realmente por garantia y donde se concentra el volumen.
+                </p>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                {[
+                  { label: 'Casos', value: compactMoney(summary.totalClaims), tone: 'bg-sky-50 text-sky-700 border-sky-100' },
+                  { label: 'Work + e.Work', value: money(summary.totalWork), tone: 'bg-indigo-50 text-indigo-700 border-indigo-100' },
+                  { label: 'Material + e.Material', value: money(summary.totalMaterial), tone: 'bg-amber-50 text-amber-700 border-amber-100' },
+                  { label: 'Total', value: money(summary.totalBilled), tone: 'bg-emerald-50 text-emerald-700 border-emerald-100' },
+                ].map(item => (
+                  <div key={item.label} className={`min-w-0 rounded-[1.3rem] border p-4 ${item.tone}`}>
+                    <p className="text-[9px] font-black uppercase tracking-[0.35em] opacity-70">{item.label}</p>
+                    <p className="mt-2 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[clamp(1.05rem,1.55vw,1.75rem)] font-black italic leading-none tracking-tight">
+                      {item.value}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="rounded-[1.8rem] border border-slate-200 bg-slate-50/80 p-4 md:p-5">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.45em] text-slate-400">Indicadores</p>
+                  <h3 className="mt-1 text-lg font-black text-slate-950">Resumen operativo</h3>
+                </div>
+                <div className="rounded-full border border-sky-100 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.28em] text-sky-700">
+                  Promedio {money(summary.average)}
+                </div>
+              </div>
+
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-[1.2rem] border border-white bg-white p-4 shadow-sm">
+                  <p className="text-[9px] font-black uppercase tracking-[0.35em] text-slate-400">Lotes activos</p>
+                  <p className="mt-2 text-[clamp(1.2rem,2vw,1.9rem)] font-black italic text-slate-950 leading-none">{lotSeriesData.length}</p>
+                </div>
+                <div className="rounded-[1.2rem] border border-white bg-white p-4 shadow-sm">
+                  <p className="text-[9px] font-black uppercase tracking-[0.35em] text-slate-400">Tipos</p>
+                  <p className="mt-2 text-[clamp(1.2rem,2vw,1.9rem)] font-black italic text-slate-950 leading-none">{typeSummary.length}</p>
+                </div>
+                <div className="rounded-[1.2rem] border border-white bg-white p-4 shadow-sm">
+                  <p className="text-[9px] font-black uppercase tracking-[0.35em] text-slate-400">Claims top</p>
+                  <p className="mt-2 text-[clamp(1.2rem,2vw,1.9rem)] font-black italic text-slate-950 leading-none">{topClaims.length}</p>
+                </div>
+                <div className="rounded-[1.2rem] border border-white bg-white p-4 shadow-sm">
+                  <p className="text-[9px] font-black uppercase tracking-[0.35em] text-slate-400">Meses</p>
+                  <p className="mt-2 text-[clamp(1.2rem,2vw,1.9rem)] font-black italic text-slate-950 leading-none">{monthTrendData.length}</p>
+                </div>
+              </div>
+            </div>
+          </div>
+        </motion.section>
+
         {loading ? (
           <div className="grid gap-4 lg:grid-cols-2">
             <div className="h-[380px] rounded-[2rem] border border-slate-200 bg-white animate-pulse" />
@@ -469,14 +505,32 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
                 </div>
                 <div className="mt-4 h-[320px]">
                   <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={lotChartData} margin={{ top: 10, right: 10, left: 0, bottom: 10 }}>
+                    <BarChart data={lotSeriesData} margin={{ top: 22, right: 10, left: 0, bottom: 10 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
                       <XAxis dataKey="lote" tick={{ fill: '#64748b', fontSize: 11, fontWeight: 700 }} axisLine={false} tickLine={false} />
                       <YAxis tick={{ fill: '#64748b', fontSize: 11, fontWeight: 700 }} axisLine={false} tickLine={false} tickFormatter={(v) => compactMoney(Number(v))} />
                       <Tooltip content={<WarrantyTooltip />} />
                       <Legend wrapperStyle={{ color: '#64748b', fontWeight: 800, fontSize: 11 }} />
-                      <Bar dataKey="work" name="Work + e.Work" stackId="a" fill={COLORS.work} radius={[10, 10, 0, 0]} />
-                      <Bar dataKey="material" name="Material + e.Material" stackId="a" fill={COLORS.material} radius={[10, 10, 0, 0]} />
+                      <Bar dataKey="work" name="Work + e.Work" stackId="a" fill={COLORS.work} radius={[12, 12, 0, 0]}>
+                        <LabelList
+                          dataKey="work"
+                          position="insideTop"
+                          fill="#ffffff"
+                          fontSize={10}
+                          fontWeight={900}
+                          formatter={(value: number) => compactMoney(Number(value || 0))}
+                        />
+                      </Bar>
+                      <Bar dataKey="material" name="Material + e.Material" stackId="a" fill={COLORS.material} radius={[12, 12, 0, 0]}>
+                        <LabelList
+                          dataKey="total"
+                          position="top"
+                          fill="#0f172a"
+                          fontSize={10}
+                          fontWeight={900}
+                          formatter={(value: number) => compactMoney(Number(value || 0))}
+                        />
+                      </Bar>
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
@@ -492,30 +546,15 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
                   </div>
                   <div className="mt-4 h-[320px]">
                     <ResponsiveContainer width="100%" height="100%">
-                      <PieChart>
-                        <Pie
-                          data={typePieData}
-                          dataKey="value"
-                          nameKey="name"
-                          innerRadius={78}
-                          outerRadius={112}
-                          paddingAngle={3}
-                          stroke="#ffffff"
-                          strokeWidth={2}
-                        >
-                          {typePieData.map((entry, index) => (
-                            <Cell key={`pie-${entry.name}-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} />
-                          ))}
-                        </Pie>
+                      <Treemap
+                        data={typePieData}
+                        dataKey="value"
+                        stroke="#ffffff"
+                        fill="#2563eb"
+                        content={<TypeTreemapCell />}
+                      >
                         <Tooltip content={<WarrantyTooltip />} />
-                        <Legend
-                          verticalAlign="bottom"
-                          iconType="circle"
-                          formatter={(value) => (
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">{String(value)}</span>
-                          )}
-                        />
-                      </PieChart>
+                      </Treemap>
                     </ResponsiveContainer>
                   </div>
                 </div>

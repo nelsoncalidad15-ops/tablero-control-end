@@ -78,6 +78,24 @@ const WarrantyTooltip = ({ active, payload, label }: any) => {
   );
 };
 
+const WarrantyLoadingView = () => (
+  <div className="space-y-4">
+    <div className="rounded-[1.5rem] border border-slate-200 bg-white/85 px-5 py-4 shadow-[0_10px_30px_rgba(15,23,42,0.06)] backdrop-blur-xl">
+      <div className="h-3 w-40 rounded-full bg-slate-100" />
+      <div className="mt-3 h-7 w-56 rounded-full bg-slate-100" />
+      <div className="mt-3 h-3 w-80 rounded-full bg-slate-100" />
+    </div>
+    <div className="grid gap-4 lg:grid-cols-2">
+      <div className="h-[320px] rounded-[2rem] border border-slate-200 bg-white/90 animate-pulse shadow-[0_18px_60px_rgba(15,23,42,0.06)]" />
+      <div className="h-[320px] rounded-[2rem] border border-slate-200 bg-white/90 animate-pulse shadow-[0_18px_60px_rgba(15,23,42,0.06)]" />
+    </div>
+    <div className="grid gap-4 lg:grid-cols-[1.1fr_0.9fr]">
+      <div className="h-[420px] rounded-[2rem] border border-slate-200 bg-white/90 animate-pulse shadow-[0_18px_60px_rgba(15,23,42,0.06)]" />
+      <div className="h-[420px] rounded-[2rem] border border-slate-200 bg-white/90 animate-pulse shadow-[0_18px_60px_rgba(15,23,42,0.06)]" />
+    </div>
+  </div>
+);
+
 
 const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrls, onBack }) => {
   const [rows, setRows] = useState<WarrantyRecord[]>([]);
@@ -87,6 +105,10 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
   const [typeFilter, setTypeFilter] = useState<string>('Todos');
   const [lotFilter, setLotFilter] = useState<string>('Todos');
   const [search, setSearch] = useState('');
+  const cacheKey = useMemo(
+    () => ['warranty-dashboard', sheetUrls.q1, sheetUrls.q2 || '', sheetUrls.q3 || '', sheetUrls.q4 || ''].join('|'),
+    [sheetUrls.q1, sheetUrls.q2, sheetUrls.q3, sheetUrls.q4]
+  );
 
   useEffect(() => {
     let alive = true;
@@ -95,6 +117,14 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
       setLoading(true);
       setError(null);
       try {
+        const cached = typeof window !== 'undefined' ? window.sessionStorage.getItem(cacheKey) : null;
+        if (cached) {
+          const parsed = JSON.parse(cached);
+          if (Array.isArray(parsed?.rows) && parsed.rows.length) {
+            setRows(parsed.rows);
+          }
+        }
+
         const urls = [sheetUrls.q1, sheetUrls.q2, sheetUrls.q3, sheetUrls.q4].filter((url): url is string => Boolean(url));
         const data = await Promise.all(
           urls.map(async (url, idx) => {
@@ -105,7 +135,11 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
         );
 
         if (!alive) return;
-        setRows(data.flat());
+        const flatRows = data.flat();
+        setRows(flatRows);
+        if (typeof window !== 'undefined') {
+          window.sessionStorage.setItem(cacheKey, JSON.stringify({ rows: flatRows, savedAt: Date.now() }));
+        }
       } catch (err) {
         if (!alive) return;
         setError(err instanceof Error ? err.message : 'No se pudieron cargar los datos de garantia.');
@@ -118,7 +152,7 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
     return () => {
       alive = false;
     };
-  }, [sheetUrls.q1, sheetUrls.q2, sheetUrls.q3, sheetUrls.q4]);
+  }, [sheetUrls.q1, sheetUrls.q2, sheetUrls.q3, sheetUrls.q4, cacheKey]);
 
   const monthOptions = useMemo(() => resolveMonthOptions(rows), [rows]);
   const typeOptions = useMemo(() => {
@@ -409,10 +443,7 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
         </motion.section>
 
         {loading ? (
-          <div className="grid gap-4 lg:grid-cols-2">
-            <div className="h-[380px] rounded-[2rem] border border-slate-200 bg-white animate-pulse" />
-            <div className="h-[380px] rounded-[2rem] border border-slate-200 bg-white animate-pulse" />
-          </div>
+          <WarrantyLoadingView />
         ) : error ? (
           <div className="rounded-[2rem] border border-rose-200 bg-rose-50 p-6 text-rose-700">
             <p className="text-lg font-black">No se pudieron cargar los datos</p>

@@ -1,14 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'motion/react';
 import {
-  Area,
-  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
   LabelList,
-  Legend,
-  Treemap,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -51,8 +47,6 @@ const COLORS = {
   total: '#14b8a6',
 };
 
-const PIE_COLORS = ['#2563eb', '#8b5cf6', '#14b8a6', '#f59e0b', '#f43f5e', '#64748b'];
-
 const money = (value: number) =>
   new Intl.NumberFormat('es-AR', { style: 'currency', currency: 'ARS', maximumFractionDigits: 0 }).format(value || 0);
 
@@ -84,41 +78,6 @@ const WarrantyTooltip = ({ active, payload, label }: any) => {
   );
 };
 
-const TypeTreemapCell = ({ x, y, width, height, name, value, index }: any) => {
-  const fill = PIE_COLORS[index % PIE_COLORS.length];
-  const label = String(name || '');
-  const safeWidth = Number(width || 0);
-  const safeHeight = Number(height || 0);
-  if (safeWidth <= 0 || safeHeight <= 0) return null;
-
-  const isCompact = safeWidth < 140 || safeHeight < 80;
-  const title = label.length > (isCompact ? 12 : 20) ? `${label.slice(0, isCompact ? 12 : 20)}...` : label;
-
-  return (
-    <g>
-      <rect
-        x={x}
-        y={y}
-        width={width}
-        height={height}
-        rx={18}
-        ry={18}
-        fill={fill}
-        fillOpacity={0.14}
-        stroke="#ffffff"
-        strokeWidth={2}
-      />
-      <text x={x + 14} y={y + 24} fill="#64748b" fontSize="10" fontWeight="800" letterSpacing="3">
-        {title}
-      </text>
-      {!isCompact && (
-        <text x={x + 14} y={y + 50} fill="#0f172a" fontSize="18" fontWeight="900" fontStyle="italic">
-          {compactMoney(Number(value || 0))}
-        </text>
-      )}
-    </g>
-  );
-};
 
 const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrls, onBack }) => {
   const [rows, setRows] = useState<WarrantyRecord[]>([]);
@@ -192,24 +151,6 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
     return { totalWork, totalMaterial, totalBilled, totalClaims, average };
   }, [filteredRows]);
 
-  const lotSeriesData = useMemo(() => {
-    const map: Record<string, { lote: string; work: number; material: number; total: number; claims: number }> = {};
-    filteredRows.forEach(row => {
-      const key = row.lote || 'Sin lote';
-      if (!map[key]) map[key] = { lote: key, work: 0, material: 0, total: 0, claims: 0 };
-      map[key].work += (row.work || 0) + (row.e_work || 0);
-      map[key].material += (row.material || 0) + (row.e_material || 0);
-      map[key].total += row.total || 0;
-      map[key].claims += 1;
-    });
-    return Object.values(map).sort((a, b) => {
-      const orderA = LOTS.indexOf(a.lote as any);
-      const orderB = LOTS.indexOf(b.lote as any);
-      if (orderA !== -1 || orderB !== -1) return (orderA === -1 ? 99 : orderA) - (orderB === -1 ? 99 : orderB);
-      return a.lote.localeCompare(b.lote, 'es');
-    });
-  }, [filteredRows]);
-
   const typeSummary = useMemo(() => {
     const groups: Record<string, { tipo: string; count: number; total: number }> = {};
     filteredRows.forEach(row => {
@@ -221,40 +162,33 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
     return Object.values(groups).sort((a, b) => b.total - a.total);
   }, [filteredRows]);
 
-  const monthTrendData = useMemo(() => {
-    const groups: Record<string, { mes: string; total: number; claims: number }> = {};
-    filteredRows.forEach(row => {
-      const key = row.mes || 'Sin mes';
-      if (!groups[key]) groups[key] = { mes: key, total: 0, claims: 0 };
-      groups[key].total += row.total || 0;
-      groups[key].claims += 1;
-    });
-
-    return Object.values(groups).sort((a, b) => {
-      const orderA = MONTH_ORDER.indexOf(String(a.mes).toLowerCase());
-      const orderB = MONTH_ORDER.indexOf(String(b.mes).toLowerCase());
+  const monthLotSeriesData = useMemo(() => {
+    const months = [...new Set(filteredRows.map(row => row.mes || 'Sin mes'))];
+    months.sort((a, b) => {
+      const orderA = MONTH_ORDER.indexOf(String(a).toLowerCase());
+      const orderB = MONTH_ORDER.indexOf(String(b).toLowerCase());
       if (orderA !== -1 || orderB !== -1) return (orderA === -1 ? 99 : orderA) - (orderB === -1 ? 99 : orderB);
-      return String(a.mes).localeCompare(String(b.mes), 'es');
+      return String(a).localeCompare(String(b), 'es');
     });
-  }, [filteredRows]);
 
-  const typePieData = useMemo(() => {
-    const topTypes = typeSummary.slice(0, 6);
-    const rest = typeSummary.slice(6);
-    const data = topTypes.map(item => ({ name: item.tipo, value: item.total }));
-    if (rest.length) {
-      data.push({
-        name: 'Otros',
-        value: rest.reduce((sum, item) => sum + item.total, 0),
-      });
-    }
-    return data.filter(item => item.value > 0);
-  }, [typeSummary]);
+    const chartByLot: Record<string, Array<{ mes: string; work: number; material: number; total: number }>> = {};
+    LOTS.forEach(lot => {
+      chartByLot[lot] = months.map(mes => ({ mes, work: 0, material: 0, total: 0 }));
+    });
 
-  const topClaims = useMemo(() => {
-    return [...filteredRows]
-      .sort((a, b) => (b.total || 0) - (a.total || 0))
-      .slice(0, 8);
+    filteredRows.forEach(row => {
+      const month = row.mes || 'Sin mes';
+      const lot = row.lote || 'Sin lote';
+      if (!LOTS.includes(lot as any)) return;
+      const series = chartByLot[lot];
+      const target = series.find(item => item.mes === month);
+      if (!target) return;
+      target.work += (row.work || 0) + (row.e_work || 0);
+      target.material += (row.material || 0) + (row.e_material || 0);
+      target.total += row.total || 0;
+    });
+
+    return chartByLot;
   }, [filteredRows]);
 
   const exportCsv = () => {
@@ -455,7 +389,7 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 <div className="rounded-[1.2rem] border border-white bg-white p-4 shadow-sm">
                   <p className="text-[9px] font-black uppercase tracking-[0.35em] text-slate-400">Lotes activos</p>
-                  <p className="mt-2 text-[clamp(1.2rem,2vw,1.9rem)] font-black italic text-slate-950 leading-none">{lotSeriesData.length}</p>
+                  <p className="mt-2 text-[clamp(1.2rem,2vw,1.9rem)] font-black italic text-slate-950 leading-none">{Object.keys(monthLotSeriesData).length}</p>
                 </div>
                 <div className="rounded-[1.2rem] border border-white bg-white p-4 shadow-sm">
                   <p className="text-[9px] font-black uppercase tracking-[0.35em] text-slate-400">Tipos</p>
@@ -463,11 +397,11 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
                 </div>
                 <div className="rounded-[1.2rem] border border-white bg-white p-4 shadow-sm">
                   <p className="text-[9px] font-black uppercase tracking-[0.35em] text-slate-400">Claims top</p>
-                  <p className="mt-2 text-[clamp(1.2rem,2vw,1.9rem)] font-black italic text-slate-950 leading-none">{topClaims.length}</p>
+                  <p className="mt-2 text-[clamp(1.2rem,2vw,1.9rem)] font-black italic text-slate-950 leading-none">{Math.min(filteredRows.length, 60)}</p>
                 </div>
                 <div className="rounded-[1.2rem] border border-white bg-white p-4 shadow-sm">
                   <p className="text-[9px] font-black uppercase tracking-[0.35em] text-slate-400">Meses</p>
-                  <p className="mt-2 text-[clamp(1.2rem,2vw,1.9rem)] font-black italic text-slate-950 leading-none">{monthTrendData.length}</p>
+                  <p className="mt-2 text-[clamp(1.2rem,2vw,1.9rem)] font-black italic text-slate-950 leading-none">{monthOptions.length}</p>
                 </div>
               </div>
             </div>
@@ -492,164 +426,133 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
           </div>
         ) : (
           <>
-            <div className="grid gap-4 lg:grid-cols-[1.25fr_0.75fr]">
-              <div className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-[0_18px_60px_rgba(15,23,42,0.06)] md:p-5">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.45em] text-slate-400">Lote vs PPT</p>
-                    <h3 className="mt-1 text-xl font-black text-slate-950">Facturacion por lote</h3>
-                  </div>
-                  <div className="rounded-full border border-sky-100 bg-sky-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.28em] text-sky-700">
-                    Total {money(summary.totalBilled)}
-                  </div>
-                </div>
-                <div className="mt-4 h-[320px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={lotSeriesData} margin={{ top: 22, right: 10, left: 0, bottom: 10 }}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                      <XAxis dataKey="lote" tick={{ fill: '#64748b', fontSize: 11, fontWeight: 700 }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fill: '#64748b', fontSize: 11, fontWeight: 700 }} axisLine={false} tickLine={false} tickFormatter={(v) => compactMoney(Number(v))} />
-                      <Tooltip content={<WarrantyTooltip />} />
-                      <Legend wrapperStyle={{ color: '#64748b', fontWeight: 800, fontSize: 11 }} />
-                      <Bar dataKey="work" name="Work + e.Work" stackId="a" fill={COLORS.work} radius={[12, 12, 0, 0]}>
-                        <LabelList
-                          dataKey="work"
-                          position="insideTop"
-                          fill="#ffffff"
-                          fontSize={10}
-                          fontWeight={900}
-                          formatter={(value: number) => compactMoney(Number(value || 0))}
-                        />
-                      </Bar>
-                      <Bar dataKey="material" name="Material + e.Material" stackId="a" fill={COLORS.material} radius={[12, 12, 0, 0]}>
-                        <LabelList
-                          dataKey="total"
-                          position="top"
-                          fill="#0f172a"
-                          fontSize={10}
-                          fontWeight={900}
-                          formatter={(value: number) => compactMoney(Number(value || 0))}
-                        />
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
+        <div className="grid gap-4 lg:grid-cols-[1.35fr_0.65fr]">
+          <div className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-[0_18px_60px_rgba(15,23,42,0.06)] md:p-5">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.45em] text-slate-400">Lote vs PPT</p>
+                <h3 className="mt-1 text-xl font-black text-slate-950">Facturación por mes y lote</h3>
               </div>
-
-              <div className="grid gap-4">
-                <div className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-[0_18px_60px_rgba(15,23,42,0.06)] md:p-5">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-[10px] font-black uppercase tracking-[0.45em] text-slate-400">Tipo y volumen</p>
-                      <h3 className="mt-1 text-xl font-black text-slate-950">Distribucion por tipo</h3>
-                    </div>
-                  </div>
-                  <div className="mt-4 h-[320px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <Treemap
-                        data={typePieData}
-                        dataKey="value"
-                        stroke="#ffffff"
-                        fill="#2563eb"
-                        content={<TypeTreemapCell />}
-                      >
-                        <Tooltip content={<WarrantyTooltip />} />
-                      </Treemap>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
-
-                <div className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-[0_18px_60px_rgba(15,23,42,0.06)] md:p-5">
-                  <div className="flex items-center justify-between gap-3">
-                    <div>
-                      <p className="text-[10px] font-black uppercase tracking-[0.45em] text-slate-400">Tendencia</p>
-                      <h3 className="mt-1 text-xl font-black text-slate-950">Evolucion mensual</h3>
-                    </div>
-                  </div>
-                  <div className="mt-4 h-[320px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <AreaChart data={monthTrendData} margin={{ top: 10, right: 10, left: 0, bottom: 10 }}>
-                        <defs>
-                          <linearGradient id="warrantyTotal" x1="0" y1="0" x2="0" y2="1">
-                            <stop offset="5%" stopColor={COLORS.total} stopOpacity={0.28} />
-                            <stop offset="95%" stopColor={COLORS.total} stopOpacity={0.02} />
-                          </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-                        <XAxis dataKey="mes" tick={{ fill: '#64748b', fontSize: 11, fontWeight: 700 }} axisLine={false} tickLine={false} />
-                        <YAxis tick={{ fill: '#64748b', fontSize: 11, fontWeight: 700 }} axisLine={false} tickLine={false} tickFormatter={(v) => compactMoney(Number(v))} />
-                        <Tooltip content={<WarrantyTooltip />} />
-                        <Area type="monotone" dataKey="total" name="Total" stroke={COLORS.total} fill="url(#warrantyTotal)" strokeWidth={3} />
-                      </AreaChart>
-                    </ResponsiveContainer>
-                  </div>
-                </div>
+              <div className="rounded-full border border-sky-100 bg-sky-50 px-3 py-1 text-[10px] font-black uppercase tracking-[0.28em] text-sky-700">
+                Total {money(summary.totalBilled)}
               </div>
             </div>
 
-            <div className="grid gap-4 lg:grid-cols-[0.95fr_1.05fr]">
-              <div className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-[0_18px_60px_rgba(15,23,42,0.06)] md:p-5">
-                <p className="text-[10px] font-black uppercase tracking-[0.45em] text-slate-400">Vista rapida</p>
-                <h3 className="mt-1 text-xl font-black text-slate-950">Top claims</h3>
-                <div className="mt-4 space-y-3">
-                  {topClaims.length ? topClaims.map((row, idx) => (
-                    <div key={`${row.claim}-${idx}`} className="rounded-[1.3rem] border border-slate-200 bg-slate-50 p-4">
-                      <div className="flex items-start justify-between gap-3">
-                        <div>
-                          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Claim</p>
-                          <p className="mt-1 text-sm font-black text-slate-950">{row.claim}</p>
-                          <p className="mt-1 text-[10px] font-black uppercase tracking-[0.28em] text-slate-500">Lote {row.lote} · {row.tipo}</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-400">Total</p>
-                          <p className="mt-1 text-lg font-black text-sky-700">{money(row.total || 0)}</p>
-                        </div>
+            <div className="mt-5 grid gap-4 xl:grid-cols-2">
+              {LOTS.map(lot => {
+                const chartData = monthLotSeriesData[lot] || [];
+                const lotTotal = chartData.reduce((sum, item) => sum + (item.total || 0), 0);
+                return (
+                  <div key={lot} className="rounded-[1.5rem] border border-slate-200 bg-slate-50/70 p-4">
+                    <div className="mb-3 flex items-center justify-between gap-3">
+                      <div>
+                        <p className="text-[9px] font-black uppercase tracking-[0.35em] text-slate-400">Lote {lot}</p>
+                        <h4 className="mt-1 text-base font-black text-slate-950">Work vs Material</h4>
+                      </div>
+                      <div className="rounded-full border border-white bg-white px-3 py-1 text-[9px] font-black uppercase tracking-[0.28em] text-slate-500 shadow-sm">
+                        {money(lotTotal)}
                       </div>
                     </div>
-                  )) : (
-                    <div className="rounded-[1.3rem] border border-slate-200 bg-slate-50 p-6 text-sm text-slate-500">No hay registros para este filtro.</div>
-                  )}
-                </div>
-              </div>
-
-              <div className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-[0_18px_60px_rgba(15,23,42,0.06)] md:p-5">
-                <div className="flex items-center justify-between gap-3">
-                  <div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.45em] text-slate-400">Detalle</p>
-                    <h3 className="mt-1 text-xl font-black text-slate-950">Registros filtrados</h3>
+                    <div className="h-[240px]">
+                      <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={chartData} margin={{ top: 18, right: 6, left: 0, bottom: 4 }}>
+                          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+                          <XAxis dataKey="mes" tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} />
+                          <YAxis tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} tickFormatter={(v) => compactMoney(Number(v))} />
+                          <Tooltip content={<WarrantyTooltip />} />
+                          <Bar dataKey="work" name="Work" stackId="a" fill={COLORS.work} radius={[10, 10, 0, 0]}>
+                            <LabelList
+                              content={(props: any) => {
+                                const { x, y, width, payload } = props;
+                                if (!payload || !payload.total) return null;
+                                return (
+                                  <text x={x + width / 2} y={y - 6} textAnchor="middle" fill="#0f172a" fontSize="10" fontWeight="900">
+                                    {compactMoney(Number(payload.total || 0))}
+                                  </text>
+                                );
+                              }}
+                            />
+                          </Bar>
+                          <Bar dataKey="material" name="Material" stackId="a" fill={COLORS.material} radius={[10, 10, 0, 0]} />
+                        </BarChart>
+                      </ResponsiveContainer>
+                    </div>
                   </div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-400">{filteredRows.length} filas</p>
-                </div>
-                <div className="mt-4 max-h-[420px] overflow-auto pr-1">
-                  <table className="w-full border-separate border-spacing-y-2">
-                    <thead className="sticky top-0 bg-white">
-                      <tr className="text-left text-[9px] font-black uppercase tracking-[0.3em] text-slate-400">
-                        <th className="pb-2">Claim</th>
-                        <th className="pb-2">Tipo</th>
-                        <th className="pb-2">Lote</th>
-                        <th className="pb-2 text-right">Total</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {filteredRows.slice(0, 60).map((row, idx) => (
-                        <tr key={`${row.id}-${idx}`} className="rounded-[1rem] bg-slate-50">
-                          <td className="rounded-l-[1rem] px-3 py-3 text-sm font-black text-slate-950">{row.claim}</td>
-                          <td className="px-3 py-3 text-xs font-bold uppercase tracking-[0.22em] text-slate-500">{row.tipo}</td>
-                          <td className="px-3 py-3 text-sm font-black text-sky-700">{row.lote}</td>
-                          <td className="rounded-r-[1rem] px-3 py-3 text-right text-sm font-black text-emerald-700">{money(row.total || 0)}</td>
-                        </tr>
-                      ))}
-                      {!filteredRows.length && (
-                        <tr>
-                          <td colSpan={4} className="rounded-[1rem] px-3 py-6 text-center text-sm text-slate-500">No hay datos para este filtro.</td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                );
+              })}
+            </div>
+          </div>
+
+          <div className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-[0_18px_60px_rgba(15,23,42,0.06)] md:p-5">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[10px] font-black uppercase tracking-[0.45em] text-slate-400">Tipo y volumen</p>
+                <h3 className="mt-1 text-xl font-black text-slate-950">Distribución por tipo</h3>
               </div>
             </div>
-          </>
+            <div className="mt-4 h-[520px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={typeSummary.slice(0, 8).map(item => ({ ...item, formatted: compactMoney(item.total) }))} layout="vertical" margin={{ top: 10, right: 20, left: 10, bottom: 10 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
+                  <XAxis type="number" tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} tickFormatter={(v) => compactMoney(Number(v))} />
+                  <YAxis type="category" dataKey="tipo" tick={{ fill: '#0f172a', fontSize: 10, fontWeight: 800 }} axisLine={false} tickLine={false} width={120} />
+                  <Tooltip content={<WarrantyTooltip />} />
+                  <Bar dataKey="total" name="Volumen" fill={COLORS.total} radius={[0, 12, 12, 0]}>
+                    <LabelList dataKey="formatted" position="right" fill="#0f172a" fontSize={10} fontWeight={900} />
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          </div>
+        </div>
+
+        <div className="rounded-[2rem] border border-slate-200 bg-white p-4 shadow-[0_18px_60px_rgba(15,23,42,0.06)] md:p-5">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-[10px] font-black uppercase tracking-[0.45em] text-slate-400">Detalle</p>
+              <h3 className="mt-1 text-xl font-black text-slate-950">Registros filtrados</h3>
+            </div>
+            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-400">{filteredRows.length} filas</p>
+          </div>
+          <div className="mt-4 max-h-[520px] overflow-auto pr-1">
+            <table className="w-full border-separate border-spacing-y-2">
+              <thead className="sticky top-0 bg-white">
+                <tr className="text-left text-[9px] font-black uppercase tracking-[0.3em] text-slate-400">
+                  <th className="pb-2">Claim</th>
+                  <th className="pb-2">Mes</th>
+                  <th className="pb-2">Lote</th>
+                  <th className="pb-2">Tipo</th>
+                  <th className="pb-2 text-right">Work</th>
+                  <th className="pb-2 text-right">Material</th>
+                  <th className="pb-2 text-right">Total</th>
+                  <th className="pb-2">Justificación</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredRows.slice(0, 60).map((row, idx) => (
+                  <tr key={`${row.id}-${idx}`} className="rounded-[1rem] bg-slate-50">
+                    <td className="rounded-l-[1rem] px-3 py-3 text-sm font-black text-slate-950">{row.claim}</td>
+                    <td className="px-3 py-3 text-xs font-bold uppercase tracking-[0.22em] text-slate-500">{row.mes}</td>
+                    <td className="px-3 py-3 text-sm font-black text-sky-700">{row.lote}</td>
+                    <td className="px-3 py-3 text-xs font-bold uppercase tracking-[0.22em] text-slate-500">{row.tipo}</td>
+                    <td className="px-3 py-3 text-right text-sm font-black text-indigo-700">{money((row.work || 0) + (row.e_work || 0))}</td>
+                    <td className="px-3 py-3 text-right text-sm font-black text-amber-700">{money((row.material || 0) + (row.e_material || 0))}</td>
+                    <td className="px-3 py-3 text-right text-sm font-black text-emerald-700">{money(row.total || 0)}</td>
+                    <td className="rounded-r-[1rem] px-3 py-3 text-xs font-medium text-slate-600">
+                      <span className="block max-w-[280px] truncate">{row.justificacion || '—'}</span>
+                    </td>
+                  </tr>
+                ))}
+                {!filteredRows.length && (
+                  <tr>
+                    <td colSpan={8} className="rounded-[1rem] px-3 py-6 text-center text-sm text-slate-500">No hay datos para este filtro.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </>
         )}
       </div>
     </div>

@@ -379,34 +379,21 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
           animate={{ opacity: 1, y: 0 }}
           className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-[0_24px_80px_rgba(15,23,42,0.08)] md:p-6"
         >
-          <div className="grid gap-5 lg:grid-cols-[1.15fr_0.85fr]">
-            <div className="flex flex-col justify-between gap-4">
-              <div>
-                <p className="text-[10px] font-black uppercase tracking-[0.5em] text-sky-500/80">Lote vs PPT</p>
-                <h2 className="mt-3 text-[2.2rem] font-black uppercase italic leading-[0.92] tracking-tighter text-slate-950 md:text-[3.1rem] lg:text-[3.7rem]">
-                  <span className="block">Garantia</span>
-                  <span className="block text-transparent bg-clip-text bg-gradient-to-r from-sky-500 via-blue-500 to-indigo-500">Operativa</span>
-                </h2>
-                <p className="mt-4 max-w-2xl text-sm leading-7 text-slate-500 md:text-[15px]">
-                  Seguimiento por mes, tipo, claim y lote para entender cuanto se factura realmente por garantia y donde se concentra el volumen.
-                </p>
-              </div>
-
-              <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                {[
-                  { label: 'Casos', value: compactMoney(summary.totalClaims), tone: 'bg-sky-50 text-sky-700 border-sky-100' },
-                  { label: 'Work + e.Work', value: money(summary.totalWork), tone: 'bg-indigo-50 text-indigo-700 border-indigo-100' },
-                  { label: 'Material + e.Material', value: money(summary.totalMaterial), tone: 'bg-amber-50 text-amber-700 border-amber-100' },
-                  { label: 'Total', value: money(summary.totalBilled), tone: 'bg-emerald-50 text-emerald-700 border-emerald-100' },
-                ].map(item => (
-                  <div key={item.label} className={`min-w-0 rounded-[1.3rem] border p-4 ${item.tone}`}>
-                    <p className="text-[9px] font-black uppercase tracking-[0.35em] opacity-70">{item.label}</p>
-                    <p className="mt-2 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[clamp(1.05rem,1.55vw,1.75rem)] font-black italic leading-none tracking-tight">
-                      {item.value}
-                    </p>
-                  </div>
-                ))}
-              </div>
+          <div className="grid gap-4 lg:grid-cols-[1.35fr_0.65fr]">
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+              {[
+                { label: 'Casos', value: compactMoney(summary.totalClaims), tone: 'bg-sky-50 text-sky-700 border-sky-100' },
+                { label: 'Work + e.Work', value: money(summary.totalWork), tone: 'bg-indigo-50 text-indigo-700 border-indigo-100' },
+                { label: 'Material + e.Material', value: money(summary.totalMaterial), tone: 'bg-amber-50 text-amber-700 border-amber-100' },
+                { label: 'Total', value: money(summary.totalBilled), tone: 'bg-emerald-50 text-emerald-700 border-emerald-100' },
+              ].map(item => (
+                <div key={item.label} className={`min-w-0 rounded-[1.3rem] border p-4 ${item.tone}`}>
+                  <p className="text-[9px] font-black uppercase tracking-[0.35em] opacity-70">{item.label}</p>
+                  <p className="mt-2 min-w-0 overflow-hidden text-ellipsis whitespace-nowrap text-[clamp(1.05rem,1.55vw,1.75rem)] font-black italic leading-none tracking-tight">
+                    {item.value}
+                  </p>
+                </div>
+              ))}
             </div>
 
             <div className="rounded-[1.8rem] border border-slate-200 bg-slate-50/80 p-4 md:p-5">
@@ -420,23 +407,18 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
                 </div>
               </div>
 
-              <div className="mt-4 grid gap-3 sm:grid-cols-2">
-                <div className="rounded-[1.2rem] border border-white bg-white p-4 shadow-sm">
-                  <p className="text-[9px] font-black uppercase tracking-[0.35em] text-slate-400">Lotes activos</p>
-                  <p className="mt-2 text-[clamp(1.2rem,2vw,1.9rem)] font-black italic text-slate-950 leading-none">{Object.keys(monthLotSeriesData).length}</p>
-                </div>
-                <div className="rounded-[1.2rem] border border-white bg-white p-4 shadow-sm">
-                  <p className="text-[9px] font-black uppercase tracking-[0.35em] text-slate-400">Tipos</p>
-                  <p className="mt-2 text-[clamp(1.2rem,2vw,1.9rem)] font-black italic text-slate-950 leading-none">{typeSummary.length}</p>
-                </div>
-                <div className="rounded-[1.2rem] border border-white bg-white p-4 shadow-sm">
-                  <p className="text-[9px] font-black uppercase tracking-[0.35em] text-slate-400">Claims top</p>
-                  <p className="mt-2 text-[clamp(1.2rem,2vw,1.9rem)] font-black italic text-slate-950 leading-none">{Math.min(filteredRows.length, 60)}</p>
-                </div>
-                <div className="rounded-[1.2rem] border border-white bg-white p-4 shadow-sm">
-                  <p className="text-[9px] font-black uppercase tracking-[0.35em] text-slate-400">Meses</p>
-                  <p className="mt-2 text-[clamp(1.2rem,2vw,1.9rem)] font-black italic text-slate-950 leading-none">{monthOptions.length}</p>
-                </div>
+              <div className="mt-4 flex flex-wrap gap-3">
+                {[
+                  { label: 'Lotes', value: Object.keys(monthLotSeriesData).length },
+                  { label: 'Tipos', value: typeSummary.length },
+                  { label: 'Claims top', value: Math.min(filteredRows.length, 60) },
+                  { label: 'Meses', value: monthOptions.length },
+                ].map(item => (
+                  <div key={item.label} className="min-w-[140px] flex-1 rounded-[1.2rem] border border-white bg-white p-4 shadow-sm">
+                    <p className="text-[9px] font-black uppercase tracking-[0.35em] text-slate-400">{item.label}</p>
+                    <p className="mt-2 text-[clamp(1.2rem,2vw,1.9rem)] font-black italic text-slate-950 leading-none">{item.value}</p>
+                  </div>
+                ))}
               </div>
             </div>
           </div>

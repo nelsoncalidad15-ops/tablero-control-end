@@ -1445,6 +1445,8 @@ const parseWarrantyCSV = (csvText: string): WarrantyRecord[] => {
     const headers = rows[0].map(cleanHeader);
     const records: WarrantyRecord[] = [];
 
+    const getValue = (line: string[], index: number) => (line[index] || '').trim();
+
     for (let i = 1; i < rows.length; i++) {
         const currentLine = rows[i];
         if (!currentLine || currentLine.every(cell => !String(cell || '').trim())) continue;
@@ -1473,6 +1475,42 @@ const parseWarrantyCSV = (csvText: string): WarrantyRecord[] => {
 
             record[header] = value;
         });
+
+        // The warranty sheet is position-stable. Use fixed indexes as a second
+        // pass so decimal commas or shifted header parsing do not zero out values.
+        const fixedMes = getValue(currentLine, 0);
+        const fixedNumero = getValue(currentLine, 1);
+        const fixedClaim = getValue(currentLine, 2);
+        const fixedTipo = getValue(currentLine, 3);
+        const fixedVin = getValue(currentLine, 4);
+        const fixedWork = getValue(currentLine, 5);
+        const fixedMaterial = getValue(currentLine, 6);
+        const fixedEWork = getValue(currentLine, 7);
+        const fixedEMaterial = getValue(currentLine, 8);
+        const fixedTotal = getValue(currentLine, 9);
+        const fixedFecha = getValue(currentLine, 10);
+        const fixedCargo = getValue(currentLine, 11);
+        const fixedControl = getValue(currentLine, 12);
+        const fixedCoincidencia = getValue(currentLine, 13);
+        const fixedCargoIpsos = getValue(currentLine, 14);
+        const fixedJustificacion = currentLine.slice(15).map(cell => String(cell || '').trim()).filter(Boolean).join(' ');
+
+        record.mes = record.mes || fixedMes;
+        record.numero = record.numero || fixedNumero;
+        record.claim = record.claim || fixedClaim;
+        record.tipo = record.tipo || fixedTipo;
+        record.vin = record.vin || fixedVin;
+        record.work = Number(record.work || parseNumber(fixedWork));
+        record.material = Number(record.material || parseNumber(fixedMaterial));
+        record.e_work = Number(record.e_work || parseNumber(fixedEWork));
+        record.e_material = Number(record.e_material || parseNumber(fixedEMaterial));
+        record.total = Number(record.total || parseNumber(fixedTotal));
+        record.fecha = record.fecha || fixedFecha;
+        record.cargo = record.cargo || fixedCargo;
+        record.control = record.control || fixedControl;
+        record.coincidencia = record.coincidencia || fixedCoincidencia;
+        record.cargo_ipsos = record.cargo_ipsos || fixedCargoIpsos;
+        record.justificacion = record.justificacion || fixedJustificacion;
 
         if (!record.mes || normalizeMonth(record.mes) === 'Unknown') {
             record.mes = pickFirstValidMonth(record.mes, record.fecha);

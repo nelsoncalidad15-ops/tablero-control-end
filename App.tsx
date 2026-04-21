@@ -186,24 +186,33 @@ function App() {
         </div>
 
         <div className="relative mx-auto flex min-h-screen w-full max-w-[1600px] flex-col gap-5 px-4 py-4 md:px-6 md:py-5 lg:px-8">
-          <motion.div
-            initial={{ opacity: 0, y: -16 }}
-            animate={{ opacity: 1, y: 0 }}
-            className="flex shrink-0 items-center justify-between rounded-[1.35rem] border border-slate-200/70 bg-white/85 px-4 py-3 shadow-[0_18px_50px_rgba(15,23,42,0.08)] backdrop-blur-xl md:px-5"
-          >
-            <div className="flex items-center gap-4">
-              <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-slate-950 text-sm font-black italic text-white shadow-[0_10px_30px_rgba(15,23,42,0.14)] md:h-12 md:w-12 md:text-base">
-                VW
-              </div>
+            <motion.div
+              initial={{ opacity: 0, y: -16 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="flex shrink-0 items-center justify-between gap-3 rounded-[1.35rem] border border-slate-200/70 bg-white/85 px-4 py-3 shadow-[0_18px_50px_rgba(15,23,42,0.08)] backdrop-blur-xl md:px-5"
+            >
+              <div className="flex items-center gap-4">
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-slate-950 text-sm font-black italic text-white shadow-[0_10px_30px_rgba(15,23,42,0.14)] md:h-12 md:w-12 md:text-base">
+                  VW
+                </div>
               <div>
                 <p className="text-[9px] font-bold uppercase tracking-[0.34em] text-slate-400 md:text-[10px]">Autosol Group</p>
                 <h1 className="text-lg font-black tracking-tight text-slate-950 md:text-xl lg:text-2xl">Centro de Calidad</h1>
               </div>
             </div>
-            <button onClick={handleBackToPortal} className="hidden md:inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-950 px-4 py-2 text-[9px] font-black uppercase tracking-[0.3em] text-white shadow-[0_14px_32px_rgba(15,23,42,0.18)] transition-colors hover:bg-slate-800">
-              <Icons.ArrowLeft className="h-4 w-4" />
-              Volver al portal
-            </button>
+            <div className="flex flex-wrap items-center justify-end gap-2">
+              <button
+                onClick={() => navigate('/report')}
+                className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-600 px-4 py-2 text-[9px] font-black uppercase tracking-[0.3em] text-white shadow-[0_14px_32px_rgba(37,99,235,0.20)] transition-colors hover:bg-blue-500"
+              >
+                <Icons.FileText className="h-4 w-4" />
+                Reporte PDF
+              </button>
+              <button onClick={handleBackToPortal} className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-950 px-4 py-2 text-[9px] font-black uppercase tracking-[0.3em] text-white shadow-[0_14px_32px_rgba(15,23,42,0.18)] transition-colors hover:bg-slate-800">
+                <Icons.ArrowLeft className="h-4 w-4" />
+                Volver al portal
+              </button>
+            </div>
           </motion.div>
 
           <motion.section

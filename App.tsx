@@ -156,10 +156,19 @@ function App() {
                 <h1 className="text-lg font-black tracking-tight text-slate-950 md:text-xl lg:text-2xl">Centro de Calidad</h1>
               </div>
             </div>
-            <button onClick={handleBackToPortal} className="hidden md:inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-950 px-4 py-2 text-[9px] font-black uppercase tracking-[0.3em] text-white shadow-[0_14px_32px_rgba(15,23,42,0.18)] transition-colors hover:bg-slate-800">
-              <Icons.ArrowLeft className="h-4 w-4" />
-              Volver al portal
-            </button>
+            <div className="flex items-center gap-2 md:gap-3">
+              <button
+                onClick={() => setPrintReportLocation('JUJUY')}
+                className="inline-flex items-center gap-2 rounded-full border border-sky-100 bg-sky-50 px-4 py-2 text-[9px] font-black uppercase tracking-[0.3em] text-sky-700 shadow-[0_14px_32px_rgba(14,165,233,0.12)] transition-colors hover:bg-sky-100"
+              >
+                <Icons.Printer className="h-4 w-4" />
+                Reporte PDF
+              </button>
+              <button onClick={handleBackToPortal} className="hidden md:inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-950 px-4 py-2 text-[9px] font-black uppercase tracking-[0.3em] text-white shadow-[0_14px_32px_rgba(15,23,42,0.18)] transition-colors hover:bg-slate-800">
+                <Icons.ArrowLeft className="h-4 w-4" />
+                Volver al portal
+              </button>
+            </div>
           </motion.div>
 
           <motion.section

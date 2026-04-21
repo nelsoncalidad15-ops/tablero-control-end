@@ -1383,34 +1383,65 @@ const SalesQualityDashboard: React.FC<SalesQualityDashboardProps> = ({ onBack, i
   useEffect(() => {
     const loadAllData = async () => {
       setLoadingState(LoadingState.LOADING);
+      const loadStartedAt = performance.now();
+
+      const timed = async <T,>(label: string, task: Promise<T>): Promise<T> => {
+        const startedAt = performance.now();
+        try {
+          const result = await task;
+          const elapsed = Math.round(performance.now() - startedAt);
+          console.info(`[SalesQuality] ${label} loaded in ${elapsed}ms`);
+          return result;
+        } catch (error) {
+          const elapsed = Math.round(performance.now() - startedAt);
+          console.warn(`[SalesQuality] ${label} failed after ${elapsed}ms`, error);
+          throw error;
+        }
+      };
+
       try {
-        // Load Surveys
-        const sData = await fetchSalesQualityData(config.sheetUrls.sales_quality || SALES_QUALITY_SHEET_KEY);
+        const salesQualityPromise = timed(
+          'sales_quality',
+          fetchSalesQualityData(config.sheetUrls.sales_quality || SALES_QUALITY_SHEET_KEY)
+        );
+        const salesClaimsPromise = timed(
+          'sales_claims',
+          fetchSalesClaimsData(config.sheetUrls.sales_claims || SALES_CLAIMS_SHEET_KEY)
+        );
+        const cemJujuyPromise = timed(
+          'cem_os',
+          fetchCemOsData(config.sheetUrls.cem_os || CEM_OS_SHEET_KEY)
+        );
+        const cemSaltaPromise = timed(
+          'cem_os_salta',
+          fetchCemOsData(config.sheetUrls.cem_os_salta || CEM_OS_SALTA_SHEET_KEY)
+        );
+
+        const [sData, cData, cemJujuy, cemSalta] = await Promise.all([
+          salesQualityPromise,
+          salesClaimsPromise,
+          cemJujuyPromise,
+          cemSaltaPromise
+        ]);
+
         setSurveyData(sData);
         setAvailableSurveyBranches([...new Set(sData.map(d => d.sucursal))].filter(Boolean).sort());
-        
-        // Load Claims
-        const cData = await fetchSalesClaimsData(config.sheetUrls.sales_claims || SALES_CLAIMS_SHEET_KEY);
+
         setClaimsData(cData);
         setAvailableClaimsBranches([...new Set(cData.map(d => d.sucursal))].filter(Boolean).sort());
 
-        // Combine and normalize Sale Types from both sources
-        const allRawTypes = [
-            ...sData.map(d => d.tipo_venta),
-            ...cData.map(d => d.tipo_venta)
-        ].map(t => t?.trim().toUpperCase()).filter(Boolean);
-        
+        const allRawTypes = [...sData, ...cData]
+          .map(d => d.tipo_venta)
+          .map(t => t?.trim().toUpperCase())
+          .filter(Boolean);
+
         const processedTypes = allRawTypes.map(t => normalizeSaleType(t));
         setAvailableSaleTypes([...new Set(processedTypes)].sort());
 
-        // Load CEM OS
-        const [cemJujuy, cemSalta] = await Promise.all([
-          fetchCemOsData(config.sheetUrls.cem_os || CEM_OS_SHEET_KEY),
-          fetchCemOsData(config.sheetUrls.cem_os_salta || CEM_OS_SALTA_SHEET_KEY)
-        ]);
         setCemOsData([...cemJujuy, ...cemSalta]);
 
         setLoadingState(LoadingState.SUCCESS);
+        console.info(`[SalesQuality] dashboard ready in ${Math.round(performance.now() - loadStartedAt)}ms`);
       } catch (error) {
         console.error(error);
         setLoadingState(LoadingState.ERROR);

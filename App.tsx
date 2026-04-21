@@ -5,8 +5,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import Portal from './components/Portal';
 import { Icons } from './components/Icon';
 import { AppConfig, AreaConfig } from './types';
-import { DEFAULT_CONFIG, SALES_QUALITY_SHEET_KEY, SALES_CLAIMS_SHEET_KEY, AREAS } from './constants';
-import { primeBackendConnection } from './services/dataService';
+import { DEFAULT_CONFIG, SALES_QUALITY_SHEET_KEY, SALES_CLAIMS_SHEET_KEY, CEM_OS_SHEET_KEY, CEM_OS_SALTA_SHEET_KEY, AREAS } from './constants';
+import { primeBackendConnection, primeSalesQualityData } from './services/dataService';
 
 const Dashboard = lazy(() => import('./components/Dashboard'));
 const QualityDashboard = lazy(() => import('./components/QualityDashboard'));
@@ -31,6 +31,10 @@ const FRONTEND_ONLY_RRHH = false;
 const resolveDataSource = (frontendKey: string, backendUrl: string, enabled: boolean) =>
   enabled ? frontendKey : backendUrl;
 
+const preloadModule = (loader: () => Promise<any>) => {
+  void loader();
+};
+
 function App() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -38,6 +42,46 @@ function App() {
   const [config, setConfig] = useState<AppConfig>(DEFAULT_CONFIG);
   const [printReportLocation, setPrintReportLocation] = useState<'JUJUY' | 'SALTA' | null>(null);
   const [reportConfig, setReportConfig] = useState<{ location: 'JUJUY' | 'SALTA', month: string | null, template: any } | null>(null);
+
+  const handlePrefetchArea = (areaId: string) => {
+    if (areaId === 'executive') {
+      preloadModule(() => import('./components/ExecutiveSummary'));
+      preloadModule(() => import('./components/ProfessionalReport'));
+      return;
+    }
+
+    if (areaId === 'calidad') {
+      preloadModule(() => import('./components/QualityDashboard'));
+      preloadModule(() => import('./components/SalesQualityDashboard'));
+      preloadModule(() => import('./components/DetailedQualityPostventa'));
+      preloadModule(() => import('./components/CemOsDashboard'));
+      preloadModule(() => import('./components/PCGCDashboard'));
+      preloadModule(() => import('./components/ActionPlanDashboard'));
+      preloadModule(() => import('./components/InternalPostventaDashboard'));
+      void primeSalesQualityData(
+        SALES_QUALITY_SHEET_KEY,
+        SALES_CLAIMS_SHEET_KEY,
+        CEM_OS_SHEET_KEY,
+        CEM_OS_SALTA_SHEET_KEY
+      );
+      return;
+    }
+
+    if (areaId === 'postventa') {
+      preloadModule(() => import('./components/PostventaDashboard'));
+      preloadModule(() => import('./components/PostventaKpiDashboard'));
+      preloadModule(() => import('./components/PostventaBillingDashboard'));
+      preloadModule(() => import('./components/PostventaWarrantyDashboard'));
+      return;
+    }
+
+    if (areaId === 'rrhh') {
+      preloadModule(() => import('./components/RRHHDashboard'));
+      preloadModule(() => import('./components/RRHHCalendarView'));
+      preloadModule(() => import('./components/RRHHCollaboratorsView'));
+      preloadModule(() => import('./components/RRHHTalentView'));
+    }
+  };
 
   useEffect(() => {
     primeBackendConnection();
@@ -570,7 +614,7 @@ function App() {
       <Suspense fallback={<RouteLoader />}>
         <AnimatePresence mode="wait">
           <Routes location={location} key={location.pathname}>
-            <Route path="/" element={<PageWrapper><Portal onSelectArea={handleSelectArea} /></PageWrapper>} />
+            <Route path="/" element={<PageWrapper><Portal onSelectArea={handleSelectArea} onPrefetchArea={handlePrefetchArea} /></PageWrapper>} />
             
             <Route path="/calidad" element={<QualitySelection />} />
             <Route path="/calidad/postventa_selection" element={<PostventaQualitySelection />} />

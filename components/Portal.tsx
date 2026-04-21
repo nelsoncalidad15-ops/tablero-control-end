@@ -7,9 +7,10 @@ import { Icons } from './Icon';
 
 interface PortalProps {
   onSelectArea: (area: AreaConfig) => void;
+  onPrefetchArea?: (areaId: string) => void;
   }
 
-const Portal: React.FC<PortalProps> = ({ onSelectArea }) => {
+const Portal: React.FC<PortalProps> = ({ onSelectArea, onPrefetchArea }) => {
   const portalAreas = [
     { id: 'executive', name: 'Sala de Situación', icon: 'Activity', description: 'Resumen ejecutivo central.' } as any,
     ...AREAS.map((area) => ({
@@ -135,6 +136,9 @@ const Portal: React.FC<PortalProps> = ({ onSelectArea }) => {
                                 transition={{ delay: 0.12 + idx * 0.05 }}
                                 whileHover={{ y: -4, scale: 1.01 }}
                                 whileTap={{ scale: 0.99 }}
+                                onMouseEnter={() => onPrefetchArea?.(area.id)}
+                                onFocus={() => onPrefetchArea?.(area.id)}
+                                onTouchStart={() => onPrefetchArea?.(area.id)}
                                 onClick={() => onSelectArea(isExecutive ? { id: 'executive' as any, name: 'Sala de Situación', icon: 'Activity', color: 'blue', description: 'Resumen Ejecutivo Unificado' } : area)}
                                 className="group relative min-h-[160px] rounded-[1.45rem] border border-white/10 bg-[linear-gradient(180deg,rgba(11,16,32,0.90),rgba(15,23,42,0.80))] p-4 text-left transition-all hover:border-white/20 hover:bg-[linear-gradient(180deg,rgba(17,24,39,0.98),rgba(15,23,42,0.92))] hover:shadow-[0_18px_50px_rgba(15,23,42,0.34)] md:min-h-[166px] md:p-5"
                               >

@@ -3,6 +3,7 @@ import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend, ScatterChart, Scatter, ZAxis, ReferenceLine, ComposedChart, LineChart, Line
 } from 'recharts';
 import { motion } from 'motion/react';
+import { useNavigate } from 'react-router-dom';
 import { DashboardFrame, LuxuryKPICard, SkeletonLoader, StatusBadge, InsightCard, DataTable, ChartWrapper, MonthSelector } from './DashboardUI';
 import { AreaConfig, QualityRecord, LoadingState } from '../types';
 import { fetchQualityData } from '../services/dataService';
@@ -16,6 +17,7 @@ interface QualityDashboardProps {
 }
 
 const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, area }) => {
+  const navigate = useNavigate();
   const [data, setData] = useState<QualityRecord[]>([]);
   const [loadingState, setLoadingState] = useState<LoadingState>(LoadingState.IDLE);
   
@@ -309,6 +311,7 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
             </>
         }
         lastUpdated={new Date().toLocaleTimeString()}
+        onExport={() => navigate('/report')}
         isLoading={loadingState === LoadingState.LOADING}
         onBack={onBack}
     >

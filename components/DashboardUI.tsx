@@ -109,9 +109,9 @@ export const DashboardFrame: React.FC<DashboardFrameProps> = ({
                 {isFullScreen ? <Icons.Minimize className="w-3.5 h-3.5 md:w-4 md:h-4" /> : <Icons.Maximize className="w-3.5 h-3.5 md:w-4 md:h-4" />}
               </button>
               <button 
-                onClick={() => setShowReportModal(true)}
+                onClick={onExport ? onExport : () => setShowReportModal(true)}
                 className="p-1.5 md:p-2 rounded-lg md:rounded-xl text-slate-400 hover:text-blue-600 hover:bg-white/60 transition-all"
-                title="Reporte Gerencial"
+                title={onExport ? "Generar reporte" : "Reporte Gerencial"}
               >
                 <Icons.FileText className="w-3.5 h-3.5 md:w-4 md:h-4" />
               </button>

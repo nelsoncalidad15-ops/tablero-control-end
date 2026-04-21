@@ -580,6 +580,22 @@ export const primeBackendConnection = async () => {
     }
 };
 
+export const primeSalesQualityData = async (
+    salesQualityKey: string,
+    salesClaimsKey: string,
+    cemOsKey: string,
+    cemOsSaltaKey: string
+) => {
+    const tasks = [
+        fetchSalesQualityData(salesQualityKey),
+        fetchSalesClaimsData(salesClaimsKey),
+        fetchCemOsData(cemOsKey),
+        fetchCemOsData(cemOsSaltaKey)
+    ];
+
+    await Promise.allSettled(tasks);
+};
+
 const fetchFromProxy = async (sheetKey: string): Promise<string> => {
     if (isDirectCsvUrl(sheetKey)) {
         console.log(`[DataService] Fetching direct CSV URL: ${sheetKey}`);

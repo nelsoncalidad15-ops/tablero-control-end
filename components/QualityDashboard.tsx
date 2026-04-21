@@ -350,7 +350,7 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
                         className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 px-4 py-3 text-[10px] font-black uppercase tracking-[0.28em] text-white shadow-[0_16px_40px_rgba(15,23,42,0.18)] transition-transform hover:scale-[1.01] hover:bg-slate-800"
                     >
                         <Icons.FileText className="h-4 w-4" />
-                        Reporte PDF
+                        Generar reporte
                     </button>
                 </div>
             </div>

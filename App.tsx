@@ -206,7 +206,7 @@ function App() {
                 className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-600 px-4 py-2 text-[9px] font-black uppercase tracking-[0.3em] text-white shadow-[0_14px_32px_rgba(37,99,235,0.20)] transition-colors hover:bg-blue-500"
               >
                 <Icons.FileText className="h-4 w-4" />
-                Reporte PDF
+                Generar reporte
               </button>
               <button onClick={handleBackToPortal} className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-950 px-4 py-2 text-[9px] font-black uppercase tracking-[0.3em] text-white shadow-[0_14px_32px_rgba(15,23,42,0.18)] transition-colors hover:bg-slate-800">
                 <Icons.ArrowLeft className="h-4 w-4" />

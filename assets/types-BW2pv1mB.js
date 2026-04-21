@@ -1,0 +1,1 @@
+var R=(E=>(E.IDLE="IDLE",E.LOADING="LOADING",E.SUCCESS="SUCCESS",E.ERROR="ERROR",E))(R||{});export{R as L};

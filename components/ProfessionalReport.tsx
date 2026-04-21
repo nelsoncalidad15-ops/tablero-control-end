@@ -385,9 +385,9 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
   return (
     <div className="min-h-screen bg-slate-100 p-4 md:p-10 print:p-0 print:bg-white">
         {/* Controls - Hidden on Print */}
-        <div className="max-w-5xl mx-auto mb-10 bg-white p-6 rounded-[2rem] shadow-xl flex flex-wrap items-center justify-between gap-6 print:hidden">
-            <div className="flex items-center gap-4">
-                <button onClick={onBack} className="p-3 bg-slate-50 rounded-2xl text-slate-400 hover:text-blue-600 transition-all">
+        <div className="max-w-5xl mx-auto mb-10 rounded-[2.25rem] border border-slate-200/80 bg-white/90 p-6 shadow-[0_24px_80px_rgba(15,23,42,0.08)] backdrop-blur-xl flex flex-wrap items-center justify-between gap-6 print:hidden">
+            <div className="flex flex-wrap items-center gap-3 justify-end">
+                <button onClick={onBack} className="p-3 bg-slate-50 rounded-2xl text-slate-400 hover:text-blue-600 transition-all border border-slate-100 shadow-sm">
                     <Icons.ArrowLeft className="w-5 h-5" />
                 </button>
                 <div>
@@ -400,7 +400,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                 <select 
                     value={selectedMonth}
                     onChange={(e) => setSelectedMonth(e.target.value)}
-                    className="bg-slate-50 border border-slate-100 text-slate-900 text-[11px] font-black rounded-xl px-6 py-3 outline-none uppercase tracking-widest"
+                    className="min-w-[140px] bg-slate-50 border border-slate-100 text-slate-900 text-[11px] font-black rounded-xl px-5 py-3 outline-none uppercase tracking-widest shadow-sm"
                 >
                     {MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
                 </select>
@@ -408,7 +408,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                 <select 
                     value={selectedBranch}
                     onChange={(e) => setSelectedBranch(e.target.value)}
-                    className="bg-slate-50 border border-slate-100 text-slate-900 text-[11px] font-black rounded-xl px-6 py-3 outline-none uppercase tracking-widest"
+                    className="min-w-[180px] bg-slate-50 border border-slate-100 text-slate-900 text-[11px] font-black rounded-xl px-5 py-3 outline-none uppercase tracking-widest shadow-sm"
                 >
                     <option value="">Todas las Sucursales</option>
                     <option value="JUJUY">Jujuy (3059)</option>
@@ -417,7 +417,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
 
                 <button 
                     onClick={handlePrint}
-                    className="px-8 py-3 bg-blue-900 text-white rounded-xl text-[11px] font-black uppercase tracking-widest shadow-lg shadow-blue-900/20 hover:scale-105 transition-all flex items-center gap-3"
+                    className="px-8 py-3 bg-slate-950 text-white rounded-xl text-[11px] font-black uppercase tracking-widest shadow-lg shadow-slate-900/20 hover:scale-105 transition-all flex items-center gap-3"
                 >
                     <Icons.Printer className="w-4 h-4" />
                     Imprimir / Guardar PDF
@@ -442,6 +442,28 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                     <div>
                         <div className="text-xs font-black text-blue-400 uppercase tracking-[0.3em] print:!text-blue-600">Autosol</div>
                         <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest print:!text-slate-500">Grupo Cenoa</div>
+                    </div>
+                </div>
+
+                <div className="absolute top-12 right-12 w-[320px] rounded-[2rem] border border-white/10 bg-white/5 p-5 backdrop-blur-xl print:bg-white print:border-slate-200">
+                    <div className="flex items-center justify-between gap-4 mb-4">
+                        <div>
+                            <p className="text-[8px] font-black uppercase tracking-[0.35em] text-slate-400 print:!text-slate-500">Resumen activo</p>
+                            <p className="mt-1 text-2xl font-black italic text-white print:!text-slate-950">{selectedMonth}</p>
+                        </div>
+                        <div className="h-12 w-12 rounded-2xl bg-blue-500/15 flex items-center justify-center text-blue-300 print:bg-blue-50 print:!text-blue-600">
+                            <Icons.FileText className="h-5 w-5" />
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                        <div className="rounded-2xl border border-white/10 bg-white/5 p-3 print:bg-slate-50 print:border-slate-200">
+                            <p className="text-[8px] font-black uppercase tracking-[0.25em] text-slate-400 print:!text-slate-500">Sucursal</p>
+                            <p className="mt-1 text-sm font-black uppercase tracking-tight text-white print:!text-slate-950">{selectedBranch || 'Consolidado'}</p>
+                        </div>
+                        <div className="rounded-2xl border border-white/10 bg-white/5 p-3 print:bg-slate-50 print:border-slate-200">
+                            <p className="text-[8px] font-black uppercase tracking-[0.25em] text-slate-400 print:!text-slate-500">Vista</p>
+                            <p className="mt-1 text-sm font-black uppercase tracking-tight text-white print:!text-slate-950">Reporte Ejecutivo</p>
+                        </div>
                     </div>
                 </div>
 

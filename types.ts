@@ -166,6 +166,44 @@ export interface QualityObjectiveRecord {
   [key: string]: any;
 }
 
+export interface QualityObjectiveSummaryRecord {
+  id: string;
+  area: string;
+  indicador: string;
+  periodo: string;
+  anio: number;
+  vigencia_desde: string;
+  vigencia_hasta: string;
+  tipo_objetivo: string;
+  objetivo_texto: string;
+  objetivo_valor: number | null;
+  unidad: string;
+  orden: number;
+  tiene_escala: boolean;
+  tiene_bonus: boolean;
+  [key: string]: any;
+}
+
+export interface QualityObjectiveScaleRecord {
+  id: string;
+  area: string;
+  indicador: string;
+  periodo: string;
+  anio: number;
+  vigencia_desde: string;
+  vigencia_hasta: string;
+  escala: string;
+  operador: string;
+  desde_valor: number | null;
+  hasta_valor: number | null;
+  rango_mostrar: string;
+  impacto_valor: number | null;
+  impacto_texto: string;
+  impacto_tipo: string;
+  orden: number;
+  [key: string]: any;
+}
+
 export interface DashboardMetrics {
   totalPPT: number;
   totalObjetivo: number;
@@ -450,6 +488,8 @@ export interface AppConfig {
     pcgc?: string;
     cem_os?: string;
     cem_os_salta?: string;
+    quality_objectives_summary?: string;
+    quality_objectives_scales?: string;
     sales_quality?: string;
     sales_claims?: string;
     internal_postventa?: string;

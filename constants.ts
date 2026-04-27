@@ -25,6 +25,8 @@ export const POSTVENTA_KPI_SHEET_KEY = "postventa_kpi";
 export const POSTVENTA_BILLING_SHEET_KEY = "postventa_billing";
 export const PCGC_SHEET_KEY = "pcgc";
 export const QUALITY_OBJECTIVES_SHEET_KEY = "quality_objectives";
+export const QUALITY_OBJECTIVES_SUMMARY_SHEET_KEY = "quality_objectives_summary";
+export const QUALITY_OBJECTIVES_SCALES_SHEET_KEY = "quality_objectives_scales";
 export const CEM_OS_SHEET_KEY = "cem_os";
 export const CEM_OS_SALTA_SHEET_KEY = "cem_os_salta";
 export const ACTION_PLAN_SHEET_KEY = "action_plan";
@@ -151,6 +153,8 @@ export const DEFAULT_CONFIG = {
     postventa_billing: POSTVENTA_BILLING_SHEET_KEY,
     pcgc: PCGC_SHEET_KEY,
     quality_objectives: QUALITY_OBJECTIVES_SHEET_KEY,
+    quality_objectives_summary: QUALITY_OBJECTIVES_SUMMARY_SHEET_KEY,
+    quality_objectives_scales: QUALITY_OBJECTIVES_SCALES_SHEET_KEY,
     cem_os: CEM_OS_SHEET_KEY,
     cem_os_salta: CEM_OS_SALTA_SHEET_KEY,
     sales_quality: SALES_QUALITY_SHEET_KEY,
@@ -172,6 +176,8 @@ export const DEFAULT_CONFIG = {
     postventa_billing: string; 
     pcgc: string; 
     quality_objectives: string;
+    quality_objectives_summary: string;
+    quality_objectives_scales: string;
     cem_os: string;
     cem_os_salta: string;
     sales_quality: string;

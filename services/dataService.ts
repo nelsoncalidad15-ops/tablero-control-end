@@ -1,7 +1,7 @@
 
 /// <reference types="vite/client" />
 import Papa from 'papaparse';
-import { AutoRecord, QualityRecord, SalesQualityRecord, SalesClaimsRecord, DetailedQualityRecord, PostventaKpiRecord, BillingRecord, PCGCRecord, CemOsRecord, InternalPostventaRecord, ActionPlanRecord, CourseGrade, RelatorioItem, CollaboratorContact, CoursePhase, WarrantyRecord, QualityObjectiveRecord } from '../types';
+import { AutoRecord, QualityRecord, SalesQualityRecord, SalesClaimsRecord, DetailedQualityRecord, PostventaKpiRecord, BillingRecord, PCGCRecord, CemOsRecord, InternalPostventaRecord, ActionPlanRecord, CourseGrade, RelatorioItem, CollaboratorContact, CoursePhase, WarrantyRecord, QualityObjectiveRecord, QualityObjectiveSummaryRecord, QualityObjectiveScaleRecord } from '../types';
 import { MOCK_DATA } from '../constants';
 import { buildApiUrl } from './apiConfig';
 import { getStoredDashboardPassword } from './apiConfig';
@@ -777,6 +777,28 @@ export const fetchQualityObjectivesData = async (sheetKey: string): Promise<Qual
       return parseQualityObjectivesCSV(text);
     } catch (error) {
       console.error("Error loading quality objectives data", error);
+      throw error;
+    }
+};
+
+export const fetchQualityObjectivesSummaryData = async (sheetKey: string): Promise<QualityObjectiveSummaryRecord[]> => {
+    if (!sheetKey) return [];
+    try {
+      const text = await fetchFromProxy(sheetKey);
+      return parseQualityObjectivesSummaryCSV(text);
+    } catch (error) {
+      console.error("Error loading quality objectives summary data", error);
+      throw error;
+    }
+};
+
+export const fetchQualityObjectivesScalesData = async (sheetKey: string): Promise<QualityObjectiveScaleRecord[]> => {
+    if (!sheetKey) return [];
+    try {
+      const text = await fetchFromProxy(sheetKey);
+      return parseQualityObjectivesScalesCSV(text);
+    } catch (error) {
+      console.error("Error loading quality objectives scales data", error);
       throw error;
     }
 };
@@ -1656,6 +1678,111 @@ const parseQualityObjectivesCSV = (csvText: string): QualityObjectiveRecord[] =>
           else if (header === 'rango mostrar') record.rango_mostrar = value;
           else if (header === 'impacto mostrar') record.impacto_mostrar = value;
           else if (header === 'impacto tipo') record.impacto_tipo = value.toLowerCase();
+        });
+
+        return record;
+      });
+};
+
+const parseBooleanFlag = (value: string) => {
+    const normalized = cleanHeader(value);
+    return ['si', 'sí', 'true', '1', 'yes'].includes(normalized);
+};
+
+const parseQualityObjectivesSummaryCSV = (csvText: string): QualityObjectiveSummaryRecord[] => {
+    const rows = parseCSV(csvText);
+    if (rows.length < 2) return [];
+
+    const headers = rows[0].map(cleanHeader);
+
+    return rows.slice(1)
+      .filter(row => row.some(cell => String(cell || '').trim() !== ''))
+      .map((row, index) => {
+        const record: QualityObjectiveSummaryRecord = {
+          id: `quality-objective-summary-${index + 1}`,
+          area: '',
+          indicador: '',
+          periodo: '',
+          anio: 0,
+          vigencia_desde: '',
+          vigencia_hasta: '',
+          tipo_objetivo: 'requisito',
+          objetivo_texto: '',
+          objetivo_valor: null,
+          unidad: '',
+          orden: index + 1,
+          tiene_escala: false,
+          tiene_bonus: false,
+        };
+
+        headers.forEach((header, colIndex) => {
+          const value = String(row[colIndex] || '').trim();
+
+          if (header === 'area') record.area = value;
+          else if (header === 'indicador') record.indicador = value;
+          else if (header === 'periodo') record.periodo = value;
+          else if (header === 'anio' || header === 'ano') record.anio = parseInt(value, 10) || 0;
+          else if (header === 'vigencia desde') record.vigencia_desde = value;
+          else if (header === 'vigencia hasta') record.vigencia_hasta = value;
+          else if (header === 'tipo objetivo') record.tipo_objetivo = value.toLowerCase() || 'requisito';
+          else if (header === 'objetivo texto') record.objetivo_texto = value;
+          else if (header === 'objetivo valor') record.objetivo_valor = value ? parseNumber(value) : null;
+          else if (header === 'unidad') record.unidad = value.toLowerCase();
+          else if (header === 'orden') record.orden = parseInt(value, 10) || index + 1;
+          else if (header === 'tiene escala') record.tiene_escala = parseBooleanFlag(value);
+          else if (header === 'tiene bonus') record.tiene_bonus = parseBooleanFlag(value);
+        });
+
+        return record;
+      });
+};
+
+const parseQualityObjectivesScalesCSV = (csvText: string): QualityObjectiveScaleRecord[] => {
+    const rows = parseCSV(csvText);
+    if (rows.length < 2) return [];
+
+    const headers = rows[0].map(cleanHeader);
+
+    return rows.slice(1)
+      .filter(row => row.some(cell => String(cell || '').trim() !== ''))
+      .map((row, index) => {
+        const record: QualityObjectiveScaleRecord = {
+          id: `quality-objective-scale-${index + 1}`,
+          area: '',
+          indicador: '',
+          periodo: '',
+          anio: 0,
+          vigencia_desde: '',
+          vigencia_hasta: '',
+          escala: '',
+          operador: '',
+          desde_valor: null,
+          hasta_valor: null,
+          rango_mostrar: '',
+          impacto_valor: null,
+          impacto_texto: '',
+          impacto_tipo: '',
+          orden: index + 1,
+        };
+
+        headers.forEach((header, colIndex) => {
+          const value = String(row[colIndex] || '').trim();
+
+          if (header === 'area') record.area = value;
+          else if (header === 'indicador') record.indicador = value;
+          else if (header === 'periodo') record.periodo = value;
+          else if (header === 'anio' || header === 'ano') record.anio = parseInt(value, 10) || 0;
+          else if (header === 'vigencia desde') record.vigencia_desde = value;
+          else if (header === 'vigencia hasta') record.vigencia_hasta = value;
+          else if (header === 'escala') record.escala = value;
+          else if (header === 'operador') record.operador = value;
+          else if (header === 'desde valor') record.desde_valor = value ? parseNumber(value) : null;
+          else if (header === 'hasta valor') record.hasta_valor = value ? parseNumber(value) : null;
+          else if (header === 'rango mostrar') record.rango_mostrar = value;
+          else if (header === 'impacto valor') record.impacto_valor = value ? parseNumber(value) : null;
+          else if (header === 'impacto texto') record.impacto_texto = value;
+          else if (header === 'impacto tipo') record.impacto_tipo = value.toLowerCase();
+          else if (header === 'orden') record.orden = parseInt(value, 10) || index + 1;
         });
 
         return record;

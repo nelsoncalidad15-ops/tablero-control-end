@@ -547,7 +547,14 @@ function App() {
       } else if (subType === 'pcgc') {
         dashboardContent = <PCGCDashboard sheetUrl={config.sheetUrls.pcgc || ''} onBack={handleBack} />;
       } else if (subType === 'objetivos') {
-        dashboardContent = <QualityObjectivesDashboard sheetUrl={config.sheetUrls.quality_objectives || ''} onBack={handleBack} />;
+        dashboardContent = (
+          <QualityObjectivesDashboard
+            legacySheetUrl={config.sheetUrls.quality_objectives || ''}
+            summarySheetUrl={config.sheetUrls.quality_objectives_summary || ''}
+            scalesSheetUrl={config.sheetUrls.quality_objectives_scales || ''}
+            onBack={handleBack}
+          />
+        );
       } else if (subType === 'plan_accion') {
         dashboardContent = (
           <ActionPlanDashboard 

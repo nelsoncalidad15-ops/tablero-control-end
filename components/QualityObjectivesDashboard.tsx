@@ -1,35 +1,64 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { DashboardFrame } from './DashboardUI';
 import { Icons } from './Icon';
-import { LoadingState, QualityObjectiveRecord } from '../types';
-import { fetchQualityObjectivesData } from '../services/dataService';
+import {
+  LoadingState,
+  QualityObjectiveRecord,
+  QualityObjectiveScaleRecord,
+  QualityObjectiveSummaryRecord,
+} from '../types';
+import {
+  fetchQualityObjectivesData,
+  fetchQualityObjectivesScalesData,
+  fetchQualityObjectivesSummaryData,
+} from '../services/dataService';
 
 interface QualityObjectivesDashboardProps {
-  sheetUrl: string;
+  legacySheetUrl?: string;
+  summarySheetUrl?: string;
+  scalesSheetUrl?: string;
   onBack: () => void;
 }
 
-type IndicatorGroup = {
+type DisplayRow = {
+  id: string;
+  area: string;
   indicator: string;
-  vigenciaDesde: string;
-  vigenciaHasta: string;
-  requirements: QualityObjectiveRecord[];
-  scales: QualityObjectiveRecord[];
-  bonuses: QualityObjectiveRecord[];
+  period: string;
+  year: number;
+  validFrom: string;
+  validTo: string;
+  rowType: 'requirement' | 'scale' | 'bonus';
+  goalText: string;
+  goalValue: number | null;
+  unit: string;
+  scaleLabel: string;
+  operator: string;
+  fromValue: number | null;
+  toValue: number | null;
+  rangeText: string;
+  impactText: string;
+  impactValue: number | null;
+  impactType: string;
+  order: number;
 };
 
-type AreaGroup = {
+type IndicatorCard = {
+  indicator: string;
+  validFrom: string;
+  validTo: string;
+  requirements: DisplayRow[];
+  scales: DisplayRow[];
+  bonuses: DisplayRow[];
+};
+
+type AreaSection = {
   area: string;
   totalRows: number;
-  indicators: IndicatorGroup[];
+  indicators: IndicatorCard[];
 };
 
-const AREA_THEME: Record<string, {
-  badge: string;
-  glow: string;
-  accent: string;
-  text: string;
-}> = {
+const AREA_THEME: Record<string, { badge: string; glow: string; accent: string; text: string }> = {
   ventas: {
     badge: 'border-orange-200/80 bg-orange-50 text-orange-700',
     glow: 'bg-orange-400/10',
@@ -44,11 +73,45 @@ const AREA_THEME: Record<string, {
   },
 };
 
-const TYPE_THEME: Record<string, string> = {
-  requisito: 'border-slate-200 bg-slate-100 text-slate-700',
-  escala: 'border-emerald-200 bg-emerald-50 text-emerald-700',
+const TYPE_THEME: Record<DisplayRow['rowType'], string> = {
+  requirement: 'border-slate-200 bg-slate-100 text-slate-700',
+  scale: 'border-emerald-200 bg-emerald-50 text-emerald-700',
   bonus: 'border-violet-200 bg-violet-50 text-violet-700',
 };
+
+const SUMMARY_COLUMNS = [
+  'area',
+  'indicador',
+  'periodo',
+  'anio',
+  'vigencia_desde',
+  'vigencia_hasta',
+  'tipo_objetivo',
+  'objetivo_texto',
+  'objetivo_valor',
+  'unidad',
+  'orden',
+  'tiene_escala',
+  'tiene_bonus',
+];
+
+const SCALES_COLUMNS = [
+  'area',
+  'indicador',
+  'periodo',
+  'anio',
+  'vigencia_desde',
+  'vigencia_hasta',
+  'escala',
+  'operador',
+  'desde_valor',
+  'hasta_valor',
+  'rango_mostrar',
+  'impacto_valor',
+  'impacto_texto',
+  'impacto_tipo',
+  'orden',
+];
 
 const normalizeText = (value: string) =>
   (value || '')
@@ -64,20 +127,99 @@ const formatDate = (value: string) => {
   return date.toLocaleDateString('es-AR');
 };
 
-const formatCell = (value: number | null | string) => {
+const formatValue = (value: number | null | string, unit = '') => {
   if (value == null || value === '') return '-';
+  if (typeof value === 'number') {
+    if (unit === 'porcentaje') return `${(value * 100).toFixed(2).replace('.', ',')}%`;
+    return String(value).replace('.', ',');
+  }
   return String(value);
 };
 
 const pickAreaTheme = (area: string) => AREA_THEME[normalizeText(area)] || AREA_THEME.postventa;
 
-const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({ sheetUrl, onBack }) => {
-  const [data, setData] = useState<QualityObjectiveRecord[]>([]);
+const fromLegacyRow = (row: QualityObjectiveRecord): DisplayRow => ({
+  id: row.id,
+  area: row.area,
+  indicator: row.indicador,
+  period: row.periodo,
+  year: row.anio,
+  validFrom: row.vigencia_desde,
+  validTo: row.vigencia_hasta,
+  rowType: row.tipo_registro === 'bonus' ? 'bonus' : row.tipo_registro === 'escala' ? 'scale' : 'requirement',
+  goalText: row.requisito_mostrar,
+  goalValue: null,
+  unit: '',
+  scaleLabel: row.escala,
+  operator: '',
+  fromValue: row.desde,
+  toValue: row.hasta,
+  rangeText: row.rango_mostrar,
+  impactText: row.impacto_mostrar,
+  impactValue: null,
+  impactType: row.impacto_tipo,
+  order: Number(row.escala?.replace(/[^\d]/g, '')) || 999,
+});
+
+const fromSummaryRow = (row: QualityObjectiveSummaryRecord): DisplayRow => ({
+  id: row.id,
+  area: row.area,
+  indicator: row.indicador,
+  period: row.periodo,
+  year: row.anio,
+  validFrom: row.vigencia_desde,
+  validTo: row.vigencia_hasta,
+  rowType: row.tipo_objetivo === 'bonus' ? 'bonus' : 'requirement',
+  goalText: row.objetivo_texto,
+  goalValue: row.objetivo_valor,
+  unit: row.unidad,
+  scaleLabel: '',
+  operator: '',
+  fromValue: null,
+  toValue: null,
+  rangeText: '',
+  impactText: '',
+  impactValue: null,
+  impactType: row.tipo_objetivo,
+  order: row.orden,
+});
+
+const fromScaleRow = (row: QualityObjectiveScaleRecord): DisplayRow => ({
+  id: row.id,
+  area: row.area,
+  indicator: row.indicador,
+  period: row.periodo,
+  year: row.anio,
+  validFrom: row.vigencia_desde,
+  validTo: row.vigencia_hasta,
+  rowType: 'scale',
+  goalText: '',
+  goalValue: null,
+  unit: '',
+  scaleLabel: row.escala,
+  operator: row.operador,
+  fromValue: row.desde_valor,
+  toValue: row.hasta_valor,
+  rangeText: row.rango_mostrar,
+  impactText: row.impacto_texto,
+  impactValue: row.impacto_valor,
+  impactType: row.impacto_tipo,
+  order: row.orden,
+});
+
+const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
+  legacySheetUrl = '',
+  summarySheetUrl = '',
+  scalesSheetUrl = '',
+  onBack,
+}) => {
+  const [rows, setRows] = useState<DisplayRow[]>([]);
   const [loading, setLoading] = useState<LoadingState>(LoadingState.IDLE);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [selectedYear, setSelectedYear] = useState<string>('all');
   const [selectedArea, setSelectedArea] = useState<string>('all');
   const [retryCount, setRetryCount] = useState(0);
+  const [sourceMode, setSourceMode] = useState<'clean' | 'legacy'>('legacy');
 
   useEffect(() => {
     const loadData = async () => {
@@ -85,21 +227,49 @@ const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
       setErrorMessage(null);
 
       try {
-        const result = await fetchQualityObjectivesData(sheetUrl);
-        setData(result);
+        const hasCleanSources = Boolean(summarySheetUrl && scalesSheetUrl);
+
+        if (hasCleanSources) {
+          const [summaryRows, scaleRows] = await Promise.all([
+            fetchQualityObjectivesSummaryData(summarySheetUrl),
+            fetchQualityObjectivesScalesData(scalesSheetUrl),
+          ]);
+
+          const combined = [...summaryRows.map(fromSummaryRow), ...scaleRows.map(fromScaleRow)];
+          setRows(combined);
+          setSourceMode('clean');
+          setLoading(LoadingState.SUCCESS);
+          return;
+        }
+
+        const legacyRows = await fetchQualityObjectivesData(legacySheetUrl);
+        setRows(legacyRows.map(fromLegacyRow));
+        setSourceMode('legacy');
         setLoading(LoadingState.SUCCESS);
       } catch (error: any) {
+        try {
+          if (legacySheetUrl) {
+            const legacyRows = await fetchQualityObjectivesData(legacySheetUrl);
+            setRows(legacyRows.map(fromLegacyRow));
+            setSourceMode('legacy');
+            setLoading(LoadingState.SUCCESS);
+            return;
+          }
+        } catch {
+          // ignore fallback error and surface the original failure below
+        }
+
         setLoading(LoadingState.ERROR);
         setErrorMessage(error?.message || 'No se pudieron cargar los objetivos.');
       }
     };
 
     loadData();
-  }, [sheetUrl, retryCount]);
+  }, [legacySheetUrl, retryCount, scalesSheetUrl, summarySheetUrl]);
 
   const availableYears = useMemo(() => {
-    return Array.from(new Set(data.map(item => item.anio).filter(Boolean))).sort((a, b) => b - a);
-  }, [data]);
+    return Array.from(new Set(rows.map(item => item.year).filter(Boolean))).sort((a, b) => b - a);
+  }, [rows]);
 
   useEffect(() => {
     if (selectedYear === 'all' && availableYears.length > 0) {
@@ -107,16 +277,16 @@ const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
     }
   }, [availableYears, selectedYear]);
 
-  const filteredData = useMemo(() => {
-    return data.filter(item => {
-      const matchesYear = selectedYear === 'all' || String(item.anio) === selectedYear;
+  const filteredRows = useMemo(() => {
+    return rows.filter(item => {
+      const matchesYear = selectedYear === 'all' || String(item.year) === selectedYear;
       const matchesArea = selectedArea === 'all' || normalizeText(item.area) === selectedArea;
       return matchesYear && matchesArea;
     });
-  }, [data, selectedArea, selectedYear]);
+  }, [rows, selectedArea, selectedYear]);
 
-  const groupedData = useMemo<AreaGroup[]>(() => {
-    const byArea = filteredData.reduce<Record<string, QualityObjectiveRecord[]>>((acc, item) => {
+  const groupedData = useMemo<AreaSection[]>(() => {
+    const byArea = filteredRows.reduce<Record<string, DisplayRow[]>>((acc, item) => {
       const key = item.area || 'Sin area';
       if (!acc[key]) acc[key] = [];
       acc[key].push(item);
@@ -125,9 +295,9 @@ const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
 
     return Object.entries(byArea)
       .sort(([a], [b]) => a.localeCompare(b))
-      .map(([area, items]) => {
-        const byIndicator = items.reduce<Record<string, QualityObjectiveRecord[]>>((acc, item) => {
-          const key = item.indicador || 'Sin indicador';
+      .map(([area, areaRows]) => {
+        const byIndicator = areaRows.reduce<Record<string, DisplayRow[]>>((acc, item) => {
+          const key = item.indicator || 'Sin indicador';
           if (!acc[key]) acc[key] = [];
           acc[key].push(item);
           return acc;
@@ -135,38 +305,38 @@ const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
 
         const indicators = Object.entries(byIndicator)
           .sort(([a], [b]) => a.localeCompare(b))
-          .map(([indicator, rows]) => {
-            const sortedRows = rows.sort((left, right) => {
-              const period = left.periodo.localeCompare(right.periodo);
-              if (period !== 0) return period;
-              return left.escala.localeCompare(right.escala);
+          .map(([indicator, indicatorRows]) => {
+            const sorted = [...indicatorRows].sort((left, right) => {
+              const orderDiff = left.order - right.order;
+              if (orderDiff !== 0) return orderDiff;
+              return left.period.localeCompare(right.period);
             });
 
             return {
               indicator,
-              vigenciaDesde: sortedRows[0]?.vigencia_desde || '',
-              vigenciaHasta: sortedRows[sortedRows.length - 1]?.vigencia_hasta || sortedRows[0]?.vigencia_hasta || '',
-              requirements: sortedRows.filter(row => row.tipo_registro === 'requisito'),
-              scales: sortedRows.filter(row => row.tipo_registro === 'escala'),
-              bonuses: sortedRows.filter(row => row.tipo_registro === 'bonus'),
+              validFrom: sorted[0]?.validFrom || '',
+              validTo: sorted[sorted.length - 1]?.validTo || sorted[0]?.validTo || '',
+              requirements: sorted.filter(item => item.rowType === 'requirement'),
+              scales: sorted.filter(item => item.rowType === 'scale'),
+              bonuses: sorted.filter(item => item.rowType === 'bonus'),
             };
           });
 
         return {
           area,
-          totalRows: items.length,
+          totalRows: areaRows.length,
           indicators,
         };
       });
-  }, [filteredData]);
+  }, [filteredRows]);
 
   const summary = useMemo(() => {
-    const escalas = filteredData.filter(item => item.tipo_registro === 'escala').length;
-    const bonus = filteredData.filter(item => item.tipo_registro === 'bonus').length;
-    const areas = new Set(filteredData.map(item => normalizeText(item.area))).size;
-    const indicators = new Set(filteredData.map(item => `${normalizeText(item.area)}::${normalizeText(item.indicador)}`)).size;
-    return { escalas, bonus, areas, indicators };
-  }, [filteredData]);
+    const areas = new Set(filteredRows.map(item => normalizeText(item.area))).size;
+    const indicators = new Set(filteredRows.map(item => `${normalizeText(item.area)}::${normalizeText(item.indicator)}`)).size;
+    const scales = filteredRows.filter(item => item.rowType === 'scale').length;
+    const bonuses = filteredRows.filter(item => item.rowType === 'bonus').length;
+    return { areas, indicators, scales, bonuses };
+  }, [filteredRows]);
 
   const filters = (
     <div className="space-y-3">
@@ -212,6 +382,16 @@ const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
           </label>
         </div>
       </div>
+
+      <div className="rounded-[1.4rem] border border-slate-200/80 bg-white/92 p-4 shadow-[0_10px_26px_rgba(15,23,42,0.05)]">
+        <p className="text-[8px] font-black uppercase tracking-[0.22em] text-slate-400">Fuente actual</p>
+        <p className="mt-1 text-[13px] font-black text-slate-950">
+          {sourceMode === 'clean' ? 'Resumen + Escalas' : 'Sheet legado unico'}
+        </p>
+        <p className="mt-2 text-[11px] leading-5 text-slate-500">
+          El dashboard ya prioriza el formato nuevo si cargaste ambas hojas.
+        </p>
+      </div>
     </div>
   );
 
@@ -253,7 +433,7 @@ const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
                   Incentivos de calidad
                 </h2>
                 <p className="mt-1.5 max-w-2xl text-[12px] leading-5 text-slate-200/85 md:text-[13px]">
-                  Vista compacta para leer requisitos, escalas y bonus por area e indicador.
+                  Vista compacta para leer objetivos, escalas y bonus por area e indicador.
                 </p>
               </div>
 
@@ -261,8 +441,8 @@ const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
                 {[
                   { label: 'Areas', value: summary.areas, icon: Icons.Layers },
                   { label: 'Indicadores', value: summary.indicators, icon: Icons.Target },
-                  { label: 'Escalas', value: summary.escalas, icon: Icons.Table },
-                  { label: 'Bonus', value: summary.bonus, icon: Icons.Star },
+                  { label: 'Escalas', value: summary.scales, icon: Icons.Table },
+                  { label: 'Bonus', value: summary.bonuses, icon: Icons.Star },
                 ].map(item => (
                   <div key={item.label} className="rounded-[1rem] border border-white/10 bg-white/10 p-2.5 backdrop-blur-xl">
                     <div className="flex items-center justify-between gap-2">
@@ -280,165 +460,195 @@ const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
             </div>
           </section>
 
-          {groupedData.length === 0 ? (
-            <div className="rounded-[2rem] border border-slate-200 bg-white p-10 text-center shadow-[0_14px_34px_rgba(15,23,42,0.06)]">
-              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-slate-400">
-                <Icons.SearchX className="h-6 w-6" />
+          <section className="rounded-[1.6rem] border border-slate-200/80 bg-white p-4 shadow-[0_12px_32px_rgba(15,23,42,0.05)]">
+            <div className="flex items-center gap-2">
+              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-950 text-white">
+                <Icons.Table className="h-3.5 w-3.5" />
               </div>
-              <h3 className="text-lg font-black uppercase italic tracking-tight text-slate-950">Sin datos para los filtros actuales</h3>
-              <p className="mt-2 text-sm text-slate-500">Cambie el ano o el area para revisar otras vigencias del programa.</p>
+              <div>
+                <p className="text-[8px] font-black uppercase tracking-[0.22em] text-slate-400">Estructura recomendada</p>
+                <h3 className="text-[14px] font-black text-slate-950">Google Sheets limpio</h3>
+              </div>
             </div>
-          ) : (
-            groupedData.map(group => {
-              const theme = pickAreaTheme(group.area);
 
-              return (
-                <section
-                  key={group.area}
-                  className="relative overflow-hidden rounded-[1.8rem] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,250,252,0.98))] p-4 shadow-[0_12px_32px_rgba(15,23,42,0.05)]"
-                >
-                  <div className={`pointer-events-none absolute -right-12 top-0 h-36 w-36 rounded-full blur-3xl ${theme.glow}`} />
-                  <div className="relative mb-3 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-                    <div>
-                      <div className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.16em] ${theme.badge}`}>
-                        {group.area}
-                      </div>
-                      <h2 className="mt-1.5 text-[1.25rem] font-black tracking-tight text-slate-950">{group.area}</h2>
+            <div className="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-2">
+              <div className="rounded-[1rem] border border-slate-200 bg-slate-50/70 p-3">
+                <p className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">Hoja 1: objetivos_resumen</p>
+                <div className="mt-2 overflow-x-auto rounded-xl border border-slate-200 bg-white p-2">
+                  <code className="block whitespace-nowrap text-[10px] text-slate-600">
+                    {SUMMARY_COLUMNS.join(' | ')}
+                  </code>
+                </div>
+              </div>
+
+              <div className="rounded-[1rem] border border-slate-200 bg-slate-50/70 p-3">
+                <p className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">Hoja 2: objetivos_escalas</p>
+                <div className="mt-2 overflow-x-auto rounded-xl border border-slate-200 bg-white p-2">
+                  <code className="block whitespace-nowrap text-[10px] text-slate-600">
+                    {SCALES_COLUMNS.join(' | ')}
+                  </code>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          {groupedData.map(group => {
+            const theme = pickAreaTheme(group.area);
+
+            return (
+              <section
+                key={group.area}
+                className="relative overflow-hidden rounded-[1.8rem] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,250,252,0.98))] p-4 shadow-[0_12px_32px_rgba(15,23,42,0.05)]"
+              >
+                <div className={`pointer-events-none absolute -right-12 top-0 h-36 w-36 rounded-full blur-3xl ${theme.glow}`} />
+                <div className="relative mb-3 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+                  <div>
+                    <div className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.16em] ${theme.badge}`}>
+                      {group.area}
                     </div>
-                    <div className="flex flex-wrap gap-2">
-                      <div className="rounded-[0.95rem] border border-slate-200 bg-white px-3 py-2 shadow-sm">
-                        <p className="text-[7px] font-black uppercase tracking-[0.12em] text-slate-400">Indicadores</p>
-                        <p className={`mt-0.5 text-[15px] font-black ${theme.text}`}>{group.indicators.length}</p>
-                      </div>
-                      <div className="rounded-[0.95rem] border border-slate-200 bg-white px-3 py-2 shadow-sm">
-                        <p className="text-[7px] font-black uppercase tracking-[0.12em] text-slate-400">Registros</p>
-                        <p className="mt-0.5 text-[15px] font-black text-slate-950">{group.totalRows}</p>
-                      </div>
+                    <h2 className="mt-1.5 text-[1.25rem] font-black tracking-tight text-slate-950">{group.area}</h2>
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    <div className="rounded-[0.95rem] border border-slate-200 bg-white px-3 py-2 shadow-sm">
+                      <p className="text-[7px] font-black uppercase tracking-[0.12em] text-slate-400">Indicadores</p>
+                      <p className={`mt-0.5 text-[15px] font-black ${theme.text}`}>{group.indicators.length}</p>
+                    </div>
+                    <div className="rounded-[0.95rem] border border-slate-200 bg-white px-3 py-2 shadow-sm">
+                      <p className="text-[7px] font-black uppercase tracking-[0.12em] text-slate-400">Registros</p>
+                      <p className="mt-0.5 text-[15px] font-black text-slate-950">{group.totalRows}</p>
                     </div>
                   </div>
+                </div>
 
-                  <div className="grid grid-cols-1 gap-3 2xl:grid-cols-2">
-                    {group.indicators.map(indicator => {
-                      const totalScales = indicator.scales.length;
-                      const totalRequirements = indicator.requirements.length;
-                      const totalBonuses = indicator.bonuses.length;
+                <div className="grid grid-cols-1 gap-3 2xl:grid-cols-2">
+                  {group.indicators.map(indicator => {
+                    const totalScales = indicator.scales.length;
+                    const totalRequirements = indicator.requirements.length;
+                    const totalBonuses = indicator.bonuses.length;
 
-                      return (
-                        <article
-                          key={`${group.area}-${indicator.indicator}`}
-                          className="overflow-hidden rounded-[1.2rem] border border-slate-200/80 bg-white shadow-[0_8px_22px_rgba(15,23,42,0.05)]"
-                        >
-                          <div className={`relative overflow-hidden bg-gradient-to-r ${theme.accent} px-3.5 py-3 text-white`}>
-                            <div className="relative flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
-                              <div className="min-w-0">
-                                <p className="text-[7px] font-black uppercase tracking-[0.18em] text-white/75">Indicador</p>
-                                <h3 className="mt-0.5 truncate text-[1rem] font-black tracking-tight">{indicator.indicator}</h3>
-                                <p className="mt-0.5 text-[11px] text-white/80">
-                                  {indicator.vigenciaDesde ? `${formatDate(indicator.vigenciaDesde)} a ${formatDate(indicator.vigenciaHasta)}` : 'Vigencia sin definir'}
-                                </p>
-                              </div>
-                              <div className="flex flex-wrap gap-1">
+                    return (
+                      <article
+                        key={`${group.area}-${indicator.indicator}`}
+                        className="overflow-hidden rounded-[1.2rem] border border-slate-200/80 bg-white shadow-[0_8px_22px_rgba(15,23,42,0.05)]"
+                      >
+                        <div className={`relative overflow-hidden bg-gradient-to-r ${theme.accent} px-3.5 py-3 text-white`}>
+                          <div className="relative flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+                            <div className="min-w-0">
+                              <p className="text-[7px] font-black uppercase tracking-[0.18em] text-white/75">Indicador</p>
+                              <h3 className="mt-0.5 truncate text-[1rem] font-black tracking-tight">{indicator.indicator}</h3>
+                              <p className="mt-0.5 text-[11px] text-white/80">
+                                {indicator.validFrom ? `${formatDate(indicator.validFrom)} a ${formatDate(indicator.validTo)}` : 'Vigencia sin definir'}
+                              </p>
+                            </div>
+                            <div className="flex flex-wrap gap-1">
+                              <span className="rounded-full border border-white/20 bg-white/15 px-2 py-1 text-[7px] font-black uppercase tracking-[0.12em]">
+                                {totalRequirements} req
+                              </span>
+                              <span className="rounded-full border border-white/20 bg-white/15 px-2 py-1 text-[7px] font-black uppercase tracking-[0.12em]">
+                                {totalScales} esc
+                              </span>
+                              {totalBonuses > 0 && (
                                 <span className="rounded-full border border-white/20 bg-white/15 px-2 py-1 text-[7px] font-black uppercase tracking-[0.12em]">
-                                  {totalRequirements} req
+                                  {totalBonuses} bon
                                 </span>
-                                <span className="rounded-full border border-white/20 bg-white/15 px-2 py-1 text-[7px] font-black uppercase tracking-[0.12em]">
-                                  {totalScales} esc
-                                </span>
-                                {totalBonuses > 0 && (
-                                  <span className="rounded-full border border-white/20 bg-white/15 px-2 py-1 text-[7px] font-black uppercase tracking-[0.12em]">
-                                    {totalBonuses} bon
-                                  </span>
-                                )}
-                              </div>
+                              )}
                             </div>
                           </div>
+                        </div>
 
-                          <div className="space-y-2.5 p-3">
-                            {indicator.requirements.length > 0 && (
-                              <div className="rounded-[1rem] border border-slate-200/80 bg-slate-50/70 p-2.5">
-                                <div className="mb-2 flex items-center gap-2">
-                                  <span className={`inline-flex rounded-full border px-2 py-1 text-[7px] font-black uppercase tracking-[0.12em] ${TYPE_THEME.requisito}`}>
-                                    Requisitos
-                                  </span>
-                                </div>
-                                <div className="grid grid-cols-1 gap-2 xl:grid-cols-2">
-                                  {indicator.requirements.map(row => (
-                                    <div key={row.id} className="rounded-[0.9rem] border border-slate-200 bg-white p-2.5 shadow-sm">
-                                      <p className="text-[7px] font-black uppercase tracking-[0.12em] text-slate-400">{row.periodo || 'Periodo'}</p>
-                                      <p className="mt-1 text-[14px] font-black tracking-tight leading-tight text-slate-950">{row.requisito_mostrar || '-'}</p>
-                                      <p className="mt-1 text-[11px] text-slate-500">{row.rango_mostrar || 'Objetivo sin rango visible'}</p>
-                                    </div>
-                                  ))}
-                                </div>
+                        <div className="space-y-2.5 p-3">
+                          {indicator.requirements.length > 0 && (
+                            <div className="rounded-[1rem] border border-slate-200/80 bg-slate-50/70 p-2.5">
+                              <div className="mb-2 flex items-center gap-2">
+                                <span className={`inline-flex rounded-full border px-2 py-1 text-[7px] font-black uppercase tracking-[0.12em] ${TYPE_THEME.requirement}`}>
+                                  Requisitos
+                                </span>
                               </div>
-                            )}
+                              <div className="grid grid-cols-1 gap-2 xl:grid-cols-2">
+                                {indicator.requirements.map(row => (
+                                  <div key={row.id} className="rounded-[0.9rem] border border-slate-200 bg-white p-2.5 shadow-sm">
+                                    <p className="text-[7px] font-black uppercase tracking-[0.12em] text-slate-400">{row.period || 'Periodo'}</p>
+                                    <p className="mt-1 text-[14px] font-black tracking-tight leading-tight text-slate-950">
+                                      {row.goalText || formatValue(row.goalValue, row.unit)}
+                                    </p>
+                                    <p className="mt-1 text-[11px] text-slate-500">
+                                      {row.goalValue != null ? `${formatValue(row.goalValue, row.unit)} · ${row.unit || 'sin unidad'}` : 'Objetivo cualitativo'}
+                                    </p>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
 
-                            {indicator.scales.length > 0 && (
-                              <div className="rounded-[1rem] border border-slate-200/80 bg-white p-2.5">
-                                <div className="mb-2 flex items-center gap-2">
-                                  <span className={`inline-flex rounded-full border px-2 py-1 text-[7px] font-black uppercase tracking-[0.12em] ${TYPE_THEME.escala}`}>
-                                    Escalas
-                                  </span>
-                                </div>
-                                <div className="space-y-2">
-                                  {indicator.scales.map(row => (
-                                    <div key={row.id} className="rounded-[0.9rem] border border-slate-200 bg-slate-50/70 p-2.5">
-                                      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                                        <div className="min-w-0">
-                                          <div className="flex flex-wrap items-center gap-1">
-                                            <span className="rounded-full bg-slate-950 px-2 py-1 text-[7px] font-black uppercase tracking-[0.12em] text-white">
-                                              {row.periodo || '-'}
-                                            </span>
-                                            <span className="rounded-full border border-slate-200 bg-white px-2 py-1 text-[7px] font-black uppercase tracking-[0.12em] text-slate-600">
-                                              {row.escala || 'Escala'}
-                                            </span>
-                                          </div>
-                                          <p className="mt-1.5 text-[13px] font-black tracking-tight leading-tight text-slate-950">{row.rango_mostrar || row.requisito_mostrar || '-'}</p>
-                                          <p className="mt-0.5 text-[11px] text-slate-500">
-                                            Desde {formatCell(row.desde)} / Hasta {formatCell(row.hasta)}
-                                          </p>
+                          {indicator.scales.length > 0 && (
+                            <div className="rounded-[1rem] border border-slate-200/80 bg-white p-2.5">
+                              <div className="mb-2 flex items-center gap-2">
+                                <span className={`inline-flex rounded-full border px-2 py-1 text-[7px] font-black uppercase tracking-[0.12em] ${TYPE_THEME.scale}`}>
+                                  Escalas
+                                </span>
+                              </div>
+                              <div className="space-y-2">
+                                {indicator.scales.map(row => (
+                                  <div key={row.id} className="rounded-[0.9rem] border border-slate-200 bg-slate-50/70 p-2.5">
+                                    <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                                      <div className="min-w-0">
+                                        <div className="flex flex-wrap items-center gap-1">
+                                          <span className="rounded-full bg-slate-950 px-2 py-1 text-[7px] font-black uppercase tracking-[0.12em] text-white">
+                                            {row.period || '-'}
+                                          </span>
+                                          <span className="rounded-full border border-slate-200 bg-white px-2 py-1 text-[7px] font-black uppercase tracking-[0.12em] text-slate-600">
+                                            {row.scaleLabel || 'Escala'}
+                                          </span>
                                         </div>
-                                        <div className="rounded-[0.85rem] border border-emerald-200 bg-emerald-50 px-2.5 py-2 text-right md:min-w-[82px]">
-                                          <p className="text-[7px] font-black uppercase tracking-[0.12em] text-emerald-600/70">{row.impacto_tipo || 'impacto'}</p>
-                                          <p className="mt-0.5 text-[13px] font-black text-emerald-700">{row.impacto_mostrar || '-'}</p>
-                                        </div>
+                                        <p className="mt-1.5 text-[13px] font-black tracking-tight leading-tight text-slate-950">
+                                          {row.rangeText || `${row.operator} ${formatValue(row.fromValue)} ${row.toValue != null ? `/ ${formatValue(row.toValue)}` : ''}`}
+                                        </p>
+                                        <p className="mt-0.5 text-[11px] text-slate-500">
+                                          Desde {formatValue(row.fromValue)} / Hasta {formatValue(row.toValue)}
+                                        </p>
+                                      </div>
+                                      <div className="rounded-[0.85rem] border border-emerald-200 bg-emerald-50 px-2.5 py-2 text-right md:min-w-[82px]">
+                                        <p className="text-[7px] font-black uppercase tracking-[0.12em] text-emerald-600/70">{row.impactType || 'impacto'}</p>
+                                        <p className="mt-0.5 text-[13px] font-black text-emerald-700">{row.impactText || formatValue(row.impactValue)}</p>
                                       </div>
                                     </div>
-                                  ))}
-                                </div>
+                                  </div>
+                                ))}
                               </div>
-                            )}
+                            </div>
+                          )}
 
-                            {indicator.bonuses.length > 0 && (
-                              <div className="rounded-[1rem] border border-violet-200/80 bg-[linear-gradient(135deg,rgba(139,92,246,0.08),rgba(255,255,255,1))] p-2.5">
-                                <div className="mb-2 flex items-center gap-2">
-                                  <span className={`inline-flex rounded-full border px-2 py-1 text-[7px] font-black uppercase tracking-[0.12em] ${TYPE_THEME.bonus}`}>
-                                    Bonus
-                                  </span>
-                                </div>
-                                <div className="grid grid-cols-1 gap-2 xl:grid-cols-2">
-                                  {indicator.bonuses.map(row => (
-                                    <div key={row.id} className="rounded-[0.9rem] border border-violet-200 bg-white/90 p-2.5 shadow-sm">
-                                      <p className="text-[7px] font-black uppercase tracking-[0.12em] text-violet-400">{row.periodo || 'Anual'}</p>
-                                      <p className="mt-1 text-[13px] font-black tracking-tight leading-tight text-slate-950">{row.requisito_mostrar || row.rango_mostrar || '-'}</p>
-                                      <p className="mt-0.5 text-[11px] text-slate-500">{row.indicador}</p>
-                                      <div className="mt-2 inline-flex rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[12px] font-black text-violet-700">
-                                        {row.impacto_mostrar || '-'}
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
+                          {indicator.bonuses.length > 0 && (
+                            <div className="rounded-[1rem] border border-violet-200/80 bg-[linear-gradient(135deg,rgba(139,92,246,0.08),rgba(255,255,255,1))] p-2.5">
+                              <div className="mb-2 flex items-center gap-2">
+                                <span className={`inline-flex rounded-full border px-2 py-1 text-[7px] font-black uppercase tracking-[0.12em] ${TYPE_THEME.bonus}`}>
+                                  Bonus
+                                </span>
                               </div>
-                            )}
-                          </div>
-                        </article>
-                      );
-                    })}
-                  </div>
-                </section>
-              );
-            })
-          )}
+                              <div className="grid grid-cols-1 gap-2 xl:grid-cols-2">
+                                {indicator.bonuses.map(row => (
+                                  <div key={row.id} className="rounded-[0.9rem] border border-violet-200 bg-white/90 p-2.5 shadow-sm">
+                                    <p className="text-[7px] font-black uppercase tracking-[0.12em] text-violet-400">{row.period || 'Anual'}</p>
+                                    <p className="mt-1 text-[13px] font-black tracking-tight leading-tight text-slate-950">
+                                      {row.goalText || formatValue(row.goalValue, row.unit)}
+                                    </p>
+                                    <p className="mt-0.5 text-[11px] text-slate-500">{row.indicator}</p>
+                                    <div className="mt-2 inline-flex rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[12px] font-black text-violet-700">
+                                      {row.impactText || formatValue(row.impactValue)}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      </article>
+                    );
+                  })}
+                </div>
+              </section>
+            );
+          })}
         </div>
       )}
     </DashboardFrame>

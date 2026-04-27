@@ -42,6 +42,10 @@ services:
         sync: false
       - key: LINK_OBJETIVOS_CALIDAD
         sync: false
+      - key: LINK_OBJETIVOS_CALIDAD_RESUMEN
+        sync: false
+      - key: LINK_OBJETIVOS_CALIDAD_ESCALAS
+        sync: false
       - key: LINK_GARANTIA
         sync: false
       - key: LINK_GARANTIA_Q1

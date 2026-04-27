@@ -26,21 +26,18 @@ type AreaGroup = {
 
 const AREA_THEME: Record<string, {
   badge: string;
-  panel: string;
   glow: string;
   accent: string;
   text: string;
 }> = {
   ventas: {
     badge: 'border-orange-200/80 bg-orange-50 text-orange-700',
-    panel: 'from-orange-500/15 via-amber-400/10 to-white',
     glow: 'bg-orange-400/10',
     accent: 'from-orange-500 to-amber-400',
     text: 'text-orange-600',
   },
   postventa: {
     badge: 'border-sky-200/80 bg-sky-50 text-sky-700',
-    panel: 'from-sky-500/15 via-blue-400/10 to-white',
     glow: 'bg-sky-400/10',
     accent: 'from-sky-500 to-blue-500',
     text: 'text-sky-600',
@@ -164,35 +161,33 @@ const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
   }, [filteredData]);
 
   const summary = useMemo(() => {
-    const requisitos = filteredData.filter(item => item.tipo_registro === 'requisito').length;
     const escalas = filteredData.filter(item => item.tipo_registro === 'escala').length;
     const bonus = filteredData.filter(item => item.tipo_registro === 'bonus').length;
     const areas = new Set(filteredData.map(item => normalizeText(item.area))).size;
     const indicators = new Set(filteredData.map(item => `${normalizeText(item.area)}::${normalizeText(item.indicador)}`)).size;
-
-    return { requisitos, escalas, bonus, areas, indicators };
+    return { escalas, bonus, areas, indicators };
   }, [filteredData]);
 
   const filters = (
-    <div className="space-y-4">
-      <div className="rounded-[2rem] border border-slate-200/80 bg-white/90 p-5 shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
-        <div className="mb-4 flex items-center gap-3">
-          <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-slate-950 text-white">
-            <Icons.Filter className="h-4 w-4" />
+    <div className="space-y-3">
+      <div className="rounded-[1.4rem] border border-slate-200/80 bg-white/92 p-4 shadow-[0_10px_26px_rgba(15,23,42,0.05)]">
+        <div className="mb-3 flex items-center gap-2.5">
+          <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-950 text-white">
+            <Icons.Filter className="h-3.5 w-3.5" />
           </div>
           <div>
-            <p className="text-[10px] font-black uppercase tracking-[0.28em] text-slate-400">Filtros</p>
-            <p className="text-sm font-black text-slate-950">Objetivos</p>
+            <p className="text-[8px] font-black uppercase tracking-[0.22em] text-slate-400">Filtros</p>
+            <p className="text-[13px] font-black text-slate-950">Objetivos</p>
           </div>
         </div>
 
-        <div className="space-y-4">
+        <div className="space-y-3">
           <label className="block">
-            <span className="mb-2 block text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">Ano</span>
+            <span className="mb-1.5 block text-[8px] font-black uppercase tracking-[0.18em] text-slate-400">Ano</span>
             <select
               value={selectedYear}
               onChange={event => setSelectedYear(event.target.value)}
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 outline-none transition focus:border-blue-300 focus:bg-white"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[13px] font-bold text-slate-700 outline-none transition focus:border-blue-300 focus:bg-white"
             >
               <option value="all">Todos</option>
               {availableYears.map(year => (
@@ -204,11 +199,11 @@ const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
           </label>
 
           <label className="block">
-            <span className="mb-2 block text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">Area</span>
+            <span className="mb-1.5 block text-[8px] font-black uppercase tracking-[0.18em] text-slate-400">Area</span>
             <select
               value={selectedArea}
               onChange={event => setSelectedArea(event.target.value)}
-              className="w-full rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm font-bold text-slate-700 outline-none transition focus:border-blue-300 focus:bg-white"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[13px] font-bold text-slate-700 outline-none transition focus:border-blue-300 focus:bg-white"
             >
               <option value="all">Ventas + Postventa</option>
               <option value="ventas">Ventas</option>
@@ -231,52 +226,52 @@ const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
       className="bg-[radial-gradient(circle_at_top,_rgba(15,23,42,0.04),_transparent_22%),linear-gradient(180deg,_#f8fafc_0%,_#eef4ff_100%)]"
     >
       {loading === LoadingState.ERROR ? (
-        <div className="rounded-[2.5rem] border border-rose-200 bg-white p-10 text-center shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
-          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-rose-50 text-rose-500">
-            <Icons.AlertTriangle className="h-7 w-7" />
+        <div className="rounded-[2rem] border border-rose-200 bg-white p-8 text-center shadow-[0_14px_34px_rgba(15,23,42,0.06)]">
+          <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-rose-50 text-rose-500">
+            <Icons.AlertTriangle className="h-6 w-6" />
           </div>
-          <h3 className="text-xl font-black uppercase italic tracking-tight text-slate-950">No se pudieron cargar los objetivos</h3>
-          <p className="mx-auto mt-3 max-w-2xl text-sm leading-6 text-slate-500">{errorMessage}</p>
+          <h3 className="text-lg font-black uppercase italic tracking-tight text-slate-950">No se pudieron cargar los objetivos</h3>
+          <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-500">{errorMessage}</p>
           <button
             onClick={() => setRetryCount(count => count + 1)}
-            className="mt-6 rounded-full bg-slate-950 px-5 py-3 text-[10px] font-black uppercase tracking-[0.3em] text-white transition hover:bg-slate-800"
+            className="mt-5 rounded-full bg-slate-950 px-5 py-2.5 text-[9px] font-black uppercase tracking-[0.24em] text-white transition hover:bg-slate-800"
           >
             Reintentar
           </button>
         </div>
       ) : (
-        <div className="space-y-8 pb-12">
-          <section className="relative overflow-hidden rounded-[2.75rem] border border-slate-200/80 bg-[linear-gradient(135deg,#0f172a_0%,#111827_48%,#1d4ed8_100%)] px-6 py-8 text-white shadow-[0_30px_90px_rgba(15,23,42,0.20)] md:px-8 md:py-10">
+        <div className="space-y-4 pb-6">
+          <section className="relative overflow-hidden rounded-[1.8rem] border border-slate-200/80 bg-[linear-gradient(135deg,#0f172a_0%,#111827_52%,#1d4ed8_100%)] px-5 py-5 text-white shadow-[0_18px_48px_rgba(15,23,42,0.15)]">
             <div className="pointer-events-none absolute inset-0">
-              <div className="absolute -right-10 top-0 h-44 w-44 rounded-full bg-white/10 blur-3xl" />
-              <div className="absolute left-0 bottom-0 h-56 w-56 rounded-full bg-sky-400/15 blur-3xl" />
+              <div className="absolute -right-10 top-0 h-36 w-36 rounded-full bg-white/10 blur-3xl" />
+              <div className="absolute left-0 bottom-0 h-40 w-40 rounded-full bg-sky-400/15 blur-3xl" />
             </div>
-            <div className="relative flex flex-col gap-8 xl:flex-row xl:items-end xl:justify-between">
+            <div className="relative flex flex-col gap-4 xl:flex-row xl:items-end xl:justify-between">
               <div className="max-w-3xl">
-                <p className="text-[10px] font-black uppercase tracking-[0.55em] text-sky-200/80">Programa 2026</p>
-                <h2 className="mt-4 text-[2.2rem] font-black uppercase italic leading-[0.92] tracking-tighter md:text-[3.4rem]">
-                  Incentivos de calidad con lectura ejecutiva
+                <p className="text-[8px] font-black uppercase tracking-[0.3em] text-sky-200/80">Programa 2026</p>
+                <h2 className="mt-2 text-[1.3rem] font-black uppercase italic leading-tight tracking-tight md:text-[1.8rem]">
+                  Incentivos de calidad
                 </h2>
-                <p className="mt-5 max-w-2xl text-sm leading-7 text-slate-200/88 md:text-[15px]">
-                  Una vista diseñada para decisiones rápidas: requisitos, escalas de cobro y descuentos, bonus y vigencias agrupadas por área e indicador.
+                <p className="mt-1.5 max-w-2xl text-[12px] leading-5 text-slate-200/85 md:text-[13px]">
+                  Vista compacta para leer requisitos, escalas y bonus por area e indicador.
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:w-[640px]">
+              <div className="grid grid-cols-2 gap-2 md:grid-cols-4 xl:w-[420px]">
                 {[
                   { label: 'Areas', value: summary.areas, icon: Icons.Layers },
                   { label: 'Indicadores', value: summary.indicators, icon: Icons.Target },
                   { label: 'Escalas', value: summary.escalas, icon: Icons.Table },
                   { label: 'Bonus', value: summary.bonus, icon: Icons.Star },
                 ].map(item => (
-                  <div key={item.label} className="rounded-[1.7rem] border border-white/10 bg-white/10 p-4 backdrop-blur-xl">
-                    <div className="flex items-center justify-between gap-3">
+                  <div key={item.label} className="rounded-[1rem] border border-white/10 bg-white/10 p-2.5 backdrop-blur-xl">
+                    <div className="flex items-center justify-between gap-2">
                       <div>
-                        <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-200/75">{item.label}</p>
-                        <p className="mt-2 text-3xl font-black tracking-tight text-white">{item.value}</p>
+                        <p className="text-[7px] font-black uppercase tracking-[0.14em] text-slate-200/75">{item.label}</p>
+                        <p className="mt-1 text-lg font-black tracking-tight text-white">{item.value}</p>
                       </div>
-                      <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-white/12 text-white">
-                        <item.icon className="h-4 w-4" />
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/12 text-white">
+                        <item.icon className="h-3.5 w-3.5" />
                       </div>
                     </div>
                   </div>
@@ -286,12 +281,12 @@ const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
           </section>
 
           {groupedData.length === 0 ? (
-            <div className="rounded-[2.5rem] border border-slate-200 bg-white p-12 text-center shadow-[0_18px_45px_rgba(15,23,42,0.06)]">
-              <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-full bg-slate-100 text-slate-400">
-                <Icons.SearchX className="h-7 w-7" />
+            <div className="rounded-[2rem] border border-slate-200 bg-white p-10 text-center shadow-[0_14px_34px_rgba(15,23,42,0.06)]">
+              <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 text-slate-400">
+                <Icons.SearchX className="h-6 w-6" />
               </div>
-              <h3 className="text-xl font-black uppercase italic tracking-tight text-slate-950">Sin datos para los filtros actuales</h3>
-              <p className="mt-3 text-sm text-slate-500">Cambie el ano o el area para revisar otras vigencias del programa.</p>
+              <h3 className="text-lg font-black uppercase italic tracking-tight text-slate-950">Sin datos para los filtros actuales</h3>
+              <p className="mt-2 text-sm text-slate-500">Cambie el ano o el area para revisar otras vigencias del programa.</p>
             </div>
           ) : (
             groupedData.map(group => {
@@ -300,32 +295,29 @@ const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
               return (
                 <section
                   key={group.area}
-                  className={`relative overflow-hidden rounded-[2.75rem] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.95),rgba(248,250,252,0.98))] p-6 shadow-[0_22px_70px_rgba(15,23,42,0.08)] md:p-7`}
+                  className="relative overflow-hidden rounded-[1.8rem] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,250,252,0.98))] p-4 shadow-[0_12px_32px_rgba(15,23,42,0.05)]"
                 >
-                  <div className={`pointer-events-none absolute -right-14 top-0 h-52 w-52 rounded-full blur-3xl ${theme.glow}`} />
-                  <div className="relative mb-7 flex flex-col gap-5 md:flex-row md:items-end md:justify-between">
+                  <div className={`pointer-events-none absolute -right-12 top-0 h-36 w-36 rounded-full blur-3xl ${theme.glow}`} />
+                  <div className="relative mb-3 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
                     <div>
-                      <div className={`inline-flex items-center rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.28em] ${theme.badge}`}>
+                      <div className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.16em] ${theme.badge}`}>
                         {group.area}
                       </div>
-                      <h2 className="mt-3 text-[2rem] font-black tracking-tight text-slate-950">{group.area}</h2>
-                      <p className="mt-2 max-w-2xl text-sm leading-6 text-slate-500">
-                        Lectura consolidada de requisitos, escalas de impacto y bonus para el programa vigente.
-                      </p>
+                      <h2 className="mt-1.5 text-[1.25rem] font-black tracking-tight text-slate-950">{group.area}</h2>
                     </div>
-                    <div className="flex flex-wrap gap-3">
-                      <div className="rounded-[1.4rem] border border-slate-200 bg-white px-4 py-3 shadow-sm">
-                        <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">Indicadores</p>
-                        <p className={`mt-1 text-xl font-black ${theme.text}`}>{group.indicators.length}</p>
+                    <div className="flex flex-wrap gap-2">
+                      <div className="rounded-[0.95rem] border border-slate-200 bg-white px-3 py-2 shadow-sm">
+                        <p className="text-[7px] font-black uppercase tracking-[0.12em] text-slate-400">Indicadores</p>
+                        <p className={`mt-0.5 text-[15px] font-black ${theme.text}`}>{group.indicators.length}</p>
                       </div>
-                      <div className="rounded-[1.4rem] border border-slate-200 bg-white px-4 py-3 shadow-sm">
-                        <p className="text-[9px] font-black uppercase tracking-[0.24em] text-slate-400">Registros</p>
-                        <p className="mt-1 text-xl font-black text-slate-950">{group.totalRows}</p>
+                      <div className="rounded-[0.95rem] border border-slate-200 bg-white px-3 py-2 shadow-sm">
+                        <p className="text-[7px] font-black uppercase tracking-[0.12em] text-slate-400">Registros</p>
+                        <p className="mt-0.5 text-[15px] font-black text-slate-950">{group.totalRows}</p>
                       </div>
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-3 2xl:grid-cols-2">
                     {group.indicators.map(indicator => {
                       const totalScales = indicator.scales.length;
                       const totalRequirements = indicator.requirements.length;
@@ -334,48 +326,47 @@ const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
                       return (
                         <article
                           key={`${group.area}-${indicator.indicator}`}
-                          className="overflow-hidden rounded-[2.2rem] border border-slate-200/80 bg-white shadow-[0_16px_40px_rgba(15,23,42,0.06)]"
+                          className="overflow-hidden rounded-[1.2rem] border border-slate-200/80 bg-white shadow-[0_8px_22px_rgba(15,23,42,0.05)]"
                         >
-                          <div className={`relative overflow-hidden bg-gradient-to-r ${theme.accent} px-5 py-5 text-white`}>
-                            <div className="absolute inset-0 opacity-20" style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.15) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,0.15) 1px, transparent 1px)', backgroundSize: '18px 18px' }} />
-                            <div className="relative flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-                              <div>
-                                <p className="text-[10px] font-black uppercase tracking-[0.3em] text-white/75">Indicador</p>
-                                <h3 className="mt-1 text-[1.5rem] font-black tracking-tight">{indicator.indicator}</h3>
-                                <p className="mt-2 text-sm text-white/80">
+                          <div className={`relative overflow-hidden bg-gradient-to-r ${theme.accent} px-3.5 py-3 text-white`}>
+                            <div className="relative flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+                              <div className="min-w-0">
+                                <p className="text-[7px] font-black uppercase tracking-[0.18em] text-white/75">Indicador</p>
+                                <h3 className="mt-0.5 truncate text-[1rem] font-black tracking-tight">{indicator.indicator}</h3>
+                                <p className="mt-0.5 text-[11px] text-white/80">
                                   {indicator.vigenciaDesde ? `${formatDate(indicator.vigenciaDesde)} a ${formatDate(indicator.vigenciaHasta)}` : 'Vigencia sin definir'}
                                 </p>
                               </div>
-                              <div className="flex flex-wrap gap-2">
-                                <span className="rounded-full border border-white/20 bg-white/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em]">
-                                  {totalRequirements} requisitos
+                              <div className="flex flex-wrap gap-1">
+                                <span className="rounded-full border border-white/20 bg-white/15 px-2 py-1 text-[7px] font-black uppercase tracking-[0.12em]">
+                                  {totalRequirements} req
                                 </span>
-                                <span className="rounded-full border border-white/20 bg-white/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em]">
-                                  {totalScales} escalas
+                                <span className="rounded-full border border-white/20 bg-white/15 px-2 py-1 text-[7px] font-black uppercase tracking-[0.12em]">
+                                  {totalScales} esc
                                 </span>
                                 {totalBonuses > 0 && (
-                                  <span className="rounded-full border border-white/20 bg-white/15 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em]">
-                                    {totalBonuses} bonus
+                                  <span className="rounded-full border border-white/20 bg-white/15 px-2 py-1 text-[7px] font-black uppercase tracking-[0.12em]">
+                                    {totalBonuses} bon
                                   </span>
                                 )}
                               </div>
                             </div>
                           </div>
 
-                          <div className="space-y-5 p-5">
+                          <div className="space-y-2.5 p-3">
                             {indicator.requirements.length > 0 && (
-                              <div className="rounded-[1.8rem] border border-slate-200/80 bg-slate-50/70 p-4">
-                                <div className="mb-3 flex items-center gap-2">
-                                  <span className={`inline-flex rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] ${TYPE_THEME.requisito}`}>
+                              <div className="rounded-[1rem] border border-slate-200/80 bg-slate-50/70 p-2.5">
+                                <div className="mb-2 flex items-center gap-2">
+                                  <span className={`inline-flex rounded-full border px-2 py-1 text-[7px] font-black uppercase tracking-[0.12em] ${TYPE_THEME.requisito}`}>
                                     Requisitos
                                   </span>
                                 </div>
-                                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                                <div className="grid grid-cols-1 gap-2 xl:grid-cols-2">
                                   {indicator.requirements.map(row => (
-                                    <div key={row.id} className="rounded-[1.35rem] border border-slate-200 bg-white p-4 shadow-sm">
-                                      <p className="text-[10px] font-black uppercase tracking-[0.24em] text-slate-400">{row.periodo || 'Periodo'}</p>
-                                      <p className="mt-2 text-lg font-black tracking-tight text-slate-950">{row.requisito_mostrar || '-'}</p>
-                                      <p className="mt-1 text-sm text-slate-500">{row.rango_mostrar || 'Objetivo sin rango visible'}</p>
+                                    <div key={row.id} className="rounded-[0.9rem] border border-slate-200 bg-white p-2.5 shadow-sm">
+                                      <p className="text-[7px] font-black uppercase tracking-[0.12em] text-slate-400">{row.periodo || 'Periodo'}</p>
+                                      <p className="mt-1 text-[14px] font-black tracking-tight leading-tight text-slate-950">{row.requisito_mostrar || '-'}</p>
+                                      <p className="mt-1 text-[11px] text-slate-500">{row.rango_mostrar || 'Objetivo sin rango visible'}</p>
                                     </div>
                                   ))}
                                 </div>
@@ -383,33 +374,33 @@ const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
                             )}
 
                             {indicator.scales.length > 0 && (
-                              <div className="rounded-[1.8rem] border border-slate-200/80 bg-white p-4">
-                                <div className="mb-4 flex items-center gap-2">
-                                  <span className={`inline-flex rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] ${TYPE_THEME.escala}`}>
-                                    Escalas de impacto
+                              <div className="rounded-[1rem] border border-slate-200/80 bg-white p-2.5">
+                                <div className="mb-2 flex items-center gap-2">
+                                  <span className={`inline-flex rounded-full border px-2 py-1 text-[7px] font-black uppercase tracking-[0.12em] ${TYPE_THEME.escala}`}>
+                                    Escalas
                                   </span>
                                 </div>
-                                <div className="space-y-3">
+                                <div className="space-y-2">
                                   {indicator.scales.map(row => (
-                                    <div key={row.id} className="rounded-[1.4rem] border border-slate-200 bg-slate-50/70 p-4">
-                                      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-                                        <div>
-                                          <div className="flex flex-wrap items-center gap-2">
-                                            <span className="rounded-full bg-slate-950 px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-white">
+                                    <div key={row.id} className="rounded-[0.9rem] border border-slate-200 bg-slate-50/70 p-2.5">
+                                      <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
+                                        <div className="min-w-0">
+                                          <div className="flex flex-wrap items-center gap-1">
+                                            <span className="rounded-full bg-slate-950 px-2 py-1 text-[7px] font-black uppercase tracking-[0.12em] text-white">
                                               {row.periodo || '-'}
                                             </span>
-                                            <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-[10px] font-black uppercase tracking-[0.24em] text-slate-600">
+                                            <span className="rounded-full border border-slate-200 bg-white px-2 py-1 text-[7px] font-black uppercase tracking-[0.12em] text-slate-600">
                                               {row.escala || 'Escala'}
                                             </span>
                                           </div>
-                                          <p className="mt-3 text-base font-black tracking-tight text-slate-950">{row.rango_mostrar || row.requisito_mostrar || '-'}</p>
-                                          <p className="mt-1 text-sm text-slate-500">
+                                          <p className="mt-1.5 text-[13px] font-black tracking-tight leading-tight text-slate-950">{row.rango_mostrar || row.requisito_mostrar || '-'}</p>
+                                          <p className="mt-0.5 text-[11px] text-slate-500">
                                             Desde {formatCell(row.desde)} / Hasta {formatCell(row.hasta)}
                                           </p>
                                         </div>
-                                        <div className="rounded-[1.2rem] border border-emerald-200 bg-emerald-50 px-4 py-3 text-right">
-                                          <p className="text-[9px] font-black uppercase tracking-[0.22em] text-emerald-600/70">{row.impacto_tipo || 'impacto'}</p>
-                                          <p className="mt-1 text-lg font-black text-emerald-700">{row.impacto_mostrar || '-'}</p>
+                                        <div className="rounded-[0.85rem] border border-emerald-200 bg-emerald-50 px-2.5 py-2 text-right md:min-w-[82px]">
+                                          <p className="text-[7px] font-black uppercase tracking-[0.12em] text-emerald-600/70">{row.impacto_tipo || 'impacto'}</p>
+                                          <p className="mt-0.5 text-[13px] font-black text-emerald-700">{row.impacto_mostrar || '-'}</p>
                                         </div>
                                       </div>
                                     </div>
@@ -419,19 +410,19 @@ const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
                             )}
 
                             {indicator.bonuses.length > 0 && (
-                              <div className="rounded-[1.8rem] border border-violet-200/80 bg-[linear-gradient(135deg,rgba(139,92,246,0.08),rgba(255,255,255,1))] p-4">
-                                <div className="mb-4 flex items-center gap-2">
-                                  <span className={`inline-flex rounded-full border px-3 py-1 text-[10px] font-black uppercase tracking-[0.22em] ${TYPE_THEME.bonus}`}>
+                              <div className="rounded-[1rem] border border-violet-200/80 bg-[linear-gradient(135deg,rgba(139,92,246,0.08),rgba(255,255,255,1))] p-2.5">
+                                <div className="mb-2 flex items-center gap-2">
+                                  <span className={`inline-flex rounded-full border px-2 py-1 text-[7px] font-black uppercase tracking-[0.12em] ${TYPE_THEME.bonus}`}>
                                     Bonus
                                   </span>
                                 </div>
-                                <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+                                <div className="grid grid-cols-1 gap-2 xl:grid-cols-2">
                                   {indicator.bonuses.map(row => (
-                                    <div key={row.id} className="rounded-[1.35rem] border border-violet-200 bg-white/90 p-4 shadow-sm">
-                                      <p className="text-[10px] font-black uppercase tracking-[0.24em] text-violet-400">{row.periodo || 'Anual'}</p>
-                                      <p className="mt-2 text-lg font-black tracking-tight text-slate-950">{row.requisito_mostrar || row.rango_mostrar || '-'}</p>
-                                      <p className="mt-1 text-sm text-slate-500">{row.indicador}</p>
-                                      <div className="mt-3 inline-flex rounded-full border border-violet-200 bg-violet-50 px-3 py-1 text-sm font-black text-violet-700">
+                                    <div key={row.id} className="rounded-[0.9rem] border border-violet-200 bg-white/90 p-2.5 shadow-sm">
+                                      <p className="text-[7px] font-black uppercase tracking-[0.12em] text-violet-400">{row.periodo || 'Anual'}</p>
+                                      <p className="mt-1 text-[13px] font-black tracking-tight leading-tight text-slate-950">{row.requisito_mostrar || row.rango_mostrar || '-'}</p>
+                                      <p className="mt-0.5 text-[11px] text-slate-500">{row.indicador}</p>
+                                      <div className="mt-2 inline-flex rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[12px] font-black text-violet-700">
                                         {row.impacto_mostrar || '-'}
                                       </div>
                                     </div>

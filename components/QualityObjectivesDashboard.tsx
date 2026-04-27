@@ -102,11 +102,29 @@ const parseWholesale = (value: string) => {
 };
 
 const parseInputValue = (rawValue: string, unit: string) => {
-  const normalized = rawValue.replace(/\s/g, '').replace(/\./g, '').replace(',', '.').replace('%', '');
+  let normalized = rawValue.replace(/\s/g, '').replace('%', '');
+  const hasComma = normalized.includes(',');
+  const hasDot = normalized.includes('.');
+
+  if (hasComma && hasDot) {
+    normalized = normalized.replace(/\./g, '').replace(',', '.');
+  } else if (hasComma) {
+    normalized = normalized.replace(',', '.');
+  }
+
   const parsed = Number(normalized);
   if (!Number.isFinite(parsed)) return null;
   if (unit === 'porcentaje' && parsed > 1) return parsed / 100;
   return parsed;
+};
+
+const matchesToken = (left: string, right: string) => normalizeText(left) === normalizeText(right);
+
+const periodMatches = (selectedPeriod: string, rowPeriod: string) => {
+  if (selectedPeriod === 'all') return true;
+  const normalizedSelected = normalizeText(selectedPeriod);
+  const normalizedRow = normalizeText(rowPeriod);
+  return normalizedRow === normalizedSelected || normalizedRow === 'anual';
 };
 
 const compareByOperator = (value: number, operator: string, fromValue: number | null, toValue: number | null) => {
@@ -248,8 +266,9 @@ const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
     return Array.from(
       new Set(
         activeSummaries
-          .filter(item => (selectedArea === 'all' ? true : item.area === selectedArea))
+          .filter(item => (selectedArea === 'all' ? true : matchesToken(item.area, selectedArea)))
           .filter(item => (selectedYear === 'all' ? true : String(item.anio) === selectedYear))
+          .filter(item => normalizeText(item.periodo) !== 'anual')
           .map(item => item.periodo)
       )
     ).sort((a, b) => a.localeCompare(b));
@@ -261,9 +280,9 @@ const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
 
   const filteredIndicators = useMemo(() => {
     return activeSummaries
-      .filter(item => (selectedArea === 'all' ? true : item.area === selectedArea))
+      .filter(item => (selectedArea === 'all' ? true : matchesToken(item.area, selectedArea)))
       .filter(item => (selectedYear === 'all' ? true : String(item.anio) === selectedYear))
-      .filter(item => (selectedPeriod === 'all' ? true : item.periodo === selectedPeriod))
+      .filter(item => periodMatches(selectedPeriod, item.periodo))
       .sort((left, right) => left.orden - right.orden || left.indicador.localeCompare(right.indicador));
   }, [activeSummaries, selectedArea, selectedYear, selectedPeriod]);
 
@@ -300,7 +319,10 @@ const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
 
         const numericValue = rawInput ? 1 : 0;
         const matchingRule = scaleRows
-          .filter(rule => rule.area === indicator.area && rule.indicador === indicator.indicador && rule.periodo === indicator.periodo && rule.anio === indicator.anio)
+          .filter(rule => matchesToken(rule.area, indicator.area))
+          .filter(rule => matchesToken(rule.indicador, indicator.indicador))
+          .filter(rule => rule.anio === indicator.anio)
+          .filter(rule => periodMatches(indicator.periodo, rule.periodo))
           .sort((a, b) => a.orden - b.orden)
           .find(rule => compareByOperator(numericValue, rule.operador, rule.desde_valor, rule.hasta_valor));
 
@@ -345,7 +367,10 @@ const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
       }
 
       const matchingRule = scaleRows
-        .filter(rule => rule.area === indicator.area && rule.indicador === indicator.indicador && rule.periodo === indicator.periodo && rule.anio === indicator.anio)
+        .filter(rule => matchesToken(rule.area, indicator.area))
+        .filter(rule => matchesToken(rule.indicador, indicator.indicador))
+        .filter(rule => rule.anio === indicator.anio)
+        .filter(rule => periodMatches(indicator.periodo, rule.periodo))
         .sort((a, b) => a.orden - b.orden)
         .find(rule => compareByOperator(parsedValue, rule.operador, rule.desde_valor, rule.hasta_valor));
 

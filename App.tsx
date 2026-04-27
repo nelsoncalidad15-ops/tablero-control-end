@@ -19,6 +19,7 @@ const SalesQualityDashboard = lazy(() => import('./components/SalesQualityDashbo
 const InternalPostventaDashboard = lazy(() => import('./components/InternalPostventaDashboard'));
 const ActionPlanDashboard = lazy(() => import('./components/ActionPlanDashboard'));
 const PCGCDashboard = lazy(() => import('./components/PCGCDashboard'));
+const QualityObjectivesDashboard = lazy(() => import('./components/QualityObjectivesDashboard'));
 const RRHHDashboard = lazy(() => import('./components/RRHHDashboard'));
 const ExecutiveSummary = lazy(() => import('./components/ExecutiveSummary'));
 const ProfessionalReport = lazy(() => import('./components/ProfessionalReport'));
@@ -56,6 +57,7 @@ function App() {
       preloadModule(() => import('./components/DetailedQualityPostventa'));
       preloadModule(() => import('./components/CemOsDashboard'));
       preloadModule(() => import('./components/PCGCDashboard'));
+      preloadModule(() => import('./components/QualityObjectivesDashboard'));
       preloadModule(() => import('./components/ActionPlanDashboard'));
       preloadModule(() => import('./components/InternalPostventaDashboard'));
       void primeSalesQualityData(
@@ -244,6 +246,7 @@ function App() {
                 { id: 'ventas', path: '/calidad/ventas', name: 'Ventas', icon: Icons.BarChart, color: 'orange', desc: 'Satisfacción en salón y procesos comerciales' },
                 { id: 'postventa', path: '/calidad/postventa_selection', name: 'Postventa', icon: Icons.Wrench, color: 'blue', desc: 'Gestión de reclamos, taller y servicios' },
                 { id: 'pcgc', path: '/calidad/pcgc', name: 'PCGC', icon: Icons.ClipboardList, color: 'indigo', desc: 'Programa de Calidad de Gestión y Auditoría' },
+                { id: 'objetivos', path: '/calidad/objetivos', name: 'Objetivos', icon: Icons.Target, color: 'emerald', desc: 'Ventas y postventa desde Google Sheets' },
                 { id: 'plan_accion', path: '/calidad/plan_accion', name: 'Plan de Acción', icon: Icons.ClipboardCheck, color: 'emerald', desc: 'Control y verificación de desvíos' },
               ].map((item) => (
                 <motion.button 
@@ -543,6 +546,8 @@ function App() {
         dashboardContent = <SalesQualityDashboard onBack={handleBack} initialTab="cem_os" config={config} />;
       } else if (subType === 'pcgc') {
         dashboardContent = <PCGCDashboard sheetUrl={config.sheetUrls.pcgc || ''} onBack={handleBack} />;
+      } else if (subType === 'objetivos') {
+        dashboardContent = <QualityObjectivesDashboard sheetUrl={config.sheetUrls.quality_objectives || ''} onBack={handleBack} />;
       } else if (subType === 'plan_accion') {
         dashboardContent = (
           <ActionPlanDashboard 
@@ -635,6 +640,7 @@ function App() {
             <Route path="/calidad/postventa/internal_surveys" element={<DashboardView type="calidad" subType="postventa-internal" />} />
             <Route path="/calidad/postventa" element={<Navigate to="/calidad/postventa_selection" />} />
             <Route path="/calidad/pcgc" element={<DashboardView type="calidad" subType="pcgc" />} />
+            <Route path="/calidad/objetivos" element={<DashboardView type="calidad" subType="objetivos" />} />
             <Route path="/calidad/plan_accion" element={<DashboardView type="calidad" subType="plan_accion" />} />
             <Route path="/calidad/refuerzo" element={<DashboardView type="calidad" subType="refuerzo" />} />
             

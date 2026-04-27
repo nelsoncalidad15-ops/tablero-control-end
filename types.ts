@@ -147,6 +147,25 @@ export interface PCGCRecord {
   [key: string]: any;
 }
 
+export interface QualityObjectiveRecord {
+  id: string;
+  area: string;
+  tipo_registro: string;
+  anio: number;
+  periodo: string;
+  vigencia_desde: string;
+  vigencia_hasta: string;
+  indicador: string;
+  requisito_mostrar: string;
+  escala: string;
+  desde: number | null;
+  hasta: number | null;
+  rango_mostrar: string;
+  impacto_mostrar: string;
+  impacto_tipo: string;
+  [key: string]: any;
+}
+
 export interface DashboardMetrics {
   totalPPT: number;
   totalObjetivo: number;
@@ -434,6 +453,7 @@ export interface AppConfig {
     sales_quality?: string;
     sales_claims?: string;
     internal_postventa?: string;
+    quality_objectives?: string;
     action_plan?: string;
     action_plan_sales?: string;
     action_plan_form?: string;

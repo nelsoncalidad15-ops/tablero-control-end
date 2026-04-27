@@ -1,7 +1,7 @@
 
 /// <reference types="vite/client" />
 import Papa from 'papaparse';
-import { AutoRecord, QualityRecord, SalesQualityRecord, SalesClaimsRecord, DetailedQualityRecord, PostventaKpiRecord, BillingRecord, PCGCRecord, CemOsRecord, InternalPostventaRecord, ActionPlanRecord, CourseGrade, RelatorioItem, CollaboratorContact, CoursePhase, WarrantyRecord } from '../types';
+import { AutoRecord, QualityRecord, SalesQualityRecord, SalesClaimsRecord, DetailedQualityRecord, PostventaKpiRecord, BillingRecord, PCGCRecord, CemOsRecord, InternalPostventaRecord, ActionPlanRecord, CourseGrade, RelatorioItem, CollaboratorContact, CoursePhase, WarrantyRecord, QualityObjectiveRecord } from '../types';
 import { MOCK_DATA } from '../constants';
 import { buildApiUrl } from './apiConfig';
 import { getStoredDashboardPassword } from './apiConfig';
@@ -767,6 +767,16 @@ export const fetchPCGCData = async (sheetKey: string): Promise<PCGCRecord[]> => 
       return parsePCGCCSV(text);
     } catch (error) {
       console.error("Error loading PCGC data", error);
+      throw error;
+    }
+};
+
+export const fetchQualityObjectivesData = async (sheetKey: string): Promise<QualityObjectiveRecord[]> => {
+    try {
+      const text = await fetchFromProxy(sheetKey);
+      return parseQualityObjectivesCSV(text);
+    } catch (error) {
+      console.error("Error loading quality objectives data", error);
       throw error;
     }
 };
@@ -1600,6 +1610,56 @@ const parsePCGCCSV = (csvText: string): PCGCRecord[] => {
         }
     }
     return records;
+};
+
+const parseQualityObjectivesCSV = (csvText: string): QualityObjectiveRecord[] => {
+    const rows = parseCSV(csvText);
+    if (rows.length < 2) return [];
+
+    const headers = rows[0].map(cleanHeader);
+
+    return rows.slice(1)
+      .filter(row => row.some(cell => String(cell || '').trim() !== ''))
+      .map((row, index) => {
+        const record: QualityObjectiveRecord = {
+          id: `quality-objective-${index + 1}`,
+          area: '',
+          tipo_registro: '',
+          anio: 0,
+          periodo: '',
+          vigencia_desde: '',
+          vigencia_hasta: '',
+          indicador: '',
+          requisito_mostrar: '',
+          escala: '',
+          desde: null,
+          hasta: null,
+          rango_mostrar: '',
+          impacto_mostrar: '',
+          impacto_tipo: '',
+        };
+
+        headers.forEach((header, colIndex) => {
+          const value = String(row[colIndex] || '').trim();
+
+          if (header === 'area') record.area = value;
+          else if (header === 'tipo registro') record.tipo_registro = value.toLowerCase();
+          else if (header === 'anio' || header === 'ano') record.anio = parseInt(value, 10) || 0;
+          else if (header === 'periodo') record.periodo = value;
+          else if (header === 'vigencia desde') record.vigencia_desde = value;
+          else if (header === 'vigencia hasta') record.vigencia_hasta = value;
+          else if (header === 'indicador') record.indicador = value;
+          else if (header === 'requisito mostrar') record.requisito_mostrar = value;
+          else if (header === 'escala') record.escala = value;
+          else if (header === 'desde') record.desde = value ? parseNumber(value) : null;
+          else if (header === 'hasta') record.hasta = value ? parseNumber(value) : null;
+          else if (header === 'rango mostrar') record.rango_mostrar = value;
+          else if (header === 'impacto mostrar') record.impacto_mostrar = value;
+          else if (header === 'impacto tipo') record.impacto_tipo = value.toLowerCase();
+        });
+
+        return record;
+      });
 };
 
 const containsAny = (value: string, terms: string[]) => terms.some(term => value.includes(term));

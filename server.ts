@@ -98,6 +98,7 @@ async function startServer() {
     
     // Others
     pcgc: process.env.SHEET_URL_PCGC,
+    quality_objectives: process.env.LINK_OBJETIVOS_CALIDAD || process.env.SHEET_URL_QUALITY_OBJECTIVES,
     hr_grades: process.env.LINK_RRHH_NOTAS || process.env.SHEET_URL_HR_GRADES,
     hr_relatorio: process.env.LINK_RRHH_RELAT || process.env.SHEET_URL_HR_RELATORIO,
     hr_contacts: process.env.LINK_RRHH_CONTACTOS || process.env.SHEET_URL_HR_CONTACTS,

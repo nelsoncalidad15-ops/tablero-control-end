@@ -40,6 +40,8 @@ services:
         sync: false
       - key: LINK_FACTURACION
         sync: false
+      - key: LINK_OBJETIVOS_CALIDAD
+        sync: false
       - key: LINK_GARANTIA
         sync: false
       - key: LINK_GARANTIA_Q1

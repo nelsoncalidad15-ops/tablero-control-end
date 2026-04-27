@@ -174,6 +174,8 @@ export interface QualityObjectiveSummaryRecord {
   anio: number;
   vigencia_desde: string;
   vigencia_hasta: string;
+  tipo_input: string;
+  tipo_resultado: string;
   tipo_objetivo: string;
   objetivo_texto: string;
   objetivo_valor: number | null;
@@ -181,6 +183,7 @@ export interface QualityObjectiveSummaryRecord {
   orden: number;
   tiene_escala: boolean;
   tiene_bonus: boolean;
+  activa: boolean;
   [key: string]: any;
 }
 

@@ -1706,6 +1706,8 @@ const parseQualityObjectivesSummaryCSV = (csvText: string): QualityObjectiveSumm
           anio: 0,
           vigencia_desde: '',
           vigencia_hasta: '',
+          tipo_input: 'numero',
+          tipo_resultado: 'requisito',
           tipo_objetivo: 'requisito',
           objetivo_texto: '',
           objetivo_valor: null,
@@ -1713,6 +1715,7 @@ const parseQualityObjectivesSummaryCSV = (csvText: string): QualityObjectiveSumm
           orden: index + 1,
           tiene_escala: false,
           tiene_bonus: false,
+          activa: true,
         };
 
         headers.forEach((header, colIndex) => {
@@ -1724,6 +1727,8 @@ const parseQualityObjectivesSummaryCSV = (csvText: string): QualityObjectiveSumm
           else if (header === 'anio' || header === 'ano') record.anio = parseInt(value, 10) || 0;
           else if (header === 'vigencia desde') record.vigencia_desde = value;
           else if (header === 'vigencia hasta') record.vigencia_hasta = value;
+          else if (header === 'tipo input') record.tipo_input = value.toLowerCase() || 'numero';
+          else if (header === 'tipo resultado') record.tipo_resultado = value.toLowerCase() || 'requisito';
           else if (header === 'tipo objetivo') record.tipo_objetivo = value.toLowerCase() || 'requisito';
           else if (header === 'objetivo texto') record.objetivo_texto = value;
           else if (header === 'objetivo valor') record.objetivo_valor = value ? parseNumber(value) : null;
@@ -1731,7 +1736,10 @@ const parseQualityObjectivesSummaryCSV = (csvText: string): QualityObjectiveSumm
           else if (header === 'orden') record.orden = parseInt(value, 10) || index + 1;
           else if (header === 'tiene escala') record.tiene_escala = parseBooleanFlag(value);
           else if (header === 'tiene bonus') record.tiene_bonus = parseBooleanFlag(value);
+          else if (header === 'activa') record.activa = parseBooleanFlag(value);
         });
+
+        if (!record.tipo_objetivo) record.tipo_objetivo = record.tipo_resultado || 'requisito';
 
         return record;
       });

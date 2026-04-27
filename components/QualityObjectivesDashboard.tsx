@@ -20,42 +20,33 @@ interface QualityObjectivesDashboardProps {
   onBack: () => void;
 }
 
-type DisplayRow = {
-  id: string;
+type LegacyDisplayRow = {
+  rowType: 'requirement' | 'scale' | 'bonus';
   area: string;
   indicator: string;
   period: string;
   year: number;
   validFrom: string;
   validTo: string;
-  rowType: 'requirement' | 'scale' | 'bonus';
   goalText: string;
   goalValue: number | null;
-  unit: string;
   scaleLabel: string;
-  operator: string;
   fromValue: number | null;
   toValue: number | null;
   rangeText: string;
   impactText: string;
-  impactValue: number | null;
   impactType: string;
   order: number;
 };
 
-type IndicatorCard = {
-  indicator: string;
-  validFrom: string;
-  validTo: string;
-  requirements: DisplayRow[];
-  scales: DisplayRow[];
-  bonuses: DisplayRow[];
-};
-
-type AreaSection = {
-  area: string;
-  totalRows: number;
-  indicators: IndicatorCard[];
+type EvaluationResult = {
+  status: 'pending' | 'matched' | 'ok' | 'miss';
+  level: string;
+  resultType: string;
+  percentValue: number;
+  percentText: string;
+  amount: number;
+  message: string;
 };
 
 const AREA_THEME: Record<string, { badge: string; glow: string; accent: string; text: string }> = {
@@ -73,52 +64,14 @@ const AREA_THEME: Record<string, { badge: string; glow: string; accent: string; 
   },
 };
 
-const TYPE_THEME: Record<DisplayRow['rowType'], string> = {
-  requirement: 'border-slate-200 bg-slate-100 text-slate-700',
-  scale: 'border-emerald-200 bg-emerald-50 text-emerald-700',
-  bonus: 'border-violet-200 bg-violet-50 text-violet-700',
-};
-
-const SUMMARY_COLUMNS = [
-  'area',
-  'indicador',
-  'periodo',
-  'anio',
-  'vigencia_desde',
-  'vigencia_hasta',
-  'tipo_objetivo',
-  'objetivo_texto',
-  'objetivo_valor',
-  'unidad',
-  'orden',
-  'tiene_escala',
-  'tiene_bonus',
-];
-
-const SCALES_COLUMNS = [
-  'area',
-  'indicador',
-  'periodo',
-  'anio',
-  'vigencia_desde',
-  'vigencia_hasta',
-  'escala',
-  'operador',
-  'desde_valor',
-  'hasta_valor',
-  'rango_mostrar',
-  'impacto_valor',
-  'impacto_texto',
-  'impacto_tipo',
-  'orden',
-];
-
 const normalizeText = (value: string) =>
   (value || '')
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
     .toLowerCase()
     .trim();
+
+const pickAreaTheme = (area: string) => AREA_THEME[normalizeText(area)] || AREA_THEME.postventa;
 
 const formatDate = (value: string) => {
   if (!value) return 'Sin fecha';
@@ -127,85 +80,96 @@ const formatDate = (value: string) => {
   return date.toLocaleDateString('es-AR');
 };
 
-const formatValue = (value: number | null | string, unit = '') => {
-  if (value == null || value === '') return '-';
-  if (typeof value === 'number') {
-    if (unit === 'porcentaje') return `${(value * 100).toFixed(2).replace('.', ',')}%`;
-    return String(value).replace('.', ',');
-  }
-  return String(value);
+const formatPercent = (value: number) => `${(value * 100).toFixed(2).replace('.', ',')}%`;
+
+const formatCurrency = (value: number) =>
+  new Intl.NumberFormat('es-AR', {
+    style: 'currency',
+    currency: 'ARS',
+    maximumFractionDigits: 0,
+  }).format(value || 0);
+
+const formatGoalValue = (value: number | null, unit: string, fallback: string) => {
+  if (value == null) return fallback || '-';
+  if (unit === 'porcentaje') return formatPercent(value);
+  return String(value).replace('.', ',');
 };
 
-const pickAreaTheme = (area: string) => AREA_THEME[normalizeText(area)] || AREA_THEME.postventa;
+const parseWholesale = (value: string) => {
+  const normalized = value.replace(/\./g, '').replace(',', '.').replace(/[^\d.-]/g, '').trim();
+  const parsed = Number(normalized);
+  return Number.isFinite(parsed) ? parsed : 0;
+};
 
-const fromLegacyRow = (row: QualityObjectiveRecord): DisplayRow => ({
-  id: row.id,
-  area: row.area,
-  indicator: row.indicador,
-  period: row.periodo,
-  year: row.anio,
-  validFrom: row.vigencia_desde,
-  validTo: row.vigencia_hasta,
-  rowType: row.tipo_registro === 'bonus' ? 'bonus' : row.tipo_registro === 'escala' ? 'scale' : 'requirement',
-  goalText: row.requisito_mostrar,
-  goalValue: null,
-  unit: '',
-  scaleLabel: row.escala,
-  operator: '',
-  fromValue: row.desde,
-  toValue: row.hasta,
-  rangeText: row.rango_mostrar,
-  impactText: row.impacto_mostrar,
-  impactValue: null,
-  impactType: row.impacto_tipo,
-  order: Number(row.escala?.replace(/[^\d]/g, '')) || 999,
-});
+const parseInputValue = (rawValue: string, unit: string) => {
+  const normalized = rawValue.replace(/\s/g, '').replace(/\./g, '').replace(',', '.').replace('%', '');
+  const parsed = Number(normalized);
+  if (!Number.isFinite(parsed)) return null;
+  if (unit === 'porcentaje' && parsed > 1) return parsed / 100;
+  return parsed;
+};
 
-const fromSummaryRow = (row: QualityObjectiveSummaryRecord): DisplayRow => ({
-  id: row.id,
-  area: row.area,
-  indicator: row.indicador,
-  period: row.periodo,
-  year: row.anio,
-  validFrom: row.vigencia_desde,
-  validTo: row.vigencia_hasta,
-  rowType: row.tipo_objetivo === 'bonus' ? 'bonus' : 'requirement',
-  goalText: row.objetivo_texto,
-  goalValue: row.objetivo_valor,
-  unit: row.unidad,
-  scaleLabel: '',
-  operator: '',
-  fromValue: null,
-  toValue: null,
-  rangeText: '',
-  impactText: '',
-  impactValue: null,
-  impactType: row.tipo_objetivo,
-  order: row.orden,
-});
+const compareByOperator = (value: number, operator: string, fromValue: number | null, toValue: number | null) => {
+  switch (operator) {
+    case '>=':
+      return fromValue != null ? value >= fromValue : false;
+    case '<=':
+      return toValue != null ? value <= toValue : fromValue != null ? value <= fromValue : false;
+    case '>':
+      return fromValue != null ? value > fromValue : toValue != null ? value > toValue : false;
+    case '<':
+      return toValue != null ? value < toValue : fromValue != null ? value < fromValue : false;
+    case '=':
+      return fromValue != null ? Math.abs(value - fromValue) < 0.00001 : false;
+    default:
+      return false;
+  }
+};
 
-const fromScaleRow = (row: QualityObjectiveScaleRecord): DisplayRow => ({
-  id: row.id,
-  area: row.area,
-  indicator: row.indicador,
-  period: row.periodo,
-  year: row.anio,
-  validFrom: row.vigencia_desde,
-  validTo: row.vigencia_hasta,
-  rowType: 'scale',
-  goalText: '',
-  goalValue: null,
-  unit: '',
-  scaleLabel: row.escala,
-  operator: row.operador,
-  fromValue: row.desde_valor,
-  toValue: row.hasta_valor,
-  rangeText: row.rango_mostrar,
-  impactText: row.impacto_texto,
-  impactValue: row.impacto_valor,
-  impactType: row.impacto_tipo,
-  order: row.orden,
-});
+const toLegacySummary = (rows: QualityObjectiveRecord[]): QualityObjectiveSummaryRecord[] =>
+  rows
+    .filter(row => row.tipo_registro !== 'escala')
+    .map((row, index) => ({
+      id: `legacy-summary-${index + 1}`,
+      area: row.area,
+      indicador: row.indicador,
+      periodo: row.periodo,
+      anio: row.anio,
+      vigencia_desde: row.vigencia_desde,
+      vigencia_hasta: row.vigencia_hasta,
+      tipo_input: row.tipo_registro === 'bonus' ? 'booleano' : 'numero',
+      tipo_resultado: row.tipo_registro === 'bonus' ? 'bonus' : row.impacto_tipo || 'requisito',
+      tipo_objetivo: row.tipo_registro === 'bonus' ? 'bonus' : 'requisito',
+      objetivo_texto: row.requisito_mostrar,
+      objetivo_valor: null,
+      unidad: '',
+      orden: index + 1,
+      tiene_escala: rows.some(candidate => candidate.area === row.area && candidate.indicador === row.indicador && candidate.periodo === row.periodo && candidate.tipo_registro === 'escala'),
+      tiene_bonus: row.tipo_registro === 'bonus',
+      activa: true,
+    }));
+
+const toLegacyScales = (rows: QualityObjectiveRecord[]): QualityObjectiveScaleRecord[] =>
+  rows
+    .filter(row => row.tipo_registro === 'escala')
+    .map((row, index) => ({
+      id: `legacy-scale-${index + 1}`,
+      area: row.area,
+      indicador: row.indicador,
+      periodo: row.periodo,
+      anio: row.anio,
+      vigencia_desde: row.vigencia_desde,
+      vigencia_hasta: row.vigencia_hasta,
+      escala: row.escala,
+      operador: row.rango_mostrar.includes('>=') ? '>=' : row.rango_mostrar.includes('<=') ? '<=' : row.rango_mostrar.includes('<') ? '<' : row.rango_mostrar.includes('>') ? '>' : '=',
+      desde_valor: row.desde,
+      hasta_valor: row.hasta,
+      rango_mostrar: row.rango_mostrar,
+      impacto_valor: null,
+      impacto_texto: row.impacto_mostrar,
+      impacto_tipo: row.impacto_tipo,
+      orden: Number(row.escala?.replace(/[^\d]/g, '')) || index + 1,
+    }));
 
 const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
   legacySheetUrl = '',
@@ -213,13 +177,17 @@ const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
   scalesSheetUrl = '',
   onBack,
 }) => {
-  const [rows, setRows] = useState<DisplayRow[]>([]);
+  const [summaryRows, setSummaryRows] = useState<QualityObjectiveSummaryRecord[]>([]);
+  const [scaleRows, setScaleRows] = useState<QualityObjectiveScaleRecord[]>([]);
   const [loading, setLoading] = useState<LoadingState>(LoadingState.IDLE);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [selectedYear, setSelectedYear] = useState<string>('all');
   const [selectedArea, setSelectedArea] = useState<string>('all');
+  const [selectedPeriod, setSelectedPeriod] = useState<string>('all');
   const [retryCount, setRetryCount] = useState(0);
   const [sourceMode, setSourceMode] = useState<'clean' | 'legacy'>('legacy');
+  const [wholesaleInput, setWholesaleInput] = useState<string>('');
+  const [simValues, setSimValues] = useState<Record<string, string | boolean>>({});
 
   useEffect(() => {
     const loadData = async () => {
@@ -227,38 +195,24 @@ const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
       setErrorMessage(null);
 
       try {
-        const hasCleanSources = Boolean(summarySheetUrl && scalesSheetUrl);
-
-        if (hasCleanSources) {
-          const [summaryRows, scaleRows] = await Promise.all([
+        if (summarySheetUrl && scalesSheetUrl) {
+          const [summary, scales] = await Promise.all([
             fetchQualityObjectivesSummaryData(summarySheetUrl),
             fetchQualityObjectivesScalesData(scalesSheetUrl),
           ]);
-
-          const combined = [...summaryRows.map(fromSummaryRow), ...scaleRows.map(fromScaleRow)];
-          setRows(combined);
+          setSummaryRows(summary);
+          setScaleRows(scales);
           setSourceMode('clean');
           setLoading(LoadingState.SUCCESS);
           return;
         }
 
-        const legacyRows = await fetchQualityObjectivesData(legacySheetUrl);
-        setRows(legacyRows.map(fromLegacyRow));
+        const legacy = await fetchQualityObjectivesData(legacySheetUrl);
+        setSummaryRows(toLegacySummary(legacy));
+        setScaleRows(toLegacyScales(legacy));
         setSourceMode('legacy');
         setLoading(LoadingState.SUCCESS);
       } catch (error: any) {
-        try {
-          if (legacySheetUrl) {
-            const legacyRows = await fetchQualityObjectivesData(legacySheetUrl);
-            setRows(legacyRows.map(fromLegacyRow));
-            setSourceMode('legacy');
-            setLoading(LoadingState.SUCCESS);
-            return;
-          }
-        } catch {
-          // ignore fallback error and surface the original failure below
-        }
-
         setLoading(LoadingState.ERROR);
         setErrorMessage(error?.message || 'No se pudieron cargar los objetivos.');
       }
@@ -267,76 +221,177 @@ const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
     loadData();
   }, [legacySheetUrl, retryCount, scalesSheetUrl, summarySheetUrl]);
 
-  const availableYears = useMemo(() => {
-    return Array.from(new Set(rows.map(item => item.year).filter(Boolean))).sort((a, b) => b - a);
-  }, [rows]);
+  const activeSummaries = useMemo(
+    () => summaryRows.filter(row => row.activa !== false),
+    [summaryRows]
+  );
+
+  const availableYears = useMemo(
+    () => Array.from(new Set(activeSummaries.map(item => item.anio).filter(Boolean))).sort((a, b) => b - a),
+    [activeSummaries]
+  );
+
+  const availableAreas = useMemo(
+    () => Array.from(new Set(activeSummaries.map(item => item.area).filter(Boolean))).sort((a, b) => a.localeCompare(b)),
+    [activeSummaries]
+  );
 
   useEffect(() => {
-    if (selectedYear === 'all' && availableYears.length > 0) {
-      setSelectedYear(String(availableYears[0]));
-    }
+    if (selectedYear === 'all' && availableYears.length > 0) setSelectedYear(String(availableYears[0]));
   }, [availableYears, selectedYear]);
 
-  const filteredRows = useMemo(() => {
-    return rows.filter(item => {
-      const matchesYear = selectedYear === 'all' || String(item.year) === selectedYear;
-      const matchesArea = selectedArea === 'all' || normalizeText(item.area) === selectedArea;
-      return matchesYear && matchesArea;
-    });
-  }, [rows, selectedArea, selectedYear]);
+  useEffect(() => {
+    if (selectedArea === 'all' && availableAreas.length > 0) setSelectedArea(availableAreas[0]);
+  }, [availableAreas, selectedArea]);
 
-  const groupedData = useMemo<AreaSection[]>(() => {
-    const byArea = filteredRows.reduce<Record<string, DisplayRow[]>>((acc, item) => {
-      const key = item.area || 'Sin area';
-      if (!acc[key]) acc[key] = [];
-      acc[key].push(item);
+  const periodOptions = useMemo(() => {
+    return Array.from(
+      new Set(
+        activeSummaries
+          .filter(item => (selectedArea === 'all' ? true : item.area === selectedArea))
+          .filter(item => (selectedYear === 'all' ? true : String(item.anio) === selectedYear))
+          .map(item => item.periodo)
+      )
+    ).sort((a, b) => a.localeCompare(b));
+  }, [activeSummaries, selectedArea, selectedYear]);
+
+  useEffect(() => {
+    if (selectedPeriod === 'all' && periodOptions.length > 0) setSelectedPeriod(periodOptions[0]);
+  }, [periodOptions, selectedPeriod]);
+
+  const filteredIndicators = useMemo(() => {
+    return activeSummaries
+      .filter(item => (selectedArea === 'all' ? true : item.area === selectedArea))
+      .filter(item => (selectedYear === 'all' ? true : String(item.anio) === selectedYear))
+      .filter(item => (selectedPeriod === 'all' ? true : item.periodo === selectedPeriod))
+      .sort((left, right) => left.orden - right.orden || left.indicador.localeCompare(right.indicador));
+  }, [activeSummaries, selectedArea, selectedYear, selectedPeriod]);
+
+  const groupedSections = useMemo(() => {
+    const byArea = filteredIndicators.reduce<Record<string, QualityObjectiveSummaryRecord[]>>((acc, item) => {
+      if (!acc[item.area]) acc[item.area] = [];
+      acc[item.area].push(item);
       return acc;
     }, {});
 
-    return Object.entries(byArea)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([area, areaRows]) => {
-        const byIndicator = areaRows.reduce<Record<string, DisplayRow[]>>((acc, item) => {
-          const key = item.indicator || 'Sin indicador';
-          if (!acc[key]) acc[key] = [];
-          acc[key].push(item);
-          return acc;
-        }, {});
+    return Object.entries(byArea).map(([area, items]) => ({ area, items }));
+  }, [filteredIndicators]);
 
-        const indicators = Object.entries(byIndicator)
-          .sort(([a], [b]) => a.localeCompare(b))
-          .map(([indicator, indicatorRows]) => {
-            const sorted = [...indicatorRows].sort((left, right) => {
-              const orderDiff = left.order - right.order;
-              if (orderDiff !== 0) return orderDiff;
-              return left.period.localeCompare(right.period);
-            });
+  const wholesaleValue = useMemo(() => parseWholesale(wholesaleInput), [wholesaleInput]);
 
-            return {
-              indicator,
-              validFrom: sorted[0]?.validFrom || '',
-              validTo: sorted[sorted.length - 1]?.validTo || sorted[0]?.validTo || '',
-              requirements: sorted.filter(item => item.rowType === 'requirement'),
-              scales: sorted.filter(item => item.rowType === 'scale'),
-              bonuses: sorted.filter(item => item.rowType === 'bonus'),
-            };
-          });
+  const evaluations = useMemo(() => {
+    const result: Record<string, EvaluationResult> = {};
 
-        return {
-          area,
-          totalRows: areaRows.length,
-          indicators,
+    filteredIndicators.forEach(indicator => {
+      const rawInput = simValues[indicator.id];
+      if (indicator.tipo_input === 'booleano') {
+        if (typeof rawInput !== 'boolean') {
+          result[indicator.id] = {
+            status: 'pending',
+            level: '-',
+            resultType: indicator.tipo_resultado,
+            percentValue: 0,
+            percentText: '-',
+            amount: 0,
+            message: 'Seleccione si cumple o no cumple.',
+          };
+          return;
+        }
+
+        const numericValue = rawInput ? 1 : 0;
+        const matchingRule = scaleRows
+          .filter(rule => rule.area === indicator.area && rule.indicador === indicator.indicador && rule.periodo === indicator.periodo && rule.anio === indicator.anio)
+          .sort((a, b) => a.orden - b.orden)
+          .find(rule => compareByOperator(numericValue, rule.operador, rule.desde_valor, rule.hasta_valor));
+
+        if (matchingRule) {
+          const percentValue = matchingRule.impacto_valor ?? 0;
+          result[indicator.id] = {
+            status: 'matched',
+            level: matchingRule.escala || '-',
+            resultType: matchingRule.impacto_tipo || indicator.tipo_resultado,
+            percentValue,
+            percentText: matchingRule.impacto_texto || formatPercent(percentValue),
+            amount: wholesaleValue * percentValue,
+            message: rawInput ? 'Cumple el objetivo.' : 'No cumple el objetivo.',
+          };
+        } else {
+          const success = indicator.objetivo_valor == null ? rawInput : numericValue === indicator.objetivo_valor;
+          result[indicator.id] = {
+            status: success ? 'ok' : 'miss',
+            level: success ? 'OK' : 'NO',
+            resultType: indicator.tipo_resultado,
+            percentValue: 0,
+            percentText: success ? 'Cumple' : 'No cumple',
+            amount: 0,
+            message: success ? 'Condición cumplida.' : 'Condición no cumplida.',
+          };
+        }
+        return;
+      }
+
+      const parsedValue = typeof rawInput === 'string' ? parseInputValue(rawInput, indicator.unidad) : null;
+      if (parsedValue == null) {
+        result[indicator.id] = {
+          status: 'pending',
+          level: '-',
+          resultType: indicator.tipo_resultado,
+          percentValue: 0,
+          percentText: '-',
+          amount: 0,
+          message: 'Ingrese el valor obtenido.',
         };
-      });
-  }, [filteredRows]);
+        return;
+      }
 
-  const summary = useMemo(() => {
-    const areas = new Set(filteredRows.map(item => normalizeText(item.area))).size;
-    const indicators = new Set(filteredRows.map(item => `${normalizeText(item.area)}::${normalizeText(item.indicator)}`)).size;
-    const scales = filteredRows.filter(item => item.rowType === 'scale').length;
-    const bonuses = filteredRows.filter(item => item.rowType === 'bonus').length;
-    return { areas, indicators, scales, bonuses };
-  }, [filteredRows]);
+      const matchingRule = scaleRows
+        .filter(rule => rule.area === indicator.area && rule.indicador === indicator.indicador && rule.periodo === indicator.periodo && rule.anio === indicator.anio)
+        .sort((a, b) => a.orden - b.orden)
+        .find(rule => compareByOperator(parsedValue, rule.operador, rule.desde_valor, rule.hasta_valor));
+
+      if (matchingRule) {
+        const percentValue = matchingRule.impacto_valor ?? 0;
+        result[indicator.id] = {
+          status: 'matched',
+          level: matchingRule.escala || '-',
+          resultType: matchingRule.impacto_tipo || indicator.tipo_resultado,
+          percentValue,
+          percentText: matchingRule.impacto_texto || formatPercent(percentValue),
+          amount: wholesaleValue * percentValue,
+          message: matchingRule.rango_mostrar || 'Regla aplicada.',
+        };
+      } else {
+        const goalOk = indicator.objetivo_valor == null ? true : parsedValue >= indicator.objetivo_valor;
+        result[indicator.id] = {
+          status: goalOk ? 'ok' : 'miss',
+          level: goalOk ? 'OBJ' : 'BAJO',
+          resultType: indicator.tipo_resultado,
+          percentValue: 0,
+          percentText: goalOk ? 'Cumple objetivo' : 'No llega al objetivo',
+          amount: 0,
+          message: `Valor cargado: ${formatGoalValue(parsedValue, indicator.unidad, '')}`,
+        };
+      }
+    });
+
+    return result;
+  }, [filteredIndicators, scaleRows, simValues, wholesaleValue]);
+
+  const totals = useMemo(() => {
+    return Object.values(evaluations).reduce(
+      (acc, evaluation) => {
+        if (evaluation.status === 'pending') return acc;
+        if (evaluation.resultType === 'cobro') acc.cobro += evaluation.percentValue;
+        else if (evaluation.resultType === 'descuento') acc.descuento += evaluation.percentValue;
+        else if (evaluation.resultType === 'bonus') acc.bonus += evaluation.percentValue;
+        return acc;
+      },
+      { cobro: 0, descuento: 0, bonus: 0 }
+    );
+  }, [evaluations]);
+
+  const netPercent = totals.cobro + totals.bonus - totals.descuento;
+  const netAmount = wholesaleValue * netPercent;
 
   const filters = (
     <div className="space-y-3">
@@ -346,12 +401,27 @@ const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
             <Icons.Filter className="h-3.5 w-3.5" />
           </div>
           <div>
-            <p className="text-[8px] font-black uppercase tracking-[0.22em] text-slate-400">Filtros</p>
-            <p className="text-[13px] font-black text-slate-950">Objetivos</p>
+            <p className="text-[8px] font-black uppercase tracking-[0.22em] text-slate-400">Simulador</p>
+            <p className="text-[13px] font-black text-slate-950">Configuración</p>
           </div>
         </div>
 
         <div className="space-y-3">
+          <label className="block">
+            <span className="mb-1.5 block text-[8px] font-black uppercase tracking-[0.18em] text-slate-400">Area</span>
+            <select
+              value={selectedArea}
+              onChange={event => setSelectedArea(event.target.value)}
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[13px] font-bold text-slate-700 outline-none transition focus:border-blue-300 focus:bg-white"
+            >
+              {availableAreas.map(area => (
+                <option key={area} value={area}>
+                  {area}
+                </option>
+              ))}
+            </select>
+          </label>
+
           <label className="block">
             <span className="mb-1.5 block text-[8px] font-black uppercase tracking-[0.18em] text-slate-400">Ano</span>
             <select
@@ -359,7 +429,6 @@ const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
               onChange={event => setSelectedYear(event.target.value)}
               className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[13px] font-bold text-slate-700 outline-none transition focus:border-blue-300 focus:bg-white"
             >
-              <option value="all">Todos</option>
               {availableYears.map(year => (
                 <option key={year} value={String(year)}>
                   {year}
@@ -369,16 +438,28 @@ const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
           </label>
 
           <label className="block">
-            <span className="mb-1.5 block text-[8px] font-black uppercase tracking-[0.18em] text-slate-400">Area</span>
+            <span className="mb-1.5 block text-[8px] font-black uppercase tracking-[0.18em] text-slate-400">Periodo</span>
             <select
-              value={selectedArea}
-              onChange={event => setSelectedArea(event.target.value)}
+              value={selectedPeriod}
+              onChange={event => setSelectedPeriod(event.target.value)}
               className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[13px] font-bold text-slate-700 outline-none transition focus:border-blue-300 focus:bg-white"
             >
-              <option value="all">Ventas + Postventa</option>
-              <option value="ventas">Ventas</option>
-              <option value="postventa">Postventa</option>
+              {periodOptions.map(period => (
+                <option key={period} value={period}>
+                  {period}
+                </option>
+              ))}
             </select>
+          </label>
+
+          <label className="block">
+            <span className="mb-1.5 block text-[8px] font-black uppercase tracking-[0.18em] text-slate-400">Wholesale base</span>
+            <input
+              value={wholesaleInput}
+              onChange={event => setWholesaleInput(event.target.value)}
+              placeholder="15000000"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2.5 text-[13px] font-bold text-slate-700 outline-none transition focus:border-blue-300 focus:bg-white"
+            />
           </label>
         </div>
       </div>
@@ -386,10 +467,10 @@ const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
       <div className="rounded-[1.4rem] border border-slate-200/80 bg-white/92 p-4 shadow-[0_10px_26px_rgba(15,23,42,0.05)]">
         <p className="text-[8px] font-black uppercase tracking-[0.22em] text-slate-400">Fuente actual</p>
         <p className="mt-1 text-[13px] font-black text-slate-950">
-          {sourceMode === 'clean' ? 'Resumen + Escalas' : 'Sheet legado unico'}
+          {sourceMode === 'clean' ? 'Simulador limpio desde sheets' : 'Sheet legado'}
         </p>
         <p className="mt-2 text-[11px] leading-5 text-slate-500">
-          El dashboard ya prioriza el formato nuevo si cargaste ambas hojas.
+          Configurás objetivos y reglas en Sheets. Los valores obtenidos se cargan acá en la web.
         </p>
       </div>
     </div>
@@ -397,8 +478,8 @@ const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
 
   return (
     <DashboardFrame
-      title="Objetivos Ventas / Postventa"
-      subtitle="Programa de calidad conectado a Google Sheets"
+      title="Simulador Ventas / Postventa"
+      subtitle="Cálculo de cobro, descuento y bonus desde Google Sheets"
       lastUpdated={new Date().toLocaleTimeString('es-AR')}
       onBack={onBack}
       isLoading={loading === LoadingState.LOADING}
@@ -410,7 +491,7 @@ const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
           <div className="mx-auto mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-rose-50 text-rose-500">
             <Icons.AlertTriangle className="h-6 w-6" />
           </div>
-          <h3 className="text-lg font-black uppercase italic tracking-tight text-slate-950">No se pudieron cargar los objetivos</h3>
+          <h3 className="text-lg font-black uppercase italic tracking-tight text-slate-950">No se pudieron cargar los datos del simulador</h3>
           <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-500">{errorMessage}</p>
           <button
             onClick={() => setRetryCount(count => count + 1)}
@@ -430,25 +511,25 @@ const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
               <div className="max-w-3xl">
                 <p className="text-[8px] font-black uppercase tracking-[0.3em] text-sky-200/80">Programa 2026</p>
                 <h2 className="mt-2 text-[1.3rem] font-black uppercase italic leading-tight tracking-tight md:text-[1.8rem]">
-                  Incentivos de calidad
+                  Simulador de cobro
                 </h2>
                 <p className="mt-1.5 max-w-2xl text-[12px] leading-5 text-slate-200/85 md:text-[13px]">
-                  Vista compacta para leer objetivos, escalas y bonus por area e indicador.
+                  Cargás wholesale y resultados obtenidos. El sistema evalúa reglas y estima cobros, descuentos y bonus.
                 </p>
               </div>
 
-              <div className="grid grid-cols-2 gap-2 md:grid-cols-4 xl:w-[420px]">
+              <div className="grid grid-cols-2 gap-2 md:grid-cols-4 xl:w-[460px]">
                 {[
-                  { label: 'Areas', value: summary.areas, icon: Icons.Layers },
-                  { label: 'Indicadores', value: summary.indicators, icon: Icons.Target },
-                  { label: 'Escalas', value: summary.scales, icon: Icons.Table },
-                  { label: 'Bonus', value: summary.bonuses, icon: Icons.Star },
+                  { label: 'Indicadores', value: filteredIndicators.length, icon: Icons.Target },
+                  { label: 'Cobro', value: formatPercent(totals.cobro), icon: Icons.TrendingUp },
+                  { label: 'Descuento', value: formatPercent(totals.descuento), icon: Icons.TrendingDown },
+                  { label: 'Bonus', value: formatPercent(totals.bonus), icon: Icons.Star },
                 ].map(item => (
                   <div key={item.label} className="rounded-[1rem] border border-white/10 bg-white/10 p-2.5 backdrop-blur-xl">
                     <div className="flex items-center justify-between gap-2">
                       <div>
                         <p className="text-[7px] font-black uppercase tracking-[0.14em] text-slate-200/75">{item.label}</p>
-                        <p className="mt-1 text-lg font-black tracking-tight text-white">{item.value}</p>
+                        <p className="mt-1 text-sm font-black tracking-tight text-white">{item.value}</p>
                       </div>
                       <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-white/12 text-white">
                         <item.icon className="h-3.5 w-3.5" />
@@ -460,187 +541,126 @@ const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
             </div>
           </section>
 
-          <section className="rounded-[1.6rem] border border-slate-200/80 bg-white p-4 shadow-[0_12px_32px_rgba(15,23,42,0.05)]">
-            <div className="flex items-center gap-2">
-              <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-slate-950 text-white">
-                <Icons.Table className="h-3.5 w-3.5" />
-              </div>
-              <div>
-                <p className="text-[8px] font-black uppercase tracking-[0.22em] text-slate-400">Estructura recomendada</p>
-                <h3 className="text-[14px] font-black text-slate-950">Google Sheets limpio</h3>
-              </div>
+          <section className="grid grid-cols-1 gap-3 xl:grid-cols-4">
+            <div className="rounded-[1.2rem] border border-slate-200 bg-white p-3 shadow-sm">
+              <p className="text-[8px] font-black uppercase tracking-[0.14em] text-slate-400">Wholesale</p>
+              <p className="mt-1 text-lg font-black text-slate-950">{formatCurrency(wholesaleValue)}</p>
             </div>
-
-            <div className="mt-4 grid grid-cols-1 gap-3 xl:grid-cols-2">
-              <div className="rounded-[1rem] border border-slate-200 bg-slate-50/70 p-3">
-                <p className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">Hoja 1: objetivos_resumen</p>
-                <div className="mt-2 overflow-x-auto rounded-xl border border-slate-200 bg-white p-2">
-                  <code className="block whitespace-nowrap text-[10px] text-slate-600">
-                    {SUMMARY_COLUMNS.join(' | ')}
-                  </code>
-                </div>
-              </div>
-
-              <div className="rounded-[1rem] border border-slate-200 bg-slate-50/70 p-3">
-                <p className="text-[11px] font-black uppercase tracking-[0.14em] text-slate-500">Hoja 2: objetivos_escalas</p>
-                <div className="mt-2 overflow-x-auto rounded-xl border border-slate-200 bg-white p-2">
-                  <code className="block whitespace-nowrap text-[10px] text-slate-600">
-                    {SCALES_COLUMNS.join(' | ')}
-                  </code>
-                </div>
-              </div>
+            <div className="rounded-[1.2rem] border border-slate-200 bg-white p-3 shadow-sm">
+              <p className="text-[8px] font-black uppercase tracking-[0.14em] text-slate-400">Cobro + Bonus</p>
+              <p className="mt-1 text-lg font-black text-emerald-600">{formatPercent(totals.cobro + totals.bonus)}</p>
+            </div>
+            <div className="rounded-[1.2rem] border border-slate-200 bg-white p-3 shadow-sm">
+              <p className="text-[8px] font-black uppercase tracking-[0.14em] text-slate-400">Descuento</p>
+              <p className="mt-1 text-lg font-black text-rose-600">{formatPercent(totals.descuento)}</p>
+            </div>
+            <div className="rounded-[1.2rem] border border-slate-200 bg-white p-3 shadow-sm">
+              <p className="text-[8px] font-black uppercase tracking-[0.14em] text-slate-400">Neto estimado</p>
+              <p className={`mt-1 text-lg font-black ${netAmount >= 0 ? 'text-blue-600' : 'text-rose-600'}`}>{formatCurrency(netAmount)}</p>
             </div>
           </section>
 
-          {groupedData.map(group => {
-            const theme = pickAreaTheme(group.area);
-
+          {groupedSections.map(section => {
+            const theme = pickAreaTheme(section.area);
             return (
               <section
-                key={group.area}
+                key={section.area}
                 className="relative overflow-hidden rounded-[1.8rem] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,250,252,0.98))] p-4 shadow-[0_12px_32px_rgba(15,23,42,0.05)]"
               >
                 <div className={`pointer-events-none absolute -right-12 top-0 h-36 w-36 rounded-full blur-3xl ${theme.glow}`} />
-                <div className="relative mb-3 flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+                <div className="relative mb-3 flex items-center justify-between gap-2">
                   <div>
                     <div className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.16em] ${theme.badge}`}>
-                      {group.area}
+                      {section.area}
                     </div>
-                    <h2 className="mt-1.5 text-[1.25rem] font-black tracking-tight text-slate-950">{group.area}</h2>
+                    <h2 className="mt-1.5 text-[1.25rem] font-black tracking-tight text-slate-950">{section.area}</h2>
                   </div>
-                  <div className="flex flex-wrap gap-2">
-                    <div className="rounded-[0.95rem] border border-slate-200 bg-white px-3 py-2 shadow-sm">
-                      <p className="text-[7px] font-black uppercase tracking-[0.12em] text-slate-400">Indicadores</p>
-                      <p className={`mt-0.5 text-[15px] font-black ${theme.text}`}>{group.indicators.length}</p>
-                    </div>
-                    <div className="rounded-[0.95rem] border border-slate-200 bg-white px-3 py-2 shadow-sm">
-                      <p className="text-[7px] font-black uppercase tracking-[0.12em] text-slate-400">Registros</p>
-                      <p className="mt-0.5 text-[15px] font-black text-slate-950">{group.totalRows}</p>
-                    </div>
+                  <div className="rounded-[0.95rem] border border-slate-200 bg-white px-3 py-2 shadow-sm">
+                    <p className="text-[7px] font-black uppercase tracking-[0.12em] text-slate-400">Periodo</p>
+                    <p className={`mt-0.5 text-[15px] font-black ${theme.text}`}>{selectedPeriod}</p>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-1 gap-3 2xl:grid-cols-2">
-                  {group.indicators.map(indicator => {
-                    const totalScales = indicator.scales.length;
-                    const totalRequirements = indicator.requirements.length;
-                    const totalBonuses = indicator.bonuses.length;
+                  {section.items.map(indicator => {
+                    const evaluation = evaluations[indicator.id];
+                    const statusClass =
+                      evaluation?.status === 'matched' || evaluation?.status === 'ok'
+                        ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                        : evaluation?.status === 'miss'
+                          ? 'border-rose-200 bg-rose-50 text-rose-700'
+                          : 'border-slate-200 bg-slate-100 text-slate-700';
 
                     return (
                       <article
-                        key={`${group.area}-${indicator.indicator}`}
+                        key={indicator.id}
                         className="overflow-hidden rounded-[1.2rem] border border-slate-200/80 bg-white shadow-[0_8px_22px_rgba(15,23,42,0.05)]"
                       >
                         <div className={`relative overflow-hidden bg-gradient-to-r ${theme.accent} px-3.5 py-3 text-white`}>
-                          <div className="relative flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+                          <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
                               <p className="text-[7px] font-black uppercase tracking-[0.18em] text-white/75">Indicador</p>
-                              <h3 className="mt-0.5 truncate text-[1rem] font-black tracking-tight">{indicator.indicator}</h3>
+                              <h3 className="mt-0.5 text-[1rem] font-black tracking-tight">{indicator.indicador}</h3>
                               <p className="mt-0.5 text-[11px] text-white/80">
-                                {indicator.validFrom ? `${formatDate(indicator.validFrom)} a ${formatDate(indicator.validTo)}` : 'Vigencia sin definir'}
+                                Objetivo: {indicator.objetivo_texto || formatGoalValue(indicator.objetivo_valor, indicator.unidad, '-')}
                               </p>
                             </div>
-                            <div className="flex flex-wrap gap-1">
-                              <span className="rounded-full border border-white/20 bg-white/15 px-2 py-1 text-[7px] font-black uppercase tracking-[0.12em]">
-                                {totalRequirements} req
-                              </span>
-                              <span className="rounded-full border border-white/20 bg-white/15 px-2 py-1 text-[7px] font-black uppercase tracking-[0.12em]">
-                                {totalScales} esc
-                              </span>
-                              {totalBonuses > 0 && (
-                                <span className="rounded-full border border-white/20 bg-white/15 px-2 py-1 text-[7px] font-black uppercase tracking-[0.12em]">
-                                  {totalBonuses} bon
-                                </span>
-                              )}
-                            </div>
+                            <span className="rounded-full border border-white/20 bg-white/15 px-2 py-1 text-[7px] font-black uppercase tracking-[0.12em]">
+                              {indicator.tipo_resultado}
+                            </span>
                           </div>
                         </div>
 
-                        <div className="space-y-2.5 p-3">
-                          {indicator.requirements.length > 0 && (
-                            <div className="rounded-[1rem] border border-slate-200/80 bg-slate-50/70 p-2.5">
-                              <div className="mb-2 flex items-center gap-2">
-                                <span className={`inline-flex rounded-full border px-2 py-1 text-[7px] font-black uppercase tracking-[0.12em] ${TYPE_THEME.requirement}`}>
-                                  Requisitos
-                                </span>
-                              </div>
-                              <div className="grid grid-cols-1 gap-2 xl:grid-cols-2">
-                                {indicator.requirements.map(row => (
-                                  <div key={row.id} className="rounded-[0.9rem] border border-slate-200 bg-white p-2.5 shadow-sm">
-                                    <p className="text-[7px] font-black uppercase tracking-[0.12em] text-slate-400">{row.period || 'Periodo'}</p>
-                                    <p className="mt-1 text-[14px] font-black tracking-tight leading-tight text-slate-950">
-                                      {row.goalText || formatValue(row.goalValue, row.unit)}
-                                    </p>
-                                    <p className="mt-1 text-[11px] text-slate-500">
-                                      {row.goalValue != null ? `${formatValue(row.goalValue, row.unit)} · ${row.unit || 'sin unidad'}` : 'Objetivo cualitativo'}
-                                    </p>
-                                  </div>
-                                ))}
-                              </div>
+                        <div className="grid grid-cols-1 gap-3 p-3 md:grid-cols-[1.4fr_1fr]">
+                          <div className="space-y-2">
+                            <div className="rounded-[0.95rem] border border-slate-200 bg-slate-50/70 p-2.5">
+                              <p className="text-[7px] font-black uppercase tracking-[0.12em] text-slate-400">Valor obtenido</p>
+                              {indicator.tipo_input === 'booleano' ? (
+                                <div className="mt-2 flex gap-2">
+                                  <button
+                                    onClick={() => setSimValues(prev => ({ ...prev, [indicator.id]: true }))}
+                                    className={`rounded-full px-3 py-1.5 text-[11px] font-black ${simValues[indicator.id] === true ? 'bg-slate-950 text-white' : 'bg-white text-slate-600 border border-slate-200'}`}
+                                  >
+                                    Si
+                                  </button>
+                                  <button
+                                    onClick={() => setSimValues(prev => ({ ...prev, [indicator.id]: false }))}
+                                    className={`rounded-full px-3 py-1.5 text-[11px] font-black ${simValues[indicator.id] === false ? 'bg-slate-950 text-white' : 'bg-white text-slate-600 border border-slate-200'}`}
+                                  >
+                                    No
+                                  </button>
+                                </div>
+                              ) : (
+                                <input
+                                  value={typeof simValues[indicator.id] === 'string' ? (simValues[indicator.id] as string) : ''}
+                                  onChange={event => setSimValues(prev => ({ ...prev, [indicator.id]: event.target.value }))}
+                                  placeholder={indicator.unidad === 'porcentaje' ? '95 o 95%' : '4,86'}
+                                  className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-[13px] font-bold text-slate-700 outline-none transition focus:border-blue-300"
+                                />
+                              )}
                             </div>
-                          )}
 
-                          {indicator.scales.length > 0 && (
-                            <div className="rounded-[1rem] border border-slate-200/80 bg-white p-2.5">
-                              <div className="mb-2 flex items-center gap-2">
-                                <span className={`inline-flex rounded-full border px-2 py-1 text-[7px] font-black uppercase tracking-[0.12em] ${TYPE_THEME.scale}`}>
-                                  Escalas
-                                </span>
-                              </div>
-                              <div className="space-y-2">
-                                {indicator.scales.map(row => (
-                                  <div key={row.id} className="rounded-[0.9rem] border border-slate-200 bg-slate-50/70 p-2.5">
-                                    <div className="flex flex-col gap-2 md:flex-row md:items-center md:justify-between">
-                                      <div className="min-w-0">
-                                        <div className="flex flex-wrap items-center gap-1">
-                                          <span className="rounded-full bg-slate-950 px-2 py-1 text-[7px] font-black uppercase tracking-[0.12em] text-white">
-                                            {row.period || '-'}
-                                          </span>
-                                          <span className="rounded-full border border-slate-200 bg-white px-2 py-1 text-[7px] font-black uppercase tracking-[0.12em] text-slate-600">
-                                            {row.scaleLabel || 'Escala'}
-                                          </span>
-                                        </div>
-                                        <p className="mt-1.5 text-[13px] font-black tracking-tight leading-tight text-slate-950">
-                                          {row.rangeText || `${row.operator} ${formatValue(row.fromValue)} ${row.toValue != null ? `/ ${formatValue(row.toValue)}` : ''}`}
-                                        </p>
-                                        <p className="mt-0.5 text-[11px] text-slate-500">
-                                          Desde {formatValue(row.fromValue)} / Hasta {formatValue(row.toValue)}
-                                        </p>
-                                      </div>
-                                      <div className="rounded-[0.85rem] border border-emerald-200 bg-emerald-50 px-2.5 py-2 text-right md:min-w-[82px]">
-                                        <p className="text-[7px] font-black uppercase tracking-[0.12em] text-emerald-600/70">{row.impactType || 'impacto'}</p>
-                                        <p className="mt-0.5 text-[13px] font-black text-emerald-700">{row.impactText || formatValue(row.impactValue)}</p>
-                                      </div>
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
+                            <div className="rounded-[0.95rem] border border-slate-200 bg-white p-2.5">
+                              <p className="text-[7px] font-black uppercase tracking-[0.12em] text-slate-400">Vigencia</p>
+                              <p className="mt-1 text-[12px] font-bold text-slate-700">
+                                {formatDate(indicator.vigencia_desde)} a {formatDate(indicator.vigencia_hasta)}
+                              </p>
                             </div>
-                          )}
+                          </div>
 
-                          {indicator.bonuses.length > 0 && (
-                            <div className="rounded-[1rem] border border-violet-200/80 bg-[linear-gradient(135deg,rgba(139,92,246,0.08),rgba(255,255,255,1))] p-2.5">
-                              <div className="mb-2 flex items-center gap-2">
-                                <span className={`inline-flex rounded-full border px-2 py-1 text-[7px] font-black uppercase tracking-[0.12em] ${TYPE_THEME.bonus}`}>
-                                  Bonus
-                                </span>
-                              </div>
-                              <div className="grid grid-cols-1 gap-2 xl:grid-cols-2">
-                                {indicator.bonuses.map(row => (
-                                  <div key={row.id} className="rounded-[0.9rem] border border-violet-200 bg-white/90 p-2.5 shadow-sm">
-                                    <p className="text-[7px] font-black uppercase tracking-[0.12em] text-violet-400">{row.period || 'Anual'}</p>
-                                    <p className="mt-1 text-[13px] font-black tracking-tight leading-tight text-slate-950">
-                                      {row.goalText || formatValue(row.goalValue, row.unit)}
-                                    </p>
-                                    <p className="mt-0.5 text-[11px] text-slate-500">{row.indicator}</p>
-                                    <div className="mt-2 inline-flex rounded-full border border-violet-200 bg-violet-50 px-2.5 py-1 text-[12px] font-black text-violet-700">
-                                      {row.impactText || formatValue(row.impactValue)}
-                                    </div>
-                                  </div>
-                                ))}
-                              </div>
+                          <div className="space-y-2">
+                            <div className={`rounded-[0.95rem] border p-2.5 ${statusClass}`}>
+                              <p className="text-[7px] font-black uppercase tracking-[0.12em] opacity-70">Resultado</p>
+                              <p className="mt-1 text-[15px] font-black">{evaluation?.level || '-'}</p>
+                              <p className="mt-1 text-[11px]">{evaluation?.percentText || '-'}</p>
                             </div>
-                          )}
+
+                            <div className="rounded-[0.95rem] border border-slate-200 bg-white p-2.5">
+                              <p className="text-[7px] font-black uppercase tracking-[0.12em] text-slate-400">Impacto</p>
+                              <p className="mt-1 text-[15px] font-black text-slate-950">{formatCurrency(evaluation?.amount || 0)}</p>
+                              <p className="mt-1 text-[11px] text-slate-500">{evaluation?.message || 'Sin evaluar'}</p>
+                            </div>
+                          </div>
                         </div>
                       </article>
                     );

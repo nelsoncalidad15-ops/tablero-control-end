@@ -12,5 +12,5 @@
     "isolatedModules": false,
     "noEmit": false
   },
-  "include": ["server.ts"]
+  "include": ["server.ts", "cors-shim.d.ts"]
 }

@@ -6,6 +6,8 @@ import fs from "fs";
 import { fileURLToPath } from "url";
 import { google } from "googleapis";
 
+type CorsOriginCallback = (err: Error | null, allow?: boolean) => void;
+
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const GOOGLE_FETCH_TIMEOUT_MS = 30000;
@@ -33,7 +35,7 @@ async function startServer() {
 
   app.disable("x-powered-by");
   app.use(cors({
-    origin: (origin, callback) => {
+    origin: (origin: string | undefined, callback: CorsOriginCallback) => {
       if (!origin || allowedOrigins.includes(origin)) {
         return callback(null, true);
       }

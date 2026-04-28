@@ -115,12 +115,18 @@ const formatCompactMetric = (value: number | null, unit: string) => {
   return String(value).replace('.', ',');
 };
 
+const normalizeThresholdValue = (value: number | null, unit: string) => {
+  if (value == null) return null;
+  if (unit === 'porcentaje' && Math.abs(value) > 1) return value / 100;
+  return value;
+};
+
 const formatRuleThreshold = (rule: QualityObjectiveScaleRecord, inputType: string, unit: string) => {
   if (inputType === 'booleano') return rule.desde_valor === 1 || rule.hasta_valor === 1 ? 'Cumple' : 'No cumple';
-  if (rule.operador === '>=' || rule.operador === '>') return formatCompactMetric(rule.desde_valor, unit);
-  if (rule.operador === '<=' || rule.operador === '<') return formatCompactMetric(rule.hasta_valor ?? rule.desde_valor, unit);
-  if (rule.desde_valor != null) return formatCompactMetric(rule.desde_valor, unit);
-  if (rule.hasta_valor != null) return formatCompactMetric(rule.hasta_valor, unit);
+  if (rule.operador === '>=' || rule.operador === '>') return formatCompactMetric(normalizeThresholdValue(rule.desde_valor, unit), unit);
+  if (rule.operador === '<=' || rule.operador === '<') return formatCompactMetric(normalizeThresholdValue(rule.hasta_valor ?? rule.desde_valor, unit), unit);
+  if (rule.desde_valor != null) return formatCompactMetric(normalizeThresholdValue(rule.desde_valor, unit), unit);
+  if (rule.hasta_valor != null) return formatCompactMetric(normalizeThresholdValue(rule.hasta_valor, unit), unit);
   return rule.rango_mostrar || '-';
 };
 
@@ -427,7 +433,14 @@ const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
           .filter(rule => rule.anio === indicator.anio)
           .filter(rule => periodMatches(indicator.periodo, rule.periodo))
           .sort((a, b) => a.orden - b.orden)
-          .find(rule => compareByOperator(numericValue, rule.operador, rule.desde_valor, rule.hasta_valor));
+          .find(rule =>
+            compareByOperator(
+              numericValue,
+              rule.operador,
+              normalizeThresholdValue(rule.desde_valor, indicator.unidad),
+              normalizeThresholdValue(rule.hasta_valor, indicator.unidad)
+            )
+          );
 
         if (matchingRule) {
           const percentValue = matchingRule.impacto_valor ?? 0;
@@ -475,7 +488,14 @@ const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
         .filter(rule => rule.anio === indicator.anio)
         .filter(rule => periodMatches(indicator.periodo, rule.periodo))
         .sort((a, b) => a.orden - b.orden)
-        .find(rule => compareByOperator(parsedValue, rule.operador, rule.desde_valor, rule.hasta_valor));
+        .find(rule =>
+          compareByOperator(
+            parsedValue,
+            rule.operador,
+            normalizeThresholdValue(rule.desde_valor, indicator.unidad),
+            normalizeThresholdValue(rule.hasta_valor, indicator.unidad)
+          )
+        );
 
       if (matchingRule) {
         const percentValue = matchingRule.impacto_valor ?? 0;

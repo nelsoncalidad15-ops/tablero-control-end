@@ -208,6 +208,20 @@ const compareByOperator = (value: number, operator: string, fromValue: number | 
   }
 };
 
+const isRequirementSatisfied = (indicator: QualityObjectiveSummaryRecord, evaluation?: EvaluationResult) => {
+  if (indicator.tipo_resultado !== 'requisito') return true;
+  if (!evaluation || evaluation.status === 'pending' || evaluation.status === 'miss') return false;
+  if (evaluation.status === 'ok') return true;
+  if (evaluation.status === 'matched') {
+    return (
+      evaluation.percentValue > 0 ||
+      /cumple/i.test(evaluation.percentText) ||
+      /cumple/i.test(evaluation.message)
+    );
+  }
+  return false;
+};
+
 const toLegacySummary = (rows: QualityObjectiveRecord[]): QualityObjectiveSummaryRecord[] =>
   rows
     .filter(row => row.tipo_registro !== 'escala')
@@ -528,7 +542,39 @@ const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
       return acc;
     }, 0);
 
-    const baseAwardAmount = wholesaleValue * baseCobroPercent;
+    const blockedAreas = new Set(
+      filteredIndicators
+        .filter(indicator => indicator.tipo_resultado === 'requisito')
+        .filter(indicator => {
+          const areaHasCobro = filteredIndicators.some(candidate =>
+            matchesToken(candidate.area, indicator.area) && candidate.tipo_resultado === 'cobro'
+          );
+          if (!areaHasCobro) return false;
+          return !isRequirementSatisfied(indicator, result[indicator.id]);
+        })
+        .map(indicator => normalizeText(indicator.area))
+    );
+
+    if (blockedAreas.size > 0) {
+      filteredIndicators.forEach(indicator => {
+        const evaluation = result[indicator.id];
+        if (!evaluation) return;
+        if (!blockedAreas.has(normalizeText(indicator.area))) return;
+        if (indicator.tipo_resultado === 'requisito') return;
+
+        evaluation.percentValue = 0;
+        evaluation.amount = 0;
+        evaluation.message = 'Bloqueado por requisitos no cumplidos en esta area.';
+      });
+    }
+
+    const effectiveCobroPercent = Object.values(result).reduce((acc, evaluation) => {
+      if (evaluation.status === 'pending') return acc;
+      if (evaluation.resultType === 'cobro') return acc + evaluation.percentValue;
+      return acc;
+    }, 0);
+
+    const baseAwardAmount = wholesaleValue * effectiveCobroPercent;
 
     Object.values(result).forEach(evaluation => {
       if (evaluation.status === 'pending') {

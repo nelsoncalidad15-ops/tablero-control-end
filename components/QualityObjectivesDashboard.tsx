@@ -117,7 +117,10 @@ const formatCompactMetric = (value: number | null, unit: string) => {
 
 const normalizeThresholdValue = (value: number | null, unit: string) => {
   if (value == null) return null;
-  if (unit === 'porcentaje' && Math.abs(value) > 1) return value / 100;
+  if (unit === 'porcentaje') {
+    if (Math.abs(value) > 100) return value / 1000;
+    if (Math.abs(value) > 1) return value / 100;
+  }
   return value;
 };
 
@@ -176,7 +179,10 @@ const parseInputValue = (rawValue: string, unit: string) => {
 
   const parsed = Number(normalized);
   if (!Number.isFinite(parsed)) return null;
-  if (unit === 'porcentaje' && parsed > 1) return parsed / 100;
+  if (unit === 'porcentaje') {
+    if (Math.abs(parsed) > 100) return parsed / 1000;
+    if (Math.abs(parsed) > 1) return parsed / 100;
+  }
   return parsed;
 };
 

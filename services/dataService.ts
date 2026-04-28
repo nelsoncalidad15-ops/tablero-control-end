@@ -156,10 +156,14 @@ const parseImpactValue = (rawValue: string, impactType: string, impactText: stri
 
   if (normalizedType === 'cobro' || normalizedType === 'descuento' || normalizedType === 'bonus') {
     if (normalizedText.includes('%')) {
-      if (parsed > 1) return parsed / 10000;
-      return parsed;
+      const textPercent = parseNumber(normalizedText);
+      if (Number.isFinite(textPercent)) return textPercent / 100;
+      if (parsed > 100) return parsed / 1000;
+      if (parsed > 1) return parsed / 100;
+      return parsed / 100;
     }
 
+    if (parsed > 100) return parsed / 1000;
     if (parsed > 1) return parsed / 100;
   }
 

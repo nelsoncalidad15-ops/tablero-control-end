@@ -172,16 +172,16 @@ function App() {
 
   const QualitySelection = () => (
     <PageWrapper>
-      <div className="relative min-h-screen overflow-x-hidden overflow-y-auto bg-[radial-gradient(circle_at_top,_rgba(37,99,235,0.08),_transparent_24%),linear-gradient(180deg,_#f8fafc_0%,_#eef2ff_100%)] font-sans text-slate-950">
+      <div className="relative min-h-screen overflow-x-hidden overflow-y-auto bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.12),_transparent_24%),linear-gradient(180deg,_#020617_0%,_#0f172a_45%,_#111827_100%)] font-sans text-slate-100">
         <div className="pointer-events-none absolute inset-0">
-          <div className="absolute inset-x-0 top-0 h-72 bg-[linear-gradient(180deg,rgba(15,23,42,0.04),transparent)]" />
-          <div className="absolute -right-24 top-24 h-72 w-72 rounded-full bg-blue-400/10 blur-3xl" />
-          <div className="absolute left-0 bottom-0 h-96 w-96 rounded-full bg-indigo-400/10 blur-3xl" />
+          <div className="absolute inset-x-0 top-0 h-72 bg-[linear-gradient(180deg,rgba(59,130,246,0.14),transparent)]" />
+          <div className="absolute -right-24 top-24 h-72 w-72 rounded-full bg-sky-400/15 blur-3xl" />
+          <div className="absolute left-0 bottom-0 h-96 w-96 rounded-full bg-indigo-500/15 blur-3xl" />
           <div
-            className="absolute inset-0 opacity-[0.05]"
+            className="absolute inset-0 opacity-[0.08]"
             style={{
               backgroundImage:
-                'linear-gradient(rgba(15,23,42,0.10) 1px, transparent 1px), linear-gradient(90deg, rgba(15,23,42,0.10) 1px, transparent 1px)',
+                'linear-gradient(rgba(148,163,184,0.16) 1px, transparent 1px), linear-gradient(90deg, rgba(148,163,184,0.16) 1px, transparent 1px)',
               backgroundSize: '72px 72px',
             }}
           />
@@ -191,26 +191,26 @@ function App() {
             <motion.div
               initial={{ opacity: 0, y: -16 }}
               animate={{ opacity: 1, y: 0 }}
-              className="flex shrink-0 items-center justify-between gap-3 rounded-[1.35rem] border border-slate-200/70 bg-white/85 px-4 py-3 shadow-[0_18px_50px_rgba(15,23,42,0.08)] backdrop-blur-xl md:px-5"
+              className="flex shrink-0 items-center justify-between gap-3 rounded-[1.35rem] border border-white/10 bg-slate-950/45 px-4 py-3 shadow-[0_18px_50px_rgba(2,6,23,0.42)] backdrop-blur-xl md:px-5"
             >
               <div className="flex items-center gap-4">
-                <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-slate-200 bg-slate-950 text-sm font-black italic text-white shadow-[0_10px_30px_rgba(15,23,42,0.14)] md:h-12 md:w-12 md:text-base">
+                <div className="flex h-10 w-10 items-center justify-center rounded-2xl border border-sky-400/30 bg-slate-950 text-sm font-black italic text-white shadow-[0_10px_30px_rgba(14,165,233,0.18)] md:h-12 md:w-12 md:text-base">
                   VW
                 </div>
               <div>
                 <p className="text-[9px] font-bold uppercase tracking-[0.34em] text-slate-400 md:text-[10px]">Autosol Group</p>
-                <h1 className="text-lg font-black tracking-tight text-slate-950 md:text-xl lg:text-2xl">Centro de Calidad</h1>
+                <h1 className="text-lg font-black tracking-tight text-white md:text-xl lg:text-2xl">Centro de Calidad</h1>
               </div>
             </div>
             <div className="flex flex-wrap items-center justify-end gap-2">
               <button
                 onClick={() => navigate('/report')}
-                className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-600 px-4 py-2 text-[9px] font-black uppercase tracking-[0.3em] text-white shadow-[0_14px_32px_rgba(37,99,235,0.20)] transition-colors hover:bg-blue-500"
+                className="inline-flex items-center gap-2 rounded-full border border-sky-400/30 bg-sky-500 px-4 py-2 text-[9px] font-black uppercase tracking-[0.3em] text-slate-950 shadow-[0_14px_32px_rgba(14,165,233,0.24)] transition-colors hover:bg-sky-400"
               >
                 <Icons.FileText className="h-4 w-4" />
                 Generar reporte
               </button>
-              <button onClick={handleBackToPortal} className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-950 px-4 py-2 text-[9px] font-black uppercase tracking-[0.3em] text-white shadow-[0_14px_32px_rgba(15,23,42,0.18)] transition-colors hover:bg-slate-800">
+              <button onClick={handleBackToPortal} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[9px] font-black uppercase tracking-[0.3em] text-white shadow-[0_14px_32px_rgba(15,23,42,0.28)] transition-colors hover:bg-white/10">
                 <Icons.ArrowLeft className="h-4 w-4" />
                 Volver al portal
               </button>
@@ -239,7 +239,7 @@ function App() {
             initial={{ opacity: 0, y: 24 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.1 }}
-            className="rounded-[1.85rem] border border-slate-200/70 bg-white/80 p-4 shadow-[0_22px_70px_rgba(15,23,42,0.08)] backdrop-blur-xl md:p-5"
+            className="rounded-[1.85rem] border border-white/10 bg-slate-950/35 p-4 shadow-[0_22px_70px_rgba(2,6,23,0.36)] backdrop-blur-xl md:p-5"
           >
             <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-4">
               {[
@@ -254,22 +254,22 @@ function App() {
                   whileHover={{ y: -8, scale: 1.01 }}
                   whileTap={{ scale: 0.98 }}
                   onClick={() => navigate(item.path)}
-                  className="group relative min-h-[176px] rounded-[1.65rem] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.92))] p-5 text-left transition-all hover:-translate-y-1 hover:border-slate-300 hover:shadow-[0_18px_50px_rgba(15,23,42,0.10)] md:min-h-[190px] md:p-6"
+                  className="group relative min-h-[176px] rounded-[1.65rem] border border-white/10 bg-[linear-gradient(180deg,rgba(15,23,42,0.88),rgba(15,23,42,0.7))] p-5 text-left transition-all hover:-translate-y-1 hover:border-sky-400/30 hover:shadow-[0_18px_50px_rgba(8,47,73,0.35)] md:min-h-[190px] md:p-6"
                 >
                   <div className="flex h-full flex-col justify-between">
                     <div className="flex items-start justify-between gap-3">
-                      <div className={`flex h-12 w-12 items-center justify-center rounded-2xl border ${item.color === 'orange' ? 'bg-orange-500/12 text-orange-500 border-orange-200' : item.color === 'blue' ? 'bg-blue-500/12 text-blue-500 border-blue-200' : item.color === 'indigo' ? 'bg-indigo-500/12 text-indigo-500 border-indigo-200' : 'bg-emerald-500/12 text-emerald-500 border-emerald-200'} shadow-[0_10px_25px_rgba(15,23,42,0.06)]`}>
+                      <div className={`flex h-12 w-12 items-center justify-center rounded-2xl border ${item.color === 'orange' ? 'bg-orange-500/14 text-orange-300 border-orange-400/30' : item.color === 'blue' ? 'bg-blue-500/14 text-blue-300 border-blue-400/30' : item.color === 'indigo' ? 'bg-indigo-500/14 text-indigo-300 border-indigo-400/30' : 'bg-emerald-500/14 text-emerald-300 border-emerald-400/30'} shadow-[0_10px_25px_rgba(15,23,42,0.18)]`}>
                         <item.icon className="h-5.5 w-5.5" />
                       </div>
-                      <div className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.28em] text-slate-500 transition-colors group-hover:bg-slate-100 group-hover:text-slate-700">
+                      <div className="rounded-full border border-white/10 bg-white/5 px-2.5 py-1 text-[9px] font-black uppercase tracking-[0.28em] text-slate-300 transition-colors group-hover:bg-sky-400/10 group-hover:text-sky-200">
                         abrir
                       </div>
                     </div>
                     <div className="mt-5">
-                      <h3 className="text-[1.1rem] font-black uppercase leading-tight tracking-tight text-slate-950 md:text-[1.2rem]">{item.name}</h3>
-                      <p className="mt-2 text-[0.78rem] leading-6 text-slate-500">{item.desc}</p>
+                      <h3 className="text-[1.1rem] font-black uppercase leading-tight tracking-tight text-white md:text-[1.2rem]">{item.name}</h3>
+                      <p className="mt-2 text-[0.78rem] leading-6 text-slate-400">{item.desc}</p>
                     </div>
-                    <div className="mt-4 h-1 w-full overflow-hidden rounded-full bg-slate-100">
+                    <div className="mt-4 h-1 w-full overflow-hidden rounded-full bg-white/10">
                       <div className={`h-full w-1/2 rounded-full ${item.color === 'orange' ? 'bg-orange-400' : item.color === 'blue' ? 'bg-blue-400' : item.color === 'indigo' ? 'bg-indigo-400' : 'bg-emerald-400'} opacity-70 transition-all group-hover:w-full`} />
                     </div>
                   </div>

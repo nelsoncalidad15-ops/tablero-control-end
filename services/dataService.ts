@@ -146,6 +146,26 @@ const parseNumber = (val: string): number => {
   return isNaN(num) ? 0 : num;
 };
 
+const parseImpactValue = (rawValue: string, impactType: string, impactText: string): number | null => {
+  const trimmed = String(rawValue || '').trim();
+  if (!trimmed) return null;
+
+  const parsed = parseNumber(trimmed);
+  const normalizedType = cleanHeader(impactType);
+  const normalizedText = String(impactText || '').trim();
+
+  if (normalizedType === 'cobro' || normalizedType === 'descuento' || normalizedType === 'bonus') {
+    if (normalizedText.includes('%')) {
+      if (parsed > 1) return parsed / 10000;
+      return parsed;
+    }
+
+    if (parsed > 1) return parsed / 100;
+  }
+
+  return parsed;
+};
+
 // Helper for scores that can be null (not 0)
 const parseScore = (val: string): number | null => {
     if (!val || val.trim() === '' || val.trim() === '-') return null;
@@ -1773,6 +1793,8 @@ const parseQualityObjectivesScalesCSV = (csvText: string): QualityObjectiveScale
           orden: index + 1,
         };
 
+        let rawImpactValue = '';
+
         headers.forEach((header, colIndex) => {
           const value = String(row[colIndex] || '').trim();
 
@@ -1782,16 +1804,18 @@ const parseQualityObjectivesScalesCSV = (csvText: string): QualityObjectiveScale
           else if (header === 'anio' || header === 'ano') record.anio = parseInt(value, 10) || 0;
           else if (header === 'vigencia desde') record.vigencia_desde = value;
           else if (header === 'vigencia hasta') record.vigencia_hasta = value;
-          else if (header === 'escala') record.escala = value;
+          else if (header === 'escala' || header === 'nivel') record.escala = value;
           else if (header === 'operador') record.operador = value;
           else if (header === 'desde valor') record.desde_valor = value ? parseNumber(value) : null;
           else if (header === 'hasta valor') record.hasta_valor = value ? parseNumber(value) : null;
           else if (header === 'rango mostrar') record.rango_mostrar = value;
-          else if (header === 'impacto valor') record.impacto_valor = value ? parseNumber(value) : null;
-          else if (header === 'impacto texto') record.impacto_texto = value;
-          else if (header === 'impacto tipo') record.impacto_tipo = value.toLowerCase();
+          else if (header === 'impacto valor' || header === 'resultado valor') rawImpactValue = value;
+          else if (header === 'impacto texto' || header === 'resultado texto') record.impacto_texto = value;
+          else if (header === 'impacto tipo' || header === 'resultado tipo') record.impacto_tipo = value.toLowerCase();
           else if (header === 'orden') record.orden = parseInt(value, 10) || index + 1;
         });
+
+        record.impacto_valor = parseImpactValue(rawImpactValue, record.impacto_tipo, record.impacto_texto);
 
         return record;
       });

@@ -49,18 +49,32 @@ type EvaluationResult = {
   message: string;
 };
 
-const AREA_THEME: Record<string, { badge: string; glow: string; accent: string; text: string }> = {
+type ScaleCardGroup = {
+  key: string;
+  area: string;
+  indicator: string;
+  period: string;
+  resultType: string;
+  inputType: string;
+  unit: string;
+  objectiveText: string;
+  rows: QualityObjectiveScaleRecord[];
+};
+
+const AREA_THEME: Record<string, { badge: string; glow: string; accent: string; text: string; panel: string }> = {
   ventas: {
-    badge: 'border-orange-200/80 bg-orange-50 text-orange-700',
-    glow: 'bg-orange-400/10',
-    accent: 'from-orange-500 to-amber-400',
-    text: 'text-orange-600',
+    badge: 'border-amber-200/80 bg-amber-50 text-amber-700',
+    glow: 'bg-amber-400/10',
+    accent: 'from-slate-900 via-slate-800 to-amber-600',
+    text: 'text-amber-600',
+    panel: 'border-amber-200/50 bg-amber-50/60',
   },
   postventa: {
-    badge: 'border-sky-200/80 bg-sky-50 text-sky-700',
-    glow: 'bg-sky-400/10',
-    accent: 'from-sky-500 to-blue-500',
-    text: 'text-sky-600',
+    badge: 'border-cyan-200/80 bg-cyan-50 text-cyan-700',
+    glow: 'bg-cyan-400/10',
+    accent: 'from-slate-900 via-slate-800 to-cyan-600',
+    text: 'text-cyan-600',
+    panel: 'border-cyan-200/50 bg-cyan-50/60',
   },
 };
 
@@ -93,6 +107,48 @@ const formatGoalValue = (value: number | null, unit: string, fallback: string) =
   if (value == null) return fallback || '-';
   if (unit === 'porcentaje') return formatPercent(value);
   return String(value).replace('.', ',');
+};
+
+const formatCompactMetric = (value: number | null, unit: string) => {
+  if (value == null) return '-';
+  if (unit === 'porcentaje') return `${(value * 100).toFixed(2).replace('.', ',')}%`;
+  return String(value).replace('.', ',');
+};
+
+const formatRuleThreshold = (rule: QualityObjectiveScaleRecord, inputType: string, unit: string) => {
+  if (inputType === 'booleano') return rule.desde_valor === 1 || rule.hasta_valor === 1 ? 'Cumple' : 'No cumple';
+  if (rule.operador === '>=' || rule.operador === '>') return formatCompactMetric(rule.desde_valor, unit);
+  if (rule.operador === '<=' || rule.operador === '<') return formatCompactMetric(rule.hasta_valor ?? rule.desde_valor, unit);
+  if (rule.desde_valor != null) return formatCompactMetric(rule.desde_valor, unit);
+  if (rule.hasta_valor != null) return formatCompactMetric(rule.hasta_valor, unit);
+  return rule.rango_mostrar || '-';
+};
+
+const getScaleCardLabels = (group: ScaleCardGroup) => {
+  const normalizedIndicator = normalizeText(group.indicator);
+
+  if (group.resultType === 'cobro') {
+    return { threshold: 'Valor minimo', impact: '% cobro' };
+  }
+
+  if (group.resultType === 'bonus') {
+    return {
+      threshold: group.inputType === 'booleano' ? 'Condicion' : 'Valor minimo',
+      impact: 'Bonus max',
+    };
+  }
+
+  if (normalizedIndicator.includes('dac')) {
+    return { threshold: 'Valor maximo', impact: 'Descuento' };
+  }
+
+  return { threshold: 'Valor objetivo', impact: 'Descuento' };
+};
+
+const getImpactBadgeStyle = (resultType: string) => {
+  if (resultType === 'cobro') return 'bg-emerald-50 text-emerald-700 border-emerald-200';
+  if (resultType === 'bonus') return 'bg-amber-50 text-amber-700 border-amber-200';
+  return 'bg-rose-50 text-rose-700 border-rose-200';
 };
 
 const parseWholesale = (value: string) => {
@@ -140,6 +196,8 @@ const compareByOperator = (value: number, operator: string, fromValue: number | 
     case '=':
       return fromValue != null ? Math.abs(value - fromValue) < 0.00001 : false;
     default:
+      if (fromValue != null && toValue == null) return Math.abs(value - fromValue) < 0.00001;
+      if (toValue != null && fromValue == null) return Math.abs(value - toValue) < 0.00001;
       return false;
   }
 };
@@ -204,6 +262,7 @@ const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
   const [selectedPeriod, setSelectedPeriod] = useState<string>('all');
   const [retryCount, setRetryCount] = useState(0);
   const [sourceMode, setSourceMode] = useState<'clean' | 'legacy'>('legacy');
+  const [activeTab, setActiveTab] = useState<'simulator' | 'scales'>('simulator');
   const [wholesaleInput, setWholesaleInput] = useState<string>('');
   const [simValues, setSimValues] = useState<Record<string, string | boolean>>({});
 
@@ -296,6 +355,50 @@ const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
     return Object.entries(byArea).map(([area, items]) => ({ area, items }));
   }, [filteredIndicators]);
 
+  const scaleCardGroups = useMemo(() => {
+    const groups = scaleRows
+      .filter(rule => (selectedArea === 'all' ? true : matchesToken(rule.area, selectedArea)))
+      .filter(rule => (selectedYear === 'all' ? true : String(rule.anio) === selectedYear))
+      .filter(rule => periodMatches(selectedPeriod, rule.periodo))
+      .reduce<Record<string, ScaleCardGroup>>((acc, rule) => {
+        const matchingSummary = activeSummaries.find(summary =>
+          matchesToken(summary.area, rule.area) &&
+          matchesToken(summary.indicador, rule.indicador) &&
+          String(summary.anio) === String(rule.anio) &&
+          matchesToken(summary.periodo, rule.periodo)
+        ) || activeSummaries.find(summary =>
+          matchesToken(summary.area, rule.area) &&
+          matchesToken(summary.indicador, rule.indicador) &&
+          String(summary.anio) === String(rule.anio) &&
+          normalizeText(summary.periodo) === 'anual'
+        );
+
+        const key = `${rule.area}__${rule.indicador}__${rule.periodo}__${rule.anio}`;
+        if (!acc[key]) {
+          acc[key] = {
+            key,
+            area: rule.area,
+            indicator: rule.indicador,
+            period: rule.periodo,
+            resultType: matchingSummary?.tipo_resultado || rule.impacto_tipo || 'requisito',
+            inputType: matchingSummary?.tipo_input || 'numero',
+            unit: matchingSummary?.unidad || '',
+            objectiveText: matchingSummary?.objetivo_texto || '',
+            rows: [],
+          };
+        }
+        acc[key].rows.push(rule);
+        return acc;
+      }, {});
+
+    return Object.values(groups)
+      .map(group => ({
+        ...group,
+        rows: [...group.rows].sort((a, b) => a.orden - b.orden),
+      }))
+      .sort((a, b) => a.indicator.localeCompare(b.indicator));
+  }, [activeSummaries, scaleRows, selectedArea, selectedPeriod, selectedYear]);
+
   const wholesaleValue = useMemo(() => parseWholesale(wholesaleInput), [wholesaleInput]);
 
   const evaluations = useMemo(() => {
@@ -334,7 +437,7 @@ const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
             resultType: matchingRule.impacto_tipo || indicator.tipo_resultado,
             percentValue,
             percentText: matchingRule.impacto_texto || formatPercent(percentValue),
-            amount: wholesaleValue * percentValue,
+            amount: 0,
             message: rawInput ? 'Cumple el objetivo.' : 'No cumple el objetivo.',
           };
         } else {
@@ -382,7 +485,7 @@ const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
           resultType: matchingRule.impacto_tipo || indicator.tipo_resultado,
           percentValue,
           percentText: matchingRule.impacto_texto || formatPercent(percentValue),
-          amount: wholesaleValue * percentValue,
+          amount: 0,
           message: matchingRule.rango_mostrar || 'Regla aplicada.',
         };
       } else {
@@ -397,6 +500,33 @@ const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
           message: `Valor cargado: ${formatGoalValue(parsedValue, indicator.unidad, '')}`,
         };
       }
+    });
+
+    const baseCobroPercent = Object.values(result).reduce((acc, evaluation) => {
+      if (evaluation.status === 'pending') return acc;
+      if (evaluation.resultType === 'cobro') return acc + evaluation.percentValue;
+      return acc;
+    }, 0);
+
+    const baseAwardAmount = wholesaleValue * baseCobroPercent;
+
+    Object.values(result).forEach(evaluation => {
+      if (evaluation.status === 'pending') {
+        evaluation.amount = 0;
+        return;
+      }
+
+      if (evaluation.resultType === 'descuento') {
+        evaluation.amount = -(baseAwardAmount * evaluation.percentValue);
+        return;
+      }
+
+      if (evaluation.resultType === 'bonus') {
+        evaluation.amount = baseAwardAmount * evaluation.percentValue;
+        return;
+      }
+
+      evaluation.amount = wholesaleValue * evaluation.percentValue;
     });
 
     return result;
@@ -415,8 +545,10 @@ const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
     );
   }, [evaluations]);
 
-  const netPercent = totals.cobro + totals.bonus - totals.descuento;
-  const netAmount = wholesaleValue * netPercent;
+  const baseAwardAmount = wholesaleValue * totals.cobro;
+  const discountAmount = baseAwardAmount * totals.descuento;
+  const bonusAmount = baseAwardAmount * totals.bonus;
+  const netAmount = baseAwardAmount - discountAmount + bonusAmount;
 
   const filters = (
     <div className="space-y-3">
@@ -566,22 +698,57 @@ const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
             </div>
           </section>
 
+          <section className="rounded-[1.35rem] border border-slate-200/80 bg-white/92 p-2 shadow-[0_10px_26px_rgba(15,23,42,0.05)]">
+            <div className="grid grid-cols-2 gap-2">
+              <button
+                onClick={() => setActiveTab('simulator')}
+                className={`rounded-[1rem] px-4 py-3 text-left transition ${
+                  activeTab === 'simulator'
+                    ? 'bg-slate-950 text-white shadow-[0_10px_24px_rgba(15,23,42,0.18)]'
+                    : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                <p className="text-[8px] font-black uppercase tracking-[0.18em] opacity-70">Vista</p>
+                <p className="mt-1 text-[13px] font-black">Simulador</p>
+              </button>
+              <button
+                onClick={() => setActiveTab('scales')}
+                className={`rounded-[1rem] px-4 py-3 text-left transition ${
+                  activeTab === 'scales'
+                    ? 'bg-slate-950 text-white shadow-[0_10px_24px_rgba(15,23,42,0.18)]'
+                    : 'bg-slate-50 text-slate-600 hover:bg-slate-100'
+                }`}
+              >
+                <p className="text-[8px] font-black uppercase tracking-[0.18em] opacity-70">Vista</p>
+                <p className="mt-1 text-[13px] font-black">Escalas</p>
+              </button>
+            </div>
+          </section>
+
+          {activeTab === 'simulator' ? (
+          <>
           <section className="grid grid-cols-1 gap-3 xl:grid-cols-4">
             <div className="rounded-[1.2rem] border border-slate-200 bg-white p-3 shadow-sm">
               <p className="text-[8px] font-black uppercase tracking-[0.14em] text-slate-400">Wholesale</p>
               <p className="mt-1 text-lg font-black text-slate-950">{formatCurrency(wholesaleValue)}</p>
             </div>
             <div className="rounded-[1.2rem] border border-slate-200 bg-white p-3 shadow-sm">
-              <p className="text-[8px] font-black uppercase tracking-[0.14em] text-slate-400">Cobro + Bonus</p>
-              <p className="mt-1 text-lg font-black text-emerald-600">{formatPercent(totals.cobro + totals.bonus)}</p>
+              <p className="text-[8px] font-black uppercase tracking-[0.14em] text-slate-400">Cobro base</p>
+              <p className="mt-1 text-lg font-black text-emerald-600">{formatPercent(totals.cobro)}</p>
             </div>
             <div className="rounded-[1.2rem] border border-slate-200 bg-white p-3 shadow-sm">
               <p className="text-[8px] font-black uppercase tracking-[0.14em] text-slate-400">Descuento</p>
               <p className="mt-1 text-lg font-black text-rose-600">{formatPercent(totals.descuento)}</p>
+              {totals.descuento > 0 ? (
+                <p className="mt-1 text-[11px] text-slate-500">Aplicado sobre premio base: {formatCurrency(discountAmount)}</p>
+              ) : null}
             </div>
             <div className="rounded-[1.2rem] border border-slate-200 bg-white p-3 shadow-sm">
               <p className="text-[8px] font-black uppercase tracking-[0.14em] text-slate-400">Neto estimado</p>
               <p className={`mt-1 text-lg font-black ${netAmount >= 0 ? 'text-blue-600' : 'text-rose-600'}`}>{formatCurrency(netAmount)}</p>
+              {totals.bonus > 0 ? (
+                <p className="mt-1 text-[11px] text-slate-500">Incluye bonus sobre premio base: {formatCurrency(bonusAmount)}</p>
+              ) : null}
             </div>
           </section>
 
@@ -590,7 +757,7 @@ const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
             return (
               <section
                 key={section.area}
-                className="relative overflow-hidden rounded-[1.8rem] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.96),rgba(248,250,252,0.98))] p-4 shadow-[0_12px_32px_rgba(15,23,42,0.05)]"
+                className="relative overflow-hidden rounded-[1.6rem] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.98))] p-3 shadow-[0_12px_32px_rgba(15,23,42,0.05)]"
               >
                 <div className={`pointer-events-none absolute -right-12 top-0 h-36 w-36 rounded-full blur-3xl ${theme.glow}`} />
                 <div className="relative mb-3 flex items-center justify-between gap-2">
@@ -598,59 +765,59 @@ const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
                     <div className={`inline-flex items-center rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.16em] ${theme.badge}`}>
                       {section.area}
                     </div>
-                    <h2 className="mt-1.5 text-[1.25rem] font-black tracking-tight text-slate-950">{section.area}</h2>
+                    <h2 className="mt-1 text-[1.05rem] font-black tracking-tight text-slate-950">{section.area}</h2>
                   </div>
-                  <div className="rounded-[0.95rem] border border-slate-200 bg-white px-3 py-2 shadow-sm">
+                  <div className={`rounded-[0.95rem] border px-3 py-1.5 shadow-sm ${theme.panel}`}>
                     <p className="text-[7px] font-black uppercase tracking-[0.12em] text-slate-400">Periodo</p>
-                    <p className={`mt-0.5 text-[15px] font-black ${theme.text}`}>{selectedPeriod}</p>
+                    <p className={`mt-0.5 text-[13px] font-black ${theme.text}`}>{selectedPeriod}</p>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-3 2xl:grid-cols-2">
+                <div className="grid grid-cols-1 gap-3 xl:grid-cols-2 2xl:grid-cols-3">
                   {section.items.map(indicator => {
                     const evaluation = evaluations[indicator.id];
                     const statusClass =
                       evaluation?.status === 'matched' || evaluation?.status === 'ok'
-                        ? 'border-emerald-200 bg-emerald-50 text-emerald-700'
+                        ? 'border-emerald-200 bg-emerald-50/90 text-emerald-700'
                         : evaluation?.status === 'miss'
-                          ? 'border-rose-200 bg-rose-50 text-rose-700'
-                          : 'border-slate-200 bg-slate-100 text-slate-700';
+                          ? 'border-rose-200 bg-rose-50/90 text-rose-700'
+                          : 'border-slate-200 bg-slate-100/90 text-slate-700';
 
                     return (
                       <article
                         key={indicator.id}
-                        className="overflow-hidden rounded-[1.2rem] border border-slate-200/80 bg-white shadow-[0_8px_22px_rgba(15,23,42,0.05)]"
+                        className="overflow-hidden rounded-[1.15rem] border border-slate-200/80 bg-white shadow-[0_8px_22px_rgba(15,23,42,0.05)] transition-all hover:-translate-y-0.5 hover:shadow-[0_16px_32px_rgba(15,23,42,0.08)]"
                       >
-                        <div className={`relative overflow-hidden bg-gradient-to-r ${theme.accent} px-3.5 py-3 text-white`}>
+                        <div className={`relative overflow-hidden bg-gradient-to-r ${theme.accent} px-3 py-2.5 text-white`}>
                           <div className="flex items-start justify-between gap-3">
                             <div className="min-w-0">
                               <p className="text-[7px] font-black uppercase tracking-[0.18em] text-white/75">Indicador</p>
-                              <h3 className="mt-0.5 text-[1rem] font-black tracking-tight">{indicator.indicador}</h3>
-                              <p className="mt-0.5 text-[11px] text-white/80">
+                              <h3 className="mt-0.5 text-[0.92rem] font-black tracking-tight">{indicator.indicador}</h3>
+                              <p className="mt-0.5 text-[10px] text-white/80">
                                 Objetivo: {indicator.objetivo_texto || formatGoalValue(indicator.objetivo_valor, indicator.unidad, '-')}
                               </p>
                             </div>
-                            <span className="rounded-full border border-white/20 bg-white/15 px-2 py-1 text-[7px] font-black uppercase tracking-[0.12em]">
+                            <span className="rounded-full border border-white/20 bg-white/12 px-2 py-1 text-[7px] font-black uppercase tracking-[0.12em]">
                               {indicator.tipo_resultado}
                             </span>
                           </div>
                         </div>
 
-                        <div className="grid grid-cols-1 gap-3 p-3 md:grid-cols-[1.4fr_1fr]">
-                          <div className="space-y-2">
-                            <div className="rounded-[0.95rem] border border-slate-200 bg-slate-50/70 p-2.5">
+                        <div className="grid grid-cols-1 gap-2.5 p-2.5">
+                          <div className="grid grid-cols-1 gap-2 md:grid-cols-2 xl:grid-cols-[1.2fr_0.95fr]">
+                            <div className="rounded-[0.9rem] border border-slate-200 bg-slate-50/70 p-2.5">
                               <p className="text-[7px] font-black uppercase tracking-[0.12em] text-slate-400">Valor obtenido</p>
                               {indicator.tipo_input === 'booleano' ? (
-                                <div className="mt-2 flex gap-2">
+                                <div className="mt-2 flex gap-1.5">
                                   <button
                                     onClick={() => setSimValues(prev => ({ ...prev, [indicator.id]: true }))}
-                                    className={`rounded-full px-3 py-1.5 text-[11px] font-black ${simValues[indicator.id] === true ? 'bg-slate-950 text-white' : 'bg-white text-slate-600 border border-slate-200'}`}
+                                    className={`rounded-full px-3 py-1.5 text-[10px] font-black transition ${simValues[indicator.id] === true ? 'bg-slate-950 text-white' : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-100'}`}
                                   >
                                     Si
                                   </button>
                                   <button
                                     onClick={() => setSimValues(prev => ({ ...prev, [indicator.id]: false }))}
-                                    className={`rounded-full px-3 py-1.5 text-[11px] font-black ${simValues[indicator.id] === false ? 'bg-slate-950 text-white' : 'bg-white text-slate-600 border border-slate-200'}`}
+                                    className={`rounded-full px-3 py-1.5 text-[10px] font-black transition ${simValues[indicator.id] === false ? 'bg-slate-950 text-white' : 'border border-slate-200 bg-white text-slate-600 hover:bg-slate-100'}`}
                                   >
                                     No
                                   </button>
@@ -660,30 +827,41 @@ const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
                                   value={typeof simValues[indicator.id] === 'string' ? (simValues[indicator.id] as string) : ''}
                                   onChange={event => setSimValues(prev => ({ ...prev, [indicator.id]: event.target.value }))}
                                   placeholder={indicator.unidad === 'porcentaje' ? '95 o 95%' : '4,86'}
-                                  className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-[13px] font-bold text-slate-700 outline-none transition focus:border-blue-300"
+                                  className="mt-2 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-[12px] font-bold text-slate-700 outline-none transition focus:border-cyan-300"
                                 />
                               )}
                             </div>
 
-                            <div className="rounded-[0.95rem] border border-slate-200 bg-white p-2.5">
-                              <p className="text-[7px] font-black uppercase tracking-[0.12em] text-slate-400">Vigencia</p>
-                              <p className="mt-1 text-[12px] font-bold text-slate-700">
-                                {formatDate(indicator.vigencia_desde)} a {formatDate(indicator.vigencia_hasta)}
-                              </p>
+                            <div className={`rounded-[0.9rem] border p-2.5 ${statusClass}`}>
+                              <p className="text-[7px] font-black uppercase tracking-[0.12em] opacity-70">Resultado</p>
+                              <div className="mt-1 flex items-end justify-between gap-2">
+                                <p className="text-[14px] font-black">{evaluation?.level || '-'}</p>
+                                <p className="text-[10px] font-black opacity-80">{evaluation?.percentText || '-'}</p>
+                              </div>
+                              <p className="mt-1 text-[10px] leading-4 opacity-80">{evaluation?.message || 'Sin evaluar'}</p>
                             </div>
                           </div>
 
-                          <div className="space-y-2">
-                            <div className={`rounded-[0.95rem] border p-2.5 ${statusClass}`}>
-                              <p className="text-[7px] font-black uppercase tracking-[0.12em] opacity-70">Resultado</p>
-                              <p className="mt-1 text-[15px] font-black">{evaluation?.level || '-'}</p>
-                              <p className="mt-1 text-[11px]">{evaluation?.percentText || '-'}</p>
+                          <div className="grid grid-cols-1 gap-2 md:grid-cols-2">
+                            <div className="rounded-[0.9rem] border border-slate-200 bg-white p-2.5">
+                              <p className="text-[7px] font-black uppercase tracking-[0.12em] text-slate-400">Vigencia</p>
+                              <p className="mt-1 text-[11px] font-bold leading-5 text-slate-700">
+                                {formatDate(indicator.vigencia_desde)} a {formatDate(indicator.vigencia_hasta)}
+                              </p>
                             </div>
 
-                            <div className="rounded-[0.95rem] border border-slate-200 bg-white p-2.5">
+                            <div className="rounded-[0.9rem] border border-slate-200 bg-white p-2.5">
                               <p className="text-[7px] font-black uppercase tracking-[0.12em] text-slate-400">Impacto</p>
-                              <p className="mt-1 text-[15px] font-black text-slate-950">{formatCurrency(evaluation?.amount || 0)}</p>
-                              <p className="mt-1 text-[11px] text-slate-500">{evaluation?.message || 'Sin evaluar'}</p>
+                              <p className="mt-1 text-[14px] font-black text-slate-950">{formatCurrency(evaluation?.amount || 0)}</p>
+                              <p className="mt-1 text-[10px] leading-4 text-slate-500">
+                                {evaluation?.resultType === 'cobro'
+                                  ? 'Premio proyectado'
+                                  : evaluation?.resultType === 'descuento'
+                                    ? 'Ajuste sobre premio base'
+                                    : evaluation?.resultType === 'bonus'
+                                      ? 'Bonus adicional'
+                                      : 'Sin impacto calculado'}
+                              </p>
                             </div>
                           </div>
                         </div>
@@ -694,6 +872,80 @@ const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
               </section>
             );
           })}
+          </>
+          ) : (
+            <section className="space-y-4">
+              <div className="rounded-[1.8rem] border border-slate-200/80 bg-[linear-gradient(180deg,rgba(255,255,255,0.98),rgba(248,250,252,0.98))] p-5 shadow-[0_12px_32px_rgba(15,23,42,0.05)]">
+                <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+                  <div>
+                    <p className="text-[8px] font-black uppercase tracking-[0.22em] text-slate-400">Programa visual</p>
+                    <h2 className="mt-1 text-[1.35rem] font-black tracking-tight text-slate-950">Escalas y bonificaciones</h2>
+                    <p className="mt-1 text-[12px] leading-5 text-slate-500">
+                      Cuadros generados desde Sheets para {selectedArea} {selectedPeriod !== 'all' ? `• ${selectedPeriod}` : ''}.
+                    </p>
+                  </div>
+                  <div className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50 px-3 py-2 text-[11px] font-bold text-slate-600">
+                    {scaleCardGroups.length} cuadros activos
+                  </div>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-1 gap-4 xl:grid-cols-2 2xl:grid-cols-3">
+                {scaleCardGroups.map(group => {
+                  const theme = pickAreaTheme(group.area);
+                  const labels = getScaleCardLabels(group);
+                  const badgeStyle = getImpactBadgeStyle(group.resultType);
+
+                  return (
+                    <article
+                      key={group.key}
+                      className="overflow-hidden rounded-[1.7rem] border border-slate-200/80 bg-white shadow-[0_16px_40px_rgba(15,23,42,0.08)]"
+                    >
+                      <div className={`bg-gradient-to-r ${theme.accent} px-4 py-4 text-white`}>
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-[7px] font-black uppercase tracking-[0.2em] text-white/75">{group.area}</p>
+                            <h3 className="mt-1 text-[1.05rem] font-black tracking-tight">{group.indicator}</h3>
+                            <p className="mt-1 text-[11px] text-white/80">
+                              {group.objectiveText || `Periodo ${group.period}`}
+                            </p>
+                          </div>
+                          <span className="rounded-full border border-white/20 bg-white/15 px-2.5 py-1 text-[7px] font-black uppercase tracking-[0.14em]">
+                            {group.period}
+                          </span>
+                        </div>
+                      </div>
+
+                      <div className="p-4">
+                        <div className={`mb-3 inline-flex items-center rounded-full border px-2.5 py-1 text-[8px] font-black uppercase tracking-[0.16em] ${badgeStyle}`}>
+                          {group.resultType}
+                        </div>
+
+                        <div className="overflow-hidden rounded-[1.1rem] border border-slate-200">
+                          <div className="grid grid-cols-3 bg-slate-50">
+                            <div className="px-3 py-2 text-[8px] font-black uppercase tracking-[0.16em] text-slate-400">Escala</div>
+                            <div className="border-l border-slate-200 px-3 py-2 text-[8px] font-black uppercase tracking-[0.16em] text-slate-400">{labels.threshold}</div>
+                            <div className="border-l border-slate-200 px-3 py-2 text-[8px] font-black uppercase tracking-[0.16em] text-slate-400">{labels.impact}</div>
+                          </div>
+                          {group.rows.map((row, index) => (
+                            <div key={row.id} className={`grid grid-cols-3 ${index % 2 === 0 ? 'bg-white' : 'bg-amber-50/30'}`}>
+                              <div className="px-3 py-3 text-[12px] font-black text-slate-800">{row.escala || '-'}</div>
+                              <div className="border-l border-slate-200 px-3 py-3 text-[12px] font-bold text-slate-700">
+                                {formatRuleThreshold(row, group.inputType, group.unit)}
+                              </div>
+                              <div className="border-l border-slate-200 px-3 py-3 text-[12px] font-black text-slate-900">
+                                {row.impacto_texto || formatPercent(row.impacto_valor || 0)}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </article>
+                  );
+                })}
+              </div>
+            </section>
+          )}
         </div>
       )}
     </DashboardFrame>

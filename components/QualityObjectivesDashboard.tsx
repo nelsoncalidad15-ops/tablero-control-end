@@ -124,6 +124,20 @@ const normalizeThresholdValue = (value: number | null, unit: string) => {
   return value;
 };
 
+const parseRulePercentValue = (text: string, fallback: number | null) => {
+  const trimmed = String(text || '').trim();
+  if (trimmed.includes('%')) {
+    const normalized = trimmed.replace(/\s/g, '').replace('%', '').replace(/\./g, '').replace(',', '.');
+    const parsed = Number(normalized);
+    if (Number.isFinite(parsed)) return parsed / 100;
+  }
+
+  if (fallback == null) return 0;
+  if (Math.abs(fallback) > 100) return fallback / 1000;
+  if (Math.abs(fallback) > 1) return fallback / 100;
+  return fallback;
+};
+
 const formatRuleThreshold = (rule: QualityObjectiveScaleRecord, inputType: string, unit: string) => {
   if (inputType === 'booleano') return rule.desde_valor === 1 || rule.hasta_valor === 1 ? 'Cumple' : 'No cumple';
   if (rule.operador === '>=' || rule.operador === '>') return formatCompactMetric(normalizeThresholdValue(rule.desde_valor, unit), unit);
@@ -463,7 +477,12 @@ const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
           );
 
         if (matchingRule) {
-          const percentValue = matchingRule.impacto_valor ?? 0;
+          const percentValue =
+            indicator.tipo_resultado === 'cobro' ||
+            indicator.tipo_resultado === 'descuento' ||
+            indicator.tipo_resultado === 'bonus'
+              ? parseRulePercentValue(matchingRule.impacto_texto, matchingRule.impacto_valor)
+              : matchingRule.impacto_valor ?? 0;
           result[indicator.id] = {
             status: 'matched',
             level: matchingRule.escala || '-',
@@ -518,11 +537,17 @@ const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
         );
 
       if (matchingRule) {
-        const percentValue = matchingRule.impacto_valor ?? 0;
+        const effectiveResultType = matchingRule.impacto_tipo || indicator.tipo_resultado;
+        const percentValue =
+          effectiveResultType === 'cobro' ||
+          effectiveResultType === 'descuento' ||
+          effectiveResultType === 'bonus'
+            ? parseRulePercentValue(matchingRule.impacto_texto, matchingRule.impacto_valor)
+            : matchingRule.impacto_valor ?? 0;
         result[indicator.id] = {
           status: 'matched',
           level: matchingRule.escala || '-',
-          resultType: matchingRule.impacto_tipo || indicator.tipo_resultado,
+          resultType: effectiveResultType,
           percentValue,
           percentText: matchingRule.impacto_texto || formatPercent(percentValue),
           amount: 0,

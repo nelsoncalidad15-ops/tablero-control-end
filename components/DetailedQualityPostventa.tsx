@@ -166,6 +166,7 @@ const DetailedQualityPostventa: React.FC<DetailedQualityPostventaProps> = ({ she
       q2: calcMetric('q2_score'),
       q3: calcMetric('q3_score'),
       q4: calcMetric('q4_score'),
+      q6: calcMetric('q6_score'),
       total: filteredData.length
     };
   }, [filteredData]);
@@ -436,12 +437,13 @@ const DetailedQualityPostventa: React.FC<DetailedQualityPostventaProps> = ({ she
         <div className="h-8 md:h-12"></div>
 
         {/* KPI Cards Grid - Modern Style */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-8">
           {[
             { title: 'Satisfacción LVS', val: metrics.q4.avg, q: 'Q4', count: metrics.q4.count, icon: Icons.Star },
             { title: 'Trato Personal', val: metrics.q1.avg, q: 'Q1', count: metrics.q1.count, icon: Icons.UserCheck },
             { title: 'Organización', val: metrics.q2.avg, q: 'Q2', count: metrics.q2.count, icon: Icons.ClipboardList },
             { title: 'Calidad Reparación', val: metrics.q3.avg, q: 'Q3', count: metrics.q3.count, icon: Icons.Wrench }
+            ,{ title: 'Lavado', val: metrics.q6.avg, q: 'Q6', count: metrics.q6.count, icon: Icons.Sparkles }
           ].map((kpi, i) => (
             <motion.div 
               key={i}
@@ -465,7 +467,7 @@ const DetailedQualityPostventa: React.FC<DetailedQualityPostventaProps> = ({ she
               </div>
               <div className="space-y-4">
                 <div className="flex justify-between items-end">
-                    <span className="text-[9px] font-black text-slate-300 uppercase tracking-widest">Muestra: {kpi.count}</span>
+                    <span className="inline-flex items-center rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black text-slate-700 uppercase tracking-[0.2em] shadow-sm">Muestra: {kpi.count}</span>
                     <span className="text-[9px] font-black text-blue-500 uppercase tracking-widest">{((kpi.val / 5) * 100).toFixed(0)}%</span>
                 </div>
                 <div className="h-2 bg-slate-50 rounded-full overflow-hidden">

@@ -177,6 +177,12 @@ const parseScore = (val: string): number | null => {
     return num === 0 ? null : num; // Assuming 0 usually means no score in this context, unless specified
 };
 
+const parseScoreInRange = (val: string, min: number, max: number): number | null => {
+    const num = parseScore(val);
+    if (num === null) return null;
+    return num >= min && num <= max ? num : null;
+};
+
 export const normalizeKey = (key: string) => {
     if (!key) return '';
     return key.toLowerCase()
@@ -1360,7 +1366,7 @@ const parseDetailedQualityCSV = (csvText: string): DetailedQualityRecord[] => {
         else if (header.includes('lvs') && header.includes('(q4)')) record.q4_score = parseScore(value);
         else if (header === 'comentario 4') record.q4_comment = value;
         
-        else if (header === 'q6') record.q6_score = parseScore(value);
+        else if (header === 'q6') record.q6_score = parseScoreInRange(value, 1, 5);
         else if (header === 'q7') record.q7_score = parseScore(value);
         else if (header === 'q8') record.q8_val = value;
         

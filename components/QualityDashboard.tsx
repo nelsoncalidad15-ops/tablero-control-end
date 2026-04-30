@@ -474,7 +474,7 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
             </div>
 
             {/* Modern KPIs Section */}
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
                 <motion.div 
                     whileHover={{ y: -4 }}
                     className="bg-white p-7 rounded-[2rem] border border-slate-200 shadow-sm"
@@ -556,32 +556,6 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
                     <div className="text-[12px] font-medium text-slate-500">Porcentaje de reclamos resueltos dentro del universo filtrado.</div>
                 </motion.div>
 
-                <motion.div 
-                    whileHover={{ y: -4 }}
-                    className="bg-white p-7 rounded-[2rem] border border-slate-200 shadow-sm"
-                >
-                    <div className="flex justify-between items-start mb-6">
-                        <div className="flex items-center gap-4">
-                            <div className="w-11 h-11 rounded-2xl bg-rose-50 flex items-center justify-center text-rose-700">
-                                <Icons.Clock className="w-5 h-5" />
-                            </div>
-                            <div>
-                                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-1">Seguimiento</h3>
-                                <p className="text-xs font-black text-slate-900 uppercase tracking-widest">Pendientes</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="flex items-baseline gap-3 mb-3">
-                        <span className="text-5xl font-black text-slate-950 tracking-tight leading-none">{pendingClaimsCount}</span>
-                        <div className="flex flex-col">
-                            <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Casos</span>
-                            <span className="text-[10px] font-black text-rose-500 uppercase tracking-widest flex items-center gap-1 mt-1">
-                                <Icons.AlertCircle className="w-3 h-3" /> Requieren accion
-                            </span>
-                        </div>
-                    </div>
-                    <div className="text-[12px] font-medium text-slate-500">Casos aun no resueltos o sin cierre registrado.</div>
-                </motion.div>
             </div>
 
             {/* Main Charts Grid */}

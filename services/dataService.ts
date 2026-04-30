@@ -983,20 +983,28 @@ const parseQualityCSV = (csvText: string): QualityRecord[] => {
         else if (header.includes('mes')) record.mes = value;
         else if (header.includes('anio') || header.includes('ano')) record.anio = parseInt(value) || 2026;
         else if (header === 'cliente') record.cliente = value;
+        else if (header === 'or nombre') record.cliente_nombre = value;
+        else if (header === 'cli telefo') record.telefono = value;
+        else if (header === 'au nombre') record.vehiculo = value;
         else if (header.includes('sector')) record.sector = value;
         else if (header.includes('motivos')) record.motivo = value;
         else if (header.includes('responsable de')) record.responsable = value;
         else if (header.includes('asesor asignado') || header === 'asesor') record.asesor = value;
+        else if (header === 'op nombre') record.asesor = value;
+        else if (header === 'tecnicos') record.responsable = value;
         else if (header === 'nota reclamo') record.nota_reclamo = value;
+        else if (header === 'trabajo del taller' && !record.nota_reclamo) record.nota_reclamo = value;
         else if (header === 'reclamo / observacion' || header === 'reclamo observacion') record.observacion = value;
+        else if (header === 'observaciones' && !record.observacion) record.observacion = value;
         else if (header === 'observacion de resolucion') record.observacion_resolucion = value;
         else if (header.includes('observación') || header.includes('observacion')) {
-            if (!header.includes('resolucion')) {
+            if (!header.includes('resolucion') && !record.observacion && value) {
                 record.observacion = value;
             }
         }
         else if (header.includes('estado')) record.estado = value;
         else if (header === 'orden' || header === 'nro' || header === 'or') record.orden = value;
+        else if (header === 'or codigo') record.orden = value;
 
         else if (header.includes('resuelto')) record.resuelto = value;
         else if (header.includes('resolucion') || header.includes('resolución')) record.observacion_resolucion = value;
@@ -1018,6 +1026,8 @@ const parseQualityCSV = (csvText: string): QualityRecord[] => {
               record.cliente = company.trim();
           } else if (ape || nom) {
               record.cliente = `${ape} ${nom}`.trim();
+          } else if (record.cliente_nombre || record.telefono || record.vehiculo) {
+              record.cliente = [record.cliente_nombre, record.telefono, record.vehiculo].filter(Boolean).join(' | ');
           } else {
               record.cliente = 'Cliente Desconocido';
           }
@@ -1025,9 +1035,30 @@ const parseQualityCSV = (csvText: string): QualityRecord[] => {
 
       if (!record.observacion && record['reclamo / observación']) record.observacion = record['reclamo / observación'];
 
+      if (!record.observacion && record.observaciones) record.observacion = record.observaciones;
+
+      if (!record.sector) {
+          const sectorFallbacks = [
+              { label: 'Servicio prestado', observation: record.obs_servicio_prestado, score: record['servicio prestado'] },
+              { label: 'Trato personal', observation: record.obs_trato_personal, score: record['trato personal'] },
+              { label: 'Organizacion', observation: record.obs_organizacion, score: record.organizacion },
+              { label: 'Trabajo del taller', observation: record.obs_trabajo_taller, score: record.nota_reclamo || record['trabajo del taller'] },
+              { label: 'Lavado', observation: record.obs_lavado, score: record.lavado },
+          ];
+
+          const observedSector = sectorFallbacks.find(item => String(item.observation || '').trim() !== '');
+          const scoredSector = sectorFallbacks.find(item => {
+              const score = parseNumber(String(item.score || ''));
+              return score > 0 && score < 5;
+          });
+
+          record.sector = observedSector?.label || scoredSector?.label || record.sector;
+      }
+
       if (!record.sucursal) record.sucursal = 'General';
       else record.sucursal = normalizeBranch(record.sucursal);
 
+      if (!record.mes) record.mes = pickFirstValidMonth(record['fecha reclamo/ queja'], record['or fecfin'], record['or fecini'], record['created at']);
       if (!record.mes) record.mes = 'Unknown';
       else record.mes = normalizeMonth(record.mes); 
 

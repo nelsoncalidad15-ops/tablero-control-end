@@ -782,6 +782,12 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
                                                 <Icons.MapPin className="w-3 h-3 text-slate-300" />
                                                 {record.sucursal}
                                             </div>
+                                            {record.nota_reclamo && record.nota_reclamo.trim() !== '' && (
+                                                <div className="flex items-center gap-2 bg-amber-50 text-amber-700 px-3 py-2 rounded-xl text-[10px] font-semibold tracking-wide border border-amber-200">
+                                                    <Icons.Tag className="w-3 h-3" />
+                                                    Nota: {record.nota_reclamo}
+                                                </div>
+                                            )}
                                             {record.categorizacion && record.categorizacion !== '-' && (
                                                 <div className="flex items-center gap-2 bg-blue-50 text-blue-700 px-3.5 py-2 rounded-xl text-[10px] font-semibold tracking-wide border border-blue-100">
                                                     <Icons.Tag className="w-3 h-3" />
@@ -828,16 +834,6 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
                                                     {record.observacion || <span className="italic opacity-30">Sin descripcion registrada</span>}
                                                 </p>
                                             </div>
-                                            
-                                            {record.nota_reclamo && record.nota_reclamo.trim() !== '' && (
-                                                <div className="bg-amber-50/70 p-6 rounded-[1.5rem] border border-amber-200 relative group-hover:border-amber-300 transition-colors">
-                                                    <span className="text-[11px] text-amber-700 font-semibold tracking-[0.12em] block mb-4">Nota del Reclamo</span>
-                                                    <p className="text-[15px] font-medium text-slate-700 leading-7">
-                                                        {record.nota_reclamo}
-                                                    </p>
-                                                </div>
-                                            )}
-                                            
                                             {record.motivo && record.motivo !== 'Sin Motivo' && (
                                                 <div className="flex flex-wrap gap-3">
                                                     {record.motivo.split(/[,;\n\r]+/).map((tag, tIdx) => {

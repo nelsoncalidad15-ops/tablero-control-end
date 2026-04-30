@@ -24,6 +24,7 @@ export interface QualityRecord {
   sector: string; // "Sector Resp." (Column D)
   motivo: string; // "Motivos de Reclamo"
   cliente: string;
+  nota_reclamo?: string; // "Nota reclamo"
   observacion: string; // "Reclamo / Observación"
   responsable: string; // "Responsable de Solución"
   asesor?: string; // "Asesor asignado" (Column K)

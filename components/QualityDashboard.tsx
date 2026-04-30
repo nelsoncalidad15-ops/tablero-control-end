@@ -829,6 +829,15 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
                                                 </p>
                                             </div>
                                             
+                                            {record.nota_reclamo && record.nota_reclamo.trim() !== '' && (
+                                                <div className="bg-amber-50/70 p-6 rounded-[1.5rem] border border-amber-200 relative group-hover:border-amber-300 transition-colors">
+                                                    <span className="text-[11px] text-amber-700 font-semibold tracking-[0.12em] block mb-4">Nota del Reclamo</span>
+                                                    <p className="text-[15px] font-medium text-slate-700 leading-7">
+                                                        {record.nota_reclamo}
+                                                    </p>
+                                                </div>
+                                            )}
+                                            
                                             {record.motivo && record.motivo !== 'Sin Motivo' && (
                                                 <div className="flex flex-wrap gap-3">
                                                     {record.motivo.split(/[,;\n\r]+/).map((tag, tIdx) => {

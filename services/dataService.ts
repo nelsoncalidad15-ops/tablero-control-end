@@ -987,6 +987,9 @@ const parseQualityCSV = (csvText: string): QualityRecord[] => {
         else if (header.includes('motivos')) record.motivo = value;
         else if (header.includes('responsable de')) record.responsable = value;
         else if (header.includes('asesor asignado') || header === 'asesor') record.asesor = value;
+        else if (header === 'nota reclamo') record.nota_reclamo = value;
+        else if (header === 'reclamo / observacion' || header === 'reclamo observacion') record.observacion = value;
+        else if (header === 'observacion de resolucion') record.observacion_resolucion = value;
         else if (header.includes('observación') || header.includes('observacion')) {
             if (!header.includes('resolucion')) {
                 record.observacion = value;

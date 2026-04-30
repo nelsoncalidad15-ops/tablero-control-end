@@ -180,6 +180,18 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
 
   const totalClaimsCount = useMemo(() => displayData.length, [displayData]);
 
+  const pendingClaimsCount = useMemo(() => {
+    return displayData.filter(d => {
+        const val = d.resuelto ? d.resuelto.trim().toLowerCase() : '';
+        return val === 'no' || val === '';
+    }).length;
+  }, [displayData]);
+
+  const resolutionRate = useMemo(() => {
+    const resolved = resolutionChartData.find(d => d.name === 'Resuelto')?.value || 0;
+    return Math.round((resolved / (uniqueClaimsCount || 1)) * 100);
+  }, [resolutionChartData, uniqueClaimsCount]);
+
   const responsableTableData = useMemo(() => {
     const mapRespToOrs: Record<string, Set<string>> = {};
 
@@ -217,6 +229,15 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
         value: monthCounts[m].size
     }));
   }, [data, selectedBranches]);
+
+  const activeFilterChips = useMemo(() => {
+    const chips: string[] = [];
+    chips.push(selectedMonths.length === 0 ? 'Periodo: Anual' : `Periodo: ${selectedMonths.join(' / ')}`);
+    chips.push(selectedBranches.length === 0 ? 'Sucursal: Todas' : `Sucursal: ${selectedBranches.join(' / ')}`);
+    chips.push(selectedResponsable ? `Responsable: ${selectedResponsable}` : 'Responsable: Todos');
+    if (selectedMotivo) chips.push(`Motivo: ${selectedMotivo}`);
+    return chips;
+  }, [selectedMonths, selectedBranches, selectedResponsable, selectedMotivo]);
 
   // if (loadingState === LoadingState.LOADING) return <SkeletonLoader />;
 
@@ -317,116 +338,143 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
     >
         <div className="space-y-8 pb-24 -m-6 p-6 md:p-8 bg-[#f6f8fb] min-h-screen">
 
-            {/* Modern Header Section */}
-            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-end gap-4">
-                <div className="max-w-3xl">
-                    <motion.div 
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-blue-700 text-[9px] font-semibold tracking-[0.16em] mb-3"
-                    >
-                        <Icons.Activity className="w-3 h-3" /> Calidad Postventa
-                    </motion.div>
-                    <h1 className="text-3xl md:text-4xl font-black text-slate-950 tracking-tight leading-none mb-2">
-                        GESTION DE <span className="text-blue-600">RECLAMOS</span>
-                    </h1>
-                    <p className="text-xs md:text-sm text-slate-500 leading-relaxed">
-                        Analisis de Satisfaccion y Procesos • {area.name}
-                    </p>
-                </div>
-                
-                <div className="flex flex-col items-end gap-4 w-full xl:w-auto xl:min-w-[220px]">
-                    <div className="text-right">
-                        <span className="text-[9px] font-black text-slate-300 uppercase tracking-[0.35em] block mb-1">Total Casos</span>
-                        <div className="flex items-baseline justify-end gap-2">
-                            <span className="text-4xl font-black text-slate-950 leading-none">{uniqueClaimsCount}</span>
-                            <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">ORs</span>
+            {/* Executive Header Section */}
+            <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
+                <div className="px-6 md:px-8 py-6 md:py-7 flex flex-col gap-6">
+                    <div className="flex flex-col xl:flex-row xl:items-start xl:justify-between gap-5">
+                        <div className="max-w-4xl">
+                            <motion.div 
+                                initial={{ opacity: 0, x: -20 }}
+                                animate={{ opacity: 1, x: 0 }}
+                                className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-blue-700 text-[9px] font-semibold tracking-[0.16em] mb-3"
+                            >
+                                <Icons.Activity className="w-3 h-3" /> Calidad Postventa
+                            </motion.div>
+                            <div className="flex flex-col lg:flex-row lg:items-end lg:gap-5">
+                                <div>
+                                    <h1 className="text-3xl md:text-[2.65rem] font-black text-slate-950 tracking-tight leading-none">
+                                        GESTION DE <span className="text-blue-600">RECLAMOS</span>
+                                    </h1>
+                                    <p className="text-sm text-slate-500 leading-relaxed mt-3">
+                                        Analisis de Satisfaccion y Procesos • {area.name}
+                                    </p>
+                                </div>
+                                <div className="flex items-end gap-3 pt-4 lg:pt-0">
+                                    <div className="rounded-2xl bg-slate-950 px-4 py-3 text-white min-w-[108px]">
+                                        <span className="block text-[9px] font-black uppercase tracking-[0.28em] text-slate-400 mb-1">Casos</span>
+                                        <div className="flex items-baseline gap-2">
+                                            <span className="text-3xl font-black leading-none">{uniqueClaimsCount}</span>
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-blue-300">ORs</span>
+                                        </div>
+                                    </div>
+                                    <div className="rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 min-w-[108px]">
+                                        <span className="block text-[9px] font-black uppercase tracking-[0.28em] text-slate-400 mb-1">Pendientes</span>
+                                        <div className="flex items-baseline gap-2">
+                                            <span className="text-3xl font-black leading-none text-slate-950">{pendingClaimsCount}</span>
+                                            <span className="text-[10px] font-black uppercase tracking-widest text-rose-500">Casos</span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col items-stretch xl:items-end gap-3 xl:min-w-[240px]">
+                            <button
+                                type="button"
+                                onClick={() => navigate('/report')}
+                                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 py-3.5 text-[10px] font-black uppercase tracking-[0.28em] text-white shadow-[0_16px_40px_rgba(15,23,42,0.16)] transition-transform hover:scale-[1.01] hover:bg-slate-800"
+                            >
+                                <Icons.FileText className="h-4 w-4" />
+                                Generar reporte
+                            </button>
+                            <div className="text-[11px] text-slate-500 font-medium">
+                                {totalClaimsCount} registros • {resolutionRate}% resueltos
+                            </div>
                         </div>
                     </div>
 
-                    <button
-                        type="button"
-                        onClick={() => navigate('/report')}
-                        className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 px-4 py-3 text-[10px] font-black uppercase tracking-[0.28em] text-white shadow-[0_16px_40px_rgba(15,23,42,0.18)] transition-transform hover:scale-[1.01] hover:bg-slate-800"
-                    >
-                        <Icons.FileText className="h-4 w-4" />
-                        Generar reporte
-                    </button>
-                </div>
-            </div>
+                    <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50/80 p-5">
+                        <div className="flex flex-col xl:flex-row xl:items-end gap-5 xl:gap-6">
+                            <div className="flex-1 min-w-[250px]">
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.22em] flex items-center gap-2 mb-3">
+                                    <Icons.Calendar className="w-3 h-3" /> Periodo
+                                </span>
+                                <MonthSelector 
+                                    selectedMonths={selectedMonths} 
+                                    onToggle={toggleMonth} 
+                                    months={MONTHS} 
+                                />
+                            </div>
 
-            {/* Professional Horizontal Filters Bar - NOW AT THE TOP */}
-            <div className="bg-white px-6 md:px-8 py-6 rounded-[2rem] border border-slate-200 shadow-sm flex flex-wrap items-end gap-6 md:gap-8">
-                <div className="flex flex-col gap-2 min-w-[240px]">
-                    <span className="text-[11px] font-semibold text-slate-500 tracking-[0.14em] flex items-center gap-2">
-                        <Icons.Calendar className="w-3 h-3" /> Periodo
-                    </span>
-                    <MonthSelector 
-                        selectedMonths={selectedMonths} 
-                        onToggle={toggleMonth} 
-                        months={MONTHS} 
-                    />
-                </div>
+                            <div className="flex-1 min-w-[250px]">
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.22em] flex items-center gap-2 mb-3">
+                                    <Icons.MapPin className="w-3 h-3" /> Sucursal
+                                </span>
+                                <div className="flex flex-wrap gap-2">
+                                    {['', ...availableBranches].map((suc) => (
+                                        <button
+                                            key={suc}
+                                            onClick={() => {
+                                                if (suc === '') setSelectedBranches([]);
+                                                else setSelectedBranches([suc]);
+                                            }}
+                                            className={`px-4 py-2.5 rounded-xl text-[11px] font-semibold transition-all border ${
+                                                (selectedBranches.length === 1 && selectedBranches[0] === suc) || (suc === '' && selectedBranches.length === 0)
+                                                    ? 'bg-slate-950 text-white border-slate-950 shadow-sm' 
+                                                    : 'bg-white text-slate-500 border-slate-200 hover:bg-slate-100'
+                                            }`}
+                                        >
+                                            {suc || 'Todas'}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
 
-                <div className="hidden md:block h-10 w-px bg-slate-200"></div>
+                            <div className="w-full xl:w-[290px]">
+                                <span className="text-[10px] font-black text-slate-400 uppercase tracking-[0.22em] flex items-center gap-2 mb-3">
+                                    <Icons.User className="w-3 h-3" /> Responsable
+                                </span>
+                                <select 
+                                    value={selectedResponsable || ''} 
+                                    onChange={(e) => setSelectedResponsable(e.target.value || null)}
+                                    className="w-full text-sm font-semibold text-slate-800 bg-white px-4 py-3 rounded-xl border border-slate-200 outline-none cursor-pointer hover:border-slate-300 transition-colors"
+                                >
+                                    <option value="">Todos los responsables</option>
+                                    {responsableTableData.map(r => <option key={r.name} value={r.name}>{r.name}</option>)}
+                                </select>
+                            </div>
 
-                <div className="flex flex-col gap-2 min-w-[240px]">
-                    <span className="text-[11px] font-semibold text-slate-500 tracking-[0.14em] flex items-center gap-2">
-                        <Icons.MapPin className="w-3 h-3" /> Sucursal
-                    </span>
-                    <div className="flex flex-wrap gap-2">
-                        {['', ...availableBranches].map((suc) => (
-                            <button
-                                key={suc}
-                                onClick={() => {
-                                    if (suc === '') setSelectedBranches([]);
-                                    else setSelectedBranches([suc]);
-                                }}
-                                className={`px-4 py-2 rounded-xl text-[11px] font-semibold transition-all border ${
-                                    (selectedBranches.length === 1 && selectedBranches[0] === suc) || (suc === '' && selectedBranches.length === 0)
-                                        ? 'bg-slate-950 text-white border-slate-950 shadow-sm' 
-                                        : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
-                                }`}
-                            >
-                                {suc || 'Todas'}
-                            </button>
-                        ))}
+                            <div className="xl:ml-auto">
+                                <button 
+                                    onClick={() => {
+                                        setSelectedMonths([]);
+                                        setSelectedBranches([]);
+                                        setSelectedMotivo(null);
+                                        setSelectedResponsable(null);
+                                    }}
+                                    className="w-full xl:w-auto px-5 py-3 bg-white text-slate-700 rounded-2xl text-[11px] font-semibold border border-slate-200 flex items-center justify-center gap-2.5 hover:bg-slate-50 transition-all"
+                                >
+                                    <Icons.X className="w-3 h-3" /> Limpiar filtros
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-wrap gap-2 mt-5 pt-5 border-t border-slate-200">
+                            {activeFilterChips.map((chip) => (
+                                <span
+                                    key={chip}
+                                    className="inline-flex items-center rounded-full bg-white border border-slate-200 px-3 py-1.5 text-[10px] font-semibold tracking-[0.08em] text-slate-600"
+                                >
+                                    {chip}
+                                </span>
+                            ))}
+                        </div>
                     </div>
-                </div>
-
-                <div className="hidden md:block h-10 w-px bg-slate-200"></div>
-
-                <div className="flex flex-col gap-2 min-w-[240px]">
-                    <span className="text-[11px] font-semibold text-slate-500 tracking-[0.14em] flex items-center gap-2">
-                        <Icons.User className="w-3 h-3" /> Responsable
-                    </span>
-                    <select 
-                        value={selectedResponsable || ''} 
-                        onChange={(e) => setSelectedResponsable(e.target.value || null)}
-                        className="text-sm font-semibold text-slate-800 bg-slate-50 px-4 py-2.5 rounded-xl border border-slate-200 outline-none cursor-pointer hover:border-slate-300 transition-colors min-w-[220px]"
-                    >
-                        <option value="">Todos los responsables</option>
-                        {responsableTableData.map(r => <option key={r.name} value={r.name}>{r.name}</option>)}
-                    </select>
-                </div>
-
-                <div className="ml-auto">
-                    <button 
-                        onClick={() => {
-                            setSelectedMonths([]);
-                            setSelectedBranches([]);
-                            setSelectedMotivo(null);
-                            setSelectedResponsable(null);
-                        }}
-                        className="px-5 py-2.5 bg-white text-slate-700 rounded-2xl text-[11px] font-semibold border border-slate-200 flex items-center gap-2.5 hover:bg-slate-50 transition-all"
-                    >
-                        <Icons.X className="w-3 h-3" /> Limpiar
-                    </button>
                 </div>
             </div>
 
             {/* Modern KPIs Section */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-5">
                 <motion.div 
                     whileHover={{ y: -4 }}
                     className="bg-white p-7 rounded-[2rem] border border-slate-200 shadow-sm"
@@ -442,49 +490,43 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
                             </div>
                         </div>
                     </div>
-                    <div className="flex items-baseline gap-3 mb-10">
+                    <div className="flex items-baseline gap-3 mb-3">
                         <span className="text-5xl font-black text-slate-950 tracking-tight leading-none">{uniqueClaimsCount}</span>
                         <div className="flex flex-col">
                             <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Casos</span>
-                            <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest flex items-center gap-1 mt-1">
-                                <Icons.TrendingDown className="w-3 h-3" /> -8%
+                            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest flex items-center gap-1 mt-1">
+                                ORs unicas
                             </span>
                         </div>
                     </div>
-                    {/* Decorative background number */}
-                    <div className="hidden">
-                        01
-                    </div>
+                    <div className="text-[12px] font-medium text-slate-500">Cantidad consolidada de ordenes con reclamo en la vista filtrada.</div>
                 </motion.div>
 
                 <motion.div 
                     whileHover={{ y: -4 }}
-                    className="bg-slate-950 p-7 rounded-[2rem] text-white shadow-lg shadow-slate-900/15"
+                    className="bg-white p-7 rounded-[2rem] border border-slate-200 shadow-sm"
                 >
                     <div className="flex justify-between items-start mb-6">
                         <div className="flex items-center gap-4">
-                            <div className="w-11 h-11 rounded-2xl bg-white/10 flex items-center justify-center text-white">
+                            <div className="w-11 h-11 rounded-2xl bg-slate-100 flex items-center justify-center text-slate-900">
                                 <Icons.Tag className="w-5 h-5" />
                             </div>
                             <div>
-                                <h3 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em] mb-1">Analisis de Reclamos</h3>
-                                <p className="text-xs font-black text-white uppercase tracking-widest">Cantidad de Reclamos</p>
+                                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-1">Analisis de Reclamos</h3>
+                                <p className="text-xs font-black text-slate-900 uppercase tracking-widest">Cantidad de Reclamos</p>
                             </div>
                         </div>
                     </div>
-                    <div className="flex items-baseline gap-3 mb-10">
-                        <span className="text-5xl font-black text-white tracking-tight leading-none">{totalClaimsCount}</span>
+                    <div className="flex items-baseline gap-3 mb-3">
+                        <span className="text-5xl font-black text-slate-950 tracking-tight leading-none">{totalClaimsCount}</span>
                         <div className="flex flex-col">
-                            <span className="text-xs font-black text-indigo-300 uppercase tracking-widest">Registros</span>
-                            <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest flex items-center gap-1 mt-1">
+                            <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Registros</span>
+                            <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest flex items-center gap-1 mt-1">
                                 <Icons.Activity className="w-3 h-3" /> IA Activa
                             </span>
                         </div>
                     </div>
-                    {/* Decorative background number */}
-                    <div className="hidden">
-                        02
-                    </div>
+                    <div className="text-[12px] font-medium text-slate-500">Incluye todas las interacciones registradas dentro de la seleccion actual.</div>
                 </motion.div>
 
                 <motion.div 
@@ -502,21 +544,43 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
                             </div>
                         </div>
                     </div>
-                    <div className="flex items-baseline gap-3 mb-10">
-                        <span className="text-5xl font-black text-slate-950 tracking-tight leading-none">
-                            {Math.round((resolutionChartData.find(d => d.name === 'Resuelto')?.value || 0) / (uniqueClaimsCount || 1) * 100)}%
-                        </span>
+                    <div className="flex items-baseline gap-3 mb-3">
+                        <span className="text-5xl font-black text-slate-950 tracking-tight leading-none">{resolutionRate}%</span>
                         <div className="flex flex-col">
                             <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Tasa</span>
                             <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest flex items-center gap-1 mt-1">
-                                <Icons.TrendingUp className="w-3 h-3" /> +4%
+                                <Icons.CheckCircle className="w-3 h-3" /> Casos resueltos
                             </span>
                         </div>
                     </div>
-                    {/* Decorative background number */}
-                    <div className="hidden">
-                        03
+                    <div className="text-[12px] font-medium text-slate-500">Porcentaje de reclamos resueltos dentro del universo filtrado.</div>
+                </motion.div>
+
+                <motion.div 
+                    whileHover={{ y: -4 }}
+                    className="bg-white p-7 rounded-[2rem] border border-slate-200 shadow-sm"
+                >
+                    <div className="flex justify-between items-start mb-6">
+                        <div className="flex items-center gap-4">
+                            <div className="w-11 h-11 rounded-2xl bg-rose-50 flex items-center justify-center text-rose-700">
+                                <Icons.Clock className="w-5 h-5" />
+                            </div>
+                            <div>
+                                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-1">Seguimiento</h3>
+                                <p className="text-xs font-black text-slate-900 uppercase tracking-widest">Pendientes</p>
+                            </div>
+                        </div>
                     </div>
+                    <div className="flex items-baseline gap-3 mb-3">
+                        <span className="text-5xl font-black text-slate-950 tracking-tight leading-none">{pendingClaimsCount}</span>
+                        <div className="flex flex-col">
+                            <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Casos</span>
+                            <span className="text-[10px] font-black text-rose-500 uppercase tracking-widest flex items-center gap-1 mt-1">
+                                <Icons.AlertCircle className="w-3 h-3" /> Requieren accion
+                            </span>
+                        </div>
+                    </div>
+                    <div className="text-[12px] font-medium text-slate-500">Casos aun no resueltos o sin cierre registrado.</div>
                 </motion.div>
             </div>
 

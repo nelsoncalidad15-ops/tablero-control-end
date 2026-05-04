@@ -17,15 +17,18 @@ interface QualityDashboardProps {
 }
 
 const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, area }) => {
+  const PAGE_SIZE = 50;
   const navigate = useNavigate();
   const [data, setData] = useState<QualityRecord[]>([]);
   const [loadingState, setLoadingState] = useState<LoadingState>(LoadingState.IDLE);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
   
   // Filters
   const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
   const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
   const [selectedMotivo, setSelectedMotivo] = useState<string | null>(null);
   const [selectedResponsable, setSelectedResponsable] = useState<string | null>(null);
+  const [visibleRows, setVisibleRows] = useState(PAGE_SIZE);
 
   const [availableBranches, setAvailableBranches] = useState<string[]>([]);
 
@@ -39,24 +42,32 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
   useEffect(() => {
     const loadData = async () => {
       setLoadingState(LoadingState.LOADING);
+      setErrorMessage(null);
       try {
         if (!sheetUrl) {
-           setLoadingState(LoadingState.ERROR); 
-           return;
+          setErrorMessage('No hay una hoja configurada para Calidad Postventa.');
+          setLoadingState(LoadingState.ERROR);
+          return;
         }
         const fetchedData = await fetchQualityData(sheetUrl);
         setData(fetchedData);
         
         const branches = [...new Set(fetchedData.map(d => d.sucursal))].sort();
         setAvailableBranches(branches);
+        setVisibleRows(PAGE_SIZE);
         setLoadingState(LoadingState.SUCCESS);
-      } catch (error) {
+      } catch (error: any) {
         console.error(error);
+        setErrorMessage(error?.message || 'No se pudieron cargar los datos de Calidad Postventa.');
         setLoadingState(LoadingState.ERROR);
       }
     };
     loadData();
   }, [sheetUrl]);
+
+  useEffect(() => {
+    setVisibleRows(PAGE_SIZE);
+  }, [selectedMonths, selectedBranches, selectedMotivo, selectedResponsable]);
 
   const toggleBranch = (branch: string) => {
     if (selectedBranches.includes(branch)) {
@@ -239,6 +250,9 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
     return chips;
   }, [selectedMonths, selectedBranches, selectedResponsable, selectedMotivo]);
 
+  const displayedRows = useMemo(() => displayData.slice(0, visibleRows), [displayData, visibleRows]);
+  const canLoadMore = displayedRows.length < displayData.length;
+
   // if (loadingState === LoadingState.LOADING) return <SkeletonLoader />;
 
   const filters = (
@@ -318,6 +332,7 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
     <DashboardFrame
         title="Intelligence Hub"
         subtitle="Analisis de Calidad Autosol"
+        filters={filters}
         context={
             <>
                 <span className="px-3 py-1.5 rounded-full bg-slate-950 text-white text-[9px] font-black uppercase tracking-[0.2em]">
@@ -337,6 +352,31 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
         onBack={onBack}
     >
         <div className="space-y-8 pb-24 -m-6 p-6 md:p-8 bg-[#f6f8fb] min-h-screen">
+            {loadingState === LoadingState.ERROR && (
+                <div className="bg-white rounded-[2rem] border border-rose-200 shadow-sm overflow-hidden">
+                    <div className="p-8 md:p-10">
+                        <div className="flex flex-col md:flex-row md:items-center gap-5">
+                            <div className="w-14 h-14 rounded-[1.25rem] bg-rose-50 text-rose-600 flex items-center justify-center">
+                                <Icons.AlertTriangle className="w-7 h-7" />
+                            </div>
+                            <div className="flex-1">
+                                <h2 className="text-2xl font-black tracking-tight text-slate-950">No se pudieron cargar los datos</h2>
+                                <p className="mt-2 text-sm leading-6 text-slate-600">
+                                    {errorMessage || 'Hubo un problema al consultar la fuente de Calidad Postventa.'}
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                onClick={() => window.location.reload()}
+                                className="inline-flex items-center justify-center gap-2 rounded-2xl bg-slate-950 px-5 py-3 text-[10px] font-black uppercase tracking-[0.28em] text-white transition-colors hover:bg-slate-800"
+                            >
+                                <Icons.RefreshCw className="h-4 w-4" />
+                                Reintentar
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* Executive Header Section */}
             <div className="bg-white rounded-[2rem] border border-slate-200 shadow-sm overflow-hidden">
@@ -802,7 +842,7 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-50">
-                            {displayData.slice(0, 50).map((record, idx) => {
+                            {displayedRows.map((record, idx) => {
                                 const isResolved = record.resuelto?.toLowerCase().includes('si');
                                 const isNotResolved = record.resuelto?.toLowerCase().includes('no');
                                 const advisor = record.asesor ? normalizeString(record.asesor) : (record.responsable ? normalizeString(record.responsable) : 'Sin Asignar');
@@ -881,13 +921,18 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
                                                         const isSelected = selectedMotivo === trimmedTag;
                                                         
                                                         return (
-                                                            <span key={tIdx} className={`text-[10px] font-semibold tracking-[0.08em] px-4 py-2 rounded-xl border transition-all ${
+                                                            <button
+                                                                key={tIdx}
+                                                                type="button"
+                                                                onClick={() => handleMotivoClick(trimmedTag)}
+                                                                className={`text-[10px] font-semibold tracking-[0.08em] px-4 py-2 rounded-xl border transition-all ${
                                                                 isSelected 
                                                                 ? 'bg-blue-600 text-white border-blue-600 shadow-sm' 
                                                                 : 'bg-white text-slate-500 border-slate-200 group-hover:border-slate-300'
-                                                            }`}>
+                                                            }`}
+                                                            >
                                                                 {trimmedTag}
-                                                            </span>
+                                                            </button>
                                                         );
                                                     })}
                                                 </div>
@@ -937,9 +982,19 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
                     </table>
                 </div>
                 <div className="p-8 bg-slate-50/50 border-t border-slate-100 flex justify-center">
-                    <button className="px-8 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-semibold text-slate-800 hover:bg-slate-950 hover:text-white transition-all shadow-sm">
-                        Cargar mas resultados
-                    </button>
+                    {canLoadMore ? (
+                        <button
+                            type="button"
+                            onClick={() => setVisibleRows(current => current + PAGE_SIZE)}
+                            className="px-8 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-semibold text-slate-800 hover:bg-slate-950 hover:text-white transition-all shadow-sm"
+                        >
+                            Cargar mas resultados
+                        </button>
+                    ) : (
+                        <span className="text-sm font-medium text-slate-500">
+                            Mostrando {displayedRows.length} de {displayData.length} registros
+                        </span>
+                    )}
                 </div>
             </div>
         </div>

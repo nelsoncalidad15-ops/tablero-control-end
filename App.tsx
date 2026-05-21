@@ -23,7 +23,6 @@ const QualityObjectivesDashboard = lazy(() => import('./components/QualityObject
 const RRHHDashboard = lazy(() => import('./components/RRHHDashboard'));
 const ExecutiveSummary = lazy(() => import('./components/ExecutiveSummary'));
 const ProfessionalReport = lazy(() => import('./components/ProfessionalReport'));
-const DirectionExecutiveReport = lazy(() => import('./components/DirectionExecutiveReport'));
 const FullReportPrintView = lazy(() => import('./components/FullReportPrintView'));
 const ReportConfigModal = lazy(() => import('./components/ReportConfigModal'));
 
@@ -49,7 +48,6 @@ function App() {
     if (areaId === 'executive') {
       preloadModule(() => import('./components/ExecutiveSummary'));
       preloadModule(() => import('./components/ProfessionalReport'));
-      preloadModule(() => import('./components/DirectionExecutiveReport'));
       return;
     }
 
@@ -211,13 +209,6 @@ function App() {
               >
                 <Icons.FileText className="h-4 w-4" />
                 Generar reporte
-              </button>
-              <button
-                onClick={() => navigate('/report/direccion')}
-                className="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-[9px] font-black uppercase tracking-[0.3em] text-white shadow-[0_14px_32px_rgba(15,23,42,0.28)] transition-colors hover:bg-white/15"
-              >
-                <Icons.ClipboardCheck className="h-4 w-4" />
-                Informe Dirección
               </button>
               <button onClick={handleBackToPortal} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[9px] font-black uppercase tracking-[0.3em] text-white shadow-[0_14px_32px_rgba(15,23,42,0.28)] transition-colors hover:bg-white/10">
                 <Icons.ArrowLeft className="h-4 w-4" />
@@ -662,7 +653,6 @@ function App() {
             
             <Route path="/executive" element={<DashboardView type="executive" />} />
             <Route path="/report" element={<ProfessionalReport config={config} onBack={() => navigate('/executive')} />} />
-            <Route path="/report/direccion" element={<DirectionExecutiveReport config={config} onBack={() => navigate('/calidad')} />} />
             
             <Route path="/postventa" element={<PostventaSelection />} />
             <Route path="/postventa/operativo" element={<DashboardView type="postventa" subType="operativo" />} />

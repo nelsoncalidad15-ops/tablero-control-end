@@ -1,11 +1,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
+  Area,
+  AreaChart,
   Bar,
   BarChart,
   CartesianGrid,
+  Cell,
+  ComposedChart,
   Legend,
   Line,
-  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -24,14 +27,16 @@ interface PostventaPvtOccupationDashboardProps {
 }
 
 const METRIC_DEFS = [
-  { id: 'grado_ocupacion', label: 'Grado de ocupación', color: '#2563eb', target: 95 },
-  { id: 'grado_ocupacion_productiva', label: 'Ocupación productiva', color: '#0f766e', target: 90 },
-  { id: 'productividad', label: 'Productividad', color: '#7c3aed', target: 100 },
-  { id: 'productividad_siac', label: 'Productividad SIAC', color: '#ea580c', target: 100 },
+  { id: 'grado_ocupacion', label: 'Grado de ocupación', shortLabel: 'Ocupación', color: '#2563eb', soft: '#dbeafe', target: 95 },
+  { id: 'grado_ocupacion_productiva', label: 'Grado de ocupación productiva', shortLabel: 'Ocupación productiva', color: '#0f766e', soft: '#ccfbf1', target: 90 },
+  { id: 'productividad', label: 'Productividad', shortLabel: 'Productividad', color: '#7c3aed', soft: '#ede9fe', target: 100 },
+  { id: 'productividad_siac', label: 'Productividad SIAC', shortLabel: 'Productividad SIAC', color: '#ea580c', soft: '#ffedd5', target: 100 },
 ] as const;
 
-const formatPercent = (value: number) => `${value.toFixed(2)}%`;
-const formatHours = (value: number) => value.toLocaleString('es-AR', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+type MetricId = (typeof METRIC_DEFS)[number]['id'];
+
+const formatPercent = (value: number) => `${value.toFixed(1)}%`;
+const formatHours = (value: number) => value.toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
 const getStatus = (value: number, target: number): 'success' | 'warning' | 'error' => {
   if (value >= target) return 'success';
@@ -71,6 +76,61 @@ const aggregateMetrics = (records: PvtOccupationRecord[]) => {
   };
 };
 
+const MetricKpiTile = ({ metric, value }: { metric: (typeof METRIC_DEFS)[number]; value: number }) => (
+  <div className="rounded-[1.8rem] border border-white/70 bg-white/80 p-5 shadow-[0_12px_30px_rgba(15,23,42,0.05)] backdrop-blur-xl">
+    <div className="mb-4 flex items-start justify-between gap-3">
+      <div>
+        <p className="text-[8px] font-black uppercase tracking-[0.24em] text-slate-400">Indicador</p>
+        <h3 className="mt-2 text-sm font-black text-slate-950">{metric.shortLabel}</h3>
+      </div>
+      <StatusBadge status={getStatus(value, metric.target)} label={value >= metric.target ? 'En meta' : 'Seguimiento'} />
+    </div>
+    <p className="text-4xl font-black italic tracking-tighter text-slate-950">{formatPercent(value)}</p>
+    <div className="mt-4 h-2 overflow-hidden rounded-full bg-slate-100">
+      <div
+        className="h-full rounded-full transition-all"
+        style={{ width: `${Math.min(value, 140) / 1.4}%`, background: `linear-gradient(90deg, ${metric.color}, ${metric.color}AA)` }}
+      />
+    </div>
+    <p className="mt-2 text-[10px] font-black uppercase tracking-[0.2em] text-slate-400">Objetivo {metric.target}%</p>
+  </div>
+);
+
+const MonthlySummaryGrid = ({
+  rows,
+}: {
+  rows: Array<ReturnType<typeof aggregateMetrics> & { mes: string; selected: boolean }>;
+}) => (
+  <div className="overflow-hidden rounded-[2rem] border border-white/60 bg-white/75 shadow-[0_12px_30px_rgba(15,23,42,0.05)] backdrop-blur-xl">
+    <div className="grid grid-cols-[1.15fr_repeat(6,minmax(0,1fr))] border-b border-white/70 bg-slate-950 text-white">
+      <div className="px-4 py-4 text-[10px] font-black uppercase tracking-[0.22em]">Mes</div>
+      <div className="px-3 py-4 text-center text-[10px] font-black uppercase tracking-[0.22em]">Días disp.</div>
+      <div className="px-3 py-4 text-center text-[10px] font-black uppercase tracking-[0.22em]">Hs disp.</div>
+      <div className="px-3 py-4 text-center text-[10px] font-black uppercase tracking-[0.22em]">Productiva</div>
+      <div className="px-3 py-4 text-center text-[10px] font-black uppercase tracking-[0.22em]">Ocupación</div>
+      <div className="px-3 py-4 text-center text-[10px] font-black uppercase tracking-[0.22em]">Prod.</div>
+      <div className="px-3 py-4 text-center text-[10px] font-black uppercase tracking-[0.22em]">SIAC</div>
+    </div>
+
+    {rows.map((row) => (
+      <div
+        key={row.mes}
+        className={`grid grid-cols-[1.15fr_repeat(6,minmax(0,1fr))] border-b border-slate-100 last:border-b-0 ${
+          row.selected ? 'bg-blue-50/70' : 'bg-white/70'
+        }`}
+      >
+        <div className="px-4 py-4 text-sm font-black uppercase tracking-tight text-slate-900">{row.mes}</div>
+        <div className="px-3 py-4 text-center text-sm font-bold text-slate-600">{Math.round(row.horas_disponibles / 42) || 0}</div>
+        <div className="px-3 py-4 text-center text-sm font-bold text-slate-600">{formatHours(row.horas_disponibles)}</div>
+        <div className="px-3 py-4 text-center text-sm font-black text-teal-700">{formatPercent(row.grado_ocupacion_productiva)}</div>
+        <div className="px-3 py-4 text-center text-sm font-black text-blue-700">{formatPercent(row.grado_ocupacion)}</div>
+        <div className="px-3 py-4 text-center text-sm font-black text-violet-700">{formatPercent(row.productividad)}</div>
+        <div className="px-3 py-4 text-center text-sm font-black text-orange-700">{formatPercent(row.productividad_siac)}</div>
+      </div>
+    ))}
+  </div>
+);
+
 export const PostventaPvtOccupationDashboard: React.FC<PostventaPvtOccupationDashboardProps> = ({ sheetUrl, onBack }) => {
   const [data, setData] = useState<PvtOccupationRecord[]>([]);
   const [loading, setLoading] = useState<LoadingStatus>({ isLoading: true, error: null });
@@ -84,7 +144,7 @@ export const PostventaPvtOccupationDashboard: React.FC<PostventaPvtOccupationDas
         const result = await fetchPvtOccupationData(sheetUrl || DEFAULT_CONFIG.sheetUrls.pvt_occupation);
         setData(result);
         setLoading({ isLoading: false, error: null });
-      } catch (error) {
+      } catch {
         setLoading({ isLoading: false, error: 'No se pudo cargar la ocupación PVT.' });
       }
     };
@@ -93,13 +153,14 @@ export const PostventaPvtOccupationDashboard: React.FC<PostventaPvtOccupationDas
   }, [sheetUrl]);
 
   const availableMonths = useMemo(() => {
-    const months = Array.from(new Set(data.map(item => item.mes)));
-    return MONTHS.filter(month => months.includes(month));
+    const months = Array.from(new Set(data.map((item) => item.mes)));
+    return MONTHS.filter((month) => months.includes(month));
   }, [data]);
 
-  const availableTechnicians = useMemo(() => {
-    return Array.from(new Set(data.map(item => item.tecnico))).sort((a, b) => a.localeCompare(b, 'es'));
-  }, [data]);
+  const availableTechnicians = useMemo(
+    () => Array.from(new Set(data.map((item) => item.tecnico))).sort((a, b) => a.localeCompare(b, 'es')),
+    [data]
+  );
 
   useEffect(() => {
     if (availableMonths.length > 0 && selectedMonths.length === 0) {
@@ -107,60 +168,64 @@ export const PostventaPvtOccupationDashboard: React.FC<PostventaPvtOccupationDas
     }
   }, [availableMonths, selectedMonths.length]);
 
+  const selectedTechScopedData = useMemo(() => {
+    if (selectedTechnicians.length === 0) return data;
+    return data.filter((row) => selectedTechnicians.includes(row.tecnico));
+  }, [data, selectedTechnicians]);
+
   const filteredData = useMemo(() => {
-    return data.filter(row => {
-      const monthMatch = selectedMonths.length === 0 || selectedMonths.includes(row.mes);
-      const technicianMatch = selectedTechnicians.length === 0 || selectedTechnicians.includes(row.tecnico);
-      return monthMatch && technicianMatch;
-    });
-  }, [data, selectedMonths, selectedTechnicians]);
+    return selectedTechScopedData.filter((row) => selectedMonths.length === 0 || selectedMonths.includes(row.mes));
+  }, [selectedTechScopedData, selectedMonths]);
 
   const totals = useMemo(() => aggregateMetrics(filteredData), [filteredData]);
 
   const technicianComparison = useMemo(() => {
     const grouped = new Map<string, PvtOccupationRecord[]>();
-
-    filteredData.forEach(row => {
-      const key = row.tecnico;
-      grouped.set(key, [...(grouped.get(key) || []), row]);
-    });
+    filteredData.forEach((row) => grouped.set(row.tecnico, [...(grouped.get(row.tecnico) || []), row]));
 
     return Array.from(grouped.entries())
       .map(([tecnico, rows]) => ({ tecnico, ...aggregateMetrics(rows) }))
       .sort((a, b) => b.grado_ocupacion - a.grado_ocupacion);
   }, [filteredData]);
 
-  const trendData = useMemo(() => {
-    const source = selectedTechnicians.length === 0
-      ? data
-      : data.filter(row => selectedTechnicians.includes(row.tecnico));
-
-    return availableMonths.map(month => {
-      const monthRows = source.filter(row => row.mes === month);
+  const monthlySummary = useMemo(() => {
+    return availableMonths.map((month) => {
+      const monthRows = selectedTechScopedData.filter((row) => row.mes === month);
       return {
         mes: month,
-        selected: selectedMonths.includes(month),
+        selected: selectedMonths.length === 0 || selectedMonths.includes(month),
         ...aggregateMetrics(monthRows),
       };
     });
-  }, [availableMonths, data, selectedMonths, selectedTechnicians]);
+  }, [availableMonths, selectedTechScopedData, selectedMonths]);
 
-  const hourDistribution = useMemo(() => {
-    return technicianComparison.map(row => ({
-      tecnico: row.tecnico,
-      Productivas: Number(row.horas_productivas_tracking.toFixed(2)),
-      'No productivas': Number(row.horas_no_productivas_tracking.toFixed(2)),
-      Pauta: Number(row.horas_pauta_trabajadas.toFixed(2)),
-      SIAC: Number(row.horas_vendidas_siac.toFixed(2)),
-    }));
-  }, [technicianComparison]);
+  const monthlyOccupationChart = useMemo(
+    () =>
+      monthlySummary.map((row) => ({
+        ...row,
+        fill: row.selected ? '#2563eb' : '#bfdbfe',
+      })),
+    [monthlySummary]
+  );
+
+  const hourDistribution = useMemo(
+    () =>
+      technicianComparison.map((row) => ({
+        tecnico: row.tecnico,
+        productivas: Number(row.horas_productivas_tracking.toFixed(1)),
+        noProductivas: Number(row.horas_no_productivas_tracking.toFixed(1)),
+        pauta: Number(row.horas_pauta_trabajadas.toFixed(1)),
+        siac: Number(row.horas_vendidas_siac.toFixed(1)),
+      })),
+    [technicianComparison]
+  );
 
   const toggleMonth = (month: string) => {
     if (month === 'TODOS') {
       setSelectedMonths([]);
       return;
     }
-    setSelectedMonths(prev => (prev.includes(month) ? prev.filter(item => item !== month) : [...prev, month]));
+    setSelectedMonths((prev) => (prev.includes(month) ? prev.filter((item) => item !== month) : [...prev, month]));
   };
 
   const toggleTechnician = (tecnico: string) => {
@@ -168,7 +233,7 @@ export const PostventaPvtOccupationDashboard: React.FC<PostventaPvtOccupationDas
       setSelectedTechnicians([]);
       return;
     }
-    setSelectedTechnicians(prev => (prev.includes(tecnico) ? prev.filter(item => item !== tecnico) : [...prev, tecnico]));
+    setSelectedTechnicians((prev) => (prev.includes(tecnico) ? prev.filter((item) => item !== tecnico) : [...prev, tecnico]));
   };
 
   const selectedMonthLabel = selectedMonths.length === 0 ? 'Todos los meses' : `${selectedMonths.length} mes(es)`;
@@ -177,7 +242,7 @@ export const PostventaPvtOccupationDashboard: React.FC<PostventaPvtOccupationDas
   return (
     <DashboardFrame
       title="Ocupacion PVT"
-      subtitle="Comparativa por mes y técnico"
+      subtitle="Ocupación, productividad y lectura mensual por técnico"
       onBack={onBack}
       isLoading={loading.isLoading}
       lastUpdated={new Date().toLocaleString('es-AR')}
@@ -191,25 +256,29 @@ export const PostventaPvtOccupationDashboard: React.FC<PostventaPvtOccupationDas
       <motion.div
         initial={{ opacity: 0, y: -16 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white/70 rounded-[2rem] border border-white/60 p-6 shadow-[0_8px_32px_rgba(0,0,0,0.03)] backdrop-blur-xl"
+        className="overflow-hidden rounded-[2.2rem] border border-white/70 bg-[linear-gradient(145deg,rgba(255,255,255,0.92),rgba(241,245,249,0.82))] p-6 shadow-[0_16px_50px_rgba(15,23,42,0.06)] backdrop-blur-xl"
       >
-        <div className="space-y-6">
+        <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.15fr_1fr]">
           <div className="space-y-3">
-            <span className="flex items-center gap-2 text-[8px] font-black uppercase tracking-[0.2em] text-slate-400">
-              <Icons.Calendar className="w-3 h-3" /> Mes
+            <span className="flex items-center gap-2 text-[8px] font-black uppercase tracking-[0.24em] text-slate-400">
+              <Icons.Calendar className="h-3 w-3" /> Mes
             </span>
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => toggleMonth('TODOS')}
-                className={`rounded-xl border px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] transition-all ${selectedMonths.length === 0 ? 'border-blue-600 bg-blue-600 text-white' : 'border-white/60 bg-white/40 text-slate-500 hover:border-slate-200'}`}
+                className={`rounded-xl border px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] transition-all ${
+                  selectedMonths.length === 0 ? 'border-blue-600 bg-blue-600 text-white' : 'border-white/60 bg-white/70 text-slate-500 hover:border-slate-200'
+                }`}
               >
                 Todos
               </button>
-              {availableMonths.map(month => (
+              {availableMonths.map((month) => (
                 <button
                   key={month}
                   onClick={() => toggleMonth(month)}
-                  className={`rounded-xl border px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] transition-all ${selectedMonths.includes(month) ? 'border-blue-600 bg-blue-600 text-white' : 'border-white/60 bg-white/40 text-slate-500 hover:border-slate-200'}`}
+                  className={`rounded-xl border px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] transition-all ${
+                    selectedMonths.includes(month) ? 'border-blue-600 bg-blue-600 text-white' : 'border-white/60 bg-white/70 text-slate-500 hover:border-slate-200'
+                  }`}
                 >
                   {month}
                 </button>
@@ -217,22 +286,26 @@ export const PostventaPvtOccupationDashboard: React.FC<PostventaPvtOccupationDas
             </div>
           </div>
 
-          <div className="space-y-3 border-t border-white/40 pt-5">
-            <span className="flex items-center gap-2 text-[8px] font-black uppercase tracking-[0.2em] text-slate-400">
-              <Icons.Users className="w-3 h-3" /> Técnico
+          <div className="space-y-3">
+            <span className="flex items-center gap-2 text-[8px] font-black uppercase tracking-[0.24em] text-slate-400">
+              <Icons.Users className="h-3 w-3" /> Técnico
             </span>
             <div className="flex flex-wrap gap-2">
               <button
                 onClick={() => toggleTechnician('TODOS')}
-                className={`rounded-xl border px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] transition-all ${selectedTechnicians.length === 0 ? 'border-slate-950 bg-slate-950 text-white' : 'border-white/60 bg-white/40 text-slate-500 hover:border-slate-200'}`}
+                className={`rounded-xl border px-4 py-2 text-[10px] font-black uppercase tracking-[0.2em] transition-all ${
+                  selectedTechnicians.length === 0 ? 'border-slate-950 bg-slate-950 text-white' : 'border-white/60 bg-white/70 text-slate-500 hover:border-slate-200'
+                }`}
               >
                 Todos
               </button>
-              {availableTechnicians.map(tecnico => (
+              {availableTechnicians.map((tecnico) => (
                 <button
                   key={tecnico}
                   onClick={() => toggleTechnician(tecnico)}
-                  className={`rounded-xl border px-4 py-2 text-[10px] font-black tracking-tight transition-all ${selectedTechnicians.includes(tecnico) ? 'border-slate-950 bg-slate-950 text-white' : 'border-white/60 bg-white/40 text-slate-500 hover:border-slate-200'}`}
+                  className={`rounded-xl border px-4 py-2 text-[10px] font-black tracking-tight transition-all ${
+                    selectedTechnicians.includes(tecnico) ? 'border-slate-950 bg-slate-950 text-white' : 'border-white/60 bg-white/70 text-slate-500 hover:border-slate-200'
+                  }`}
                 >
                   {tecnico}
                 </button>
@@ -252,72 +325,115 @@ export const PostventaPvtOccupationDashboard: React.FC<PostventaPvtOccupationDas
       ) : (
         <>
           <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
-            {METRIC_DEFS.map(metric => (
+            {METRIC_DEFS.map((metric) => (
               <LuxuryKPICard
                 key={metric.id}
-                title={metric.label}
-                value={Number((totals as any)[metric.id] || 0)}
+                title={metric.shortLabel}
+                value={Number(totals[metric.id] || 0)}
                 color={metric.color}
                 icon={Icons.Activity}
                 featured
                 footerLabel="Consolidado"
-                footerValue={formatPercent((totals as any)[metric.id] || 0)}
-                footerDetail={`Objetivo ${metric.target}%`}
+                footerValue={formatPercent(totals[metric.id] || 0)}
+                footerDetail={`Meta ${metric.target}%`}
               />
             ))}
           </div>
 
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-            <ChartWrapper title="Evolución mensual" subtitle="Promedios ponderados de los 4 indicadores" className="h-[420px]">
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+            <ChartWrapper title="Grado de ocupación mensual" subtitle="Suma general según técnicos seleccionados" className="h-[400px]">
               <ResponsiveContainer width="100%" height="100%">
-                <LineChart data={trendData} margin={{ top: 20, right: 20, left: 0, bottom: 20 }}>
+                <ComposedChart data={monthlyOccupationChart} margin={{ top: 20, right: 24, left: 4, bottom: 20 }}>
+                  <defs>
+                    <linearGradient id="ocupacionMonthlyArea" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#60a5fa" stopOpacity={0.32} />
+                      <stop offset="95%" stopColor="#60a5fa" stopOpacity={0.04} />
+                    </linearGradient>
+                  </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis dataKey="mes" tick={{ fill: '#64748b', fontSize: 11, fontWeight: 700 }} />
                   <YAxis tickFormatter={(value) => `${value}%`} tick={{ fill: '#64748b', fontSize: 11, fontWeight: 700 }} />
                   <Tooltip formatter={(value: number) => formatPercent(Number(value || 0))} />
                   <Legend />
-                  {METRIC_DEFS.map(metric => (
-                    <Line
-                      key={metric.id}
-                      type="monotone"
-                      dataKey={metric.id}
-                      name={metric.label}
-                      stroke={metric.color}
-                      strokeWidth={2.5}
-                      dot={{ r: 3 }}
-                      activeDot={{ r: 6 }}
-                    />
-                  ))}
-                </LineChart>
+                  <Bar dataKey="grado_ocupacion" name="Grado de ocupación" radius={[10, 10, 0, 0]}>
+                    {monthlyOccupationChart.map((entry) => (
+                      <Cell key={entry.mes} fill={entry.fill} />
+                    ))}
+                  </Bar>
+                  <Line
+                    type="monotone"
+                    dataKey="grado_ocupacion_productiva"
+                    name="Ocupación productiva"
+                    stroke="#0f766e"
+                    strokeWidth={2.5}
+                    dot={{ r: 3 }}
+                  />
+                </ComposedChart>
               </ResponsiveContainer>
             </ChartWrapper>
 
-            <ChartWrapper title="Comparativa por técnico" subtitle="Resultado consolidado según filtros activos" className="h-[420px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={technicianComparison} margin={{ top: 20, right: 20, left: 0, bottom: 60 }}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
-                  <XAxis
-                    dataKey="tecnico"
-                    angle={-18}
-                    textAnchor="end"
-                    height={70}
-                    tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }}
-                  />
-                  <YAxis tickFormatter={(value) => `${value}%`} tick={{ fill: '#64748b', fontSize: 11, fontWeight: 700 }} />
-                  <Tooltip formatter={(value: number) => formatPercent(Number(value || 0))} />
-                  <Legend />
-                  {METRIC_DEFS.map(metric => (
-                    <Bar key={metric.id} dataKey={metric.id} name={metric.label} fill={metric.color} radius={[8, 8, 0, 0]} />
-                  ))}
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartWrapper>
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-1">
+              {METRIC_DEFS.map((metric) => (
+                <MetricKpiTile key={metric.id} metric={metric} value={totals[metric.id] || 0} />
+              ))}
+            </div>
           </div>
 
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
-            <ChartWrapper title="Distribución de horas" subtitle="Productivas, no productivas, pauta y SIAC por técnico" className="h-[420px]">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
+            {METRIC_DEFS.map((metric) => (
+              <ChartWrapper
+                key={metric.id}
+                title={metric.label}
+                subtitle="Comparación por técnico con los meses filtrados"
+                className="h-[380px]"
+              >
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={technicianComparison}
+                    layout="vertical"
+                    margin={{ top: 12, right: 22, left: 22, bottom: 12 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" horizontal={false} />
+                    <XAxis type="number" tickFormatter={(value) => `${value}%`} tick={{ fill: '#64748b', fontSize: 11, fontWeight: 700 }} />
+                    <YAxis
+                      type="category"
+                      dataKey="tecnico"
+                      width={122}
+                      tick={{ fill: '#475569', fontSize: 11, fontWeight: 700 }}
+                    />
+                    <Tooltip formatter={(value: number) => formatPercent(Number(value || 0))} />
+                    <Bar dataKey={metric.id} name={metric.shortLabel} fill={metric.color} radius={[0, 10, 10, 0]}>
+                      {technicianComparison.map((row) => (
+                        <Cell
+                          key={`${metric.id}-${row.tecnico}`}
+                          fill={row[metric.id] >= metric.target ? metric.color : `${metric.color}B3`}
+                        />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </ChartWrapper>
+            ))}
+          </div>
+
+          <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+            <ChartWrapper title="Matriz mensual de indicadores" subtitle="Lectura consolidada por mes, similar a una planilla ejecutiva" className="h-auto">
+              <MonthlySummaryGrid rows={monthlySummary} />
+            </ChartWrapper>
+
+            <ChartWrapper title="Distribución horaria" subtitle="Horas productivas, no productivas, pauta y SIAC por técnico" className="h-[420px]">
               <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={hourDistribution} margin={{ top: 20, right: 20, left: 0, bottom: 60 }}>
+                <AreaChart data={hourDistribution} margin={{ top: 20, right: 20, left: 0, bottom: 60 }}>
+                  <defs>
+                    <linearGradient id="pvtProd" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#2563eb" stopOpacity={0.32} />
+                      <stop offset="95%" stopColor="#2563eb" stopOpacity={0.05} />
+                    </linearGradient>
+                    <linearGradient id="pvtPauta" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#7c3aed" stopOpacity={0.28} />
+                      <stop offset="95%" stopColor="#7c3aed" stopOpacity={0.04} />
+                    </linearGradient>
+                  </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" />
                   <XAxis
                     dataKey="tecnico"
@@ -329,37 +445,18 @@ export const PostventaPvtOccupationDashboard: React.FC<PostventaPvtOccupationDas
                   <YAxis tick={{ fill: '#64748b', fontSize: 11, fontWeight: 700 }} />
                   <Tooltip formatter={(value: number) => formatHours(Number(value || 0))} />
                   <Legend />
-                  <Bar dataKey="Productivas" stackId="a" fill="#2563eb" radius={[8, 8, 0, 0]} />
-                  <Bar dataKey="No productivas" stackId="a" fill="#f97316" />
-                  <Bar dataKey="Pauta" stackId="b" fill="#7c3aed" radius={[8, 8, 0, 0]} />
-                  <Bar dataKey="SIAC" stackId="b" fill="#14b8a6" />
-                </BarChart>
+                  <Area type="monotone" dataKey="productivas" name="Hs productivas" stroke="#2563eb" fill="url(#pvtProd)" strokeWidth={2.2} />
+                  <Area type="monotone" dataKey="pauta" name="Hs pauta" stroke="#7c3aed" fill="url(#pvtPauta)" strokeWidth={2.2} />
+                  <Line type="monotone" dataKey="siac" name="Hs vendidas SIAC" stroke="#ea580c" strokeWidth={2.2} dot={{ r: 3 }} />
+                  <Line type="monotone" dataKey="noProductivas" name="Hs no productivas" stroke="#0f766e" strokeWidth={2.2} dot={{ r: 3 }} />
+                </AreaChart>
               </ResponsiveContainer>
             </ChartWrapper>
-
-            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-              {METRIC_DEFS.map(metric => {
-                const value = (totals as any)[metric.id] || 0;
-                return (
-                  <div key={metric.id} className="rounded-[2rem] border border-white/60 bg-white/70 p-6 shadow-[0_8px_32px_rgba(0,0,0,0.03)] backdrop-blur-xl">
-                    <div className="mb-4 flex items-center justify-between gap-3">
-                      <div>
-                        <p className="text-[8px] font-black uppercase tracking-[0.22em] text-slate-400">Indicador</p>
-                        <h3 className="mt-2 text-base font-black text-slate-950">{metric.label}</h3>
-                      </div>
-                      <StatusBadge status={getStatus(value, metric.target)} label={value >= metric.target ? 'En objetivo' : 'Revisar'} />
-                    </div>
-                    <p className="text-4xl font-black italic tracking-tighter text-slate-950">{formatPercent(value)}</p>
-                    <p className="mt-2 text-[10px] font-black uppercase tracking-[0.22em] text-slate-400">Meta sugerida {metric.target}%</p>
-                  </div>
-                );
-              })}
-            </div>
           </div>
 
           <DataTable
             title="Detalle de ocupación"
-            subtitle="Filas operativas del sheet ya limpias para comparar"
+            subtitle="Filas operativas del sheet, limpias para análisis y comparación"
             data={filteredData}
             pageSize={12}
             columns={[

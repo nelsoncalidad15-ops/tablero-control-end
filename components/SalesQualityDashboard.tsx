@@ -297,6 +297,30 @@ const normalizeString = (str: string) => {
     return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
 };
 
+const normalizeTitleCase = (str: string) => {
+    if (!str) return '';
+    return str
+        .trim()
+        .toLowerCase()
+        .split(/\s+/)
+        .filter(Boolean)
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+};
+
+const splitMultiValueField = (value: string) => {
+    if (!value) return [];
+
+    return Array.from(
+        new Set(
+            value
+                .split(/[,;|\n\r]+/)
+                .map(part => normalizeTitleCase(part))
+                .filter(Boolean)
+        )
+    );
+};
+
 const normalizeSaleType = (type: string) => {
     if (!type) return '';
     const raw = type.trim().toUpperCase();
@@ -331,6 +355,16 @@ const normalizeContactStateKey = (value: string) => {
         .toLowerCase()
         .replace(/\s+/g, ' ')
         .trim();
+};
+
+const isWhatsappContactState = (value: string) => {
+    const normalized = normalizeContactStateKey(value);
+    return normalized.includes('whatsapp') || normalized.includes('wsp') || normalized.includes('wpp');
+};
+
+const isChatBotContactState = (value: string) => {
+    const normalized = normalizeContactStateKey(value);
+    return normalized.includes('chat bot') || normalized.includes('chatbot');
 };
 
 const CONTACT_STATE_DEFINITIONS: ContactStateDefinition[] = [
@@ -373,6 +407,16 @@ const resolveContactState = (rawValue: string): ContactStateDefinition => {
     if (normalized.includes('fuera de servicio') || normalized.includes('fuera servicio')) return CONTACT_STATE_DEFINITIONS[8];
     if (normalized.includes('duplicado')) return CONTACT_STATE_DEFINITIONS[11];
     if (normalized.includes('recontactado')) return CONTACT_STATE_DEFINITIONS[0];
+    if (isChatBotContactState(rawValue)) {
+        return {
+            label: 'Contactado por Chat Bot',
+            bucket: 'Efectivo',
+            color: '#14B8A6',
+            contacted: true,
+            action: 'Contacto automatizado',
+            priority: 2,
+        };
+    }
     if (normalized.includes('envio') && (normalized.includes('wsp') || normalized.includes('wpp') || normalized.includes('whatsapp'))) {
         return {
             label: 'Contacto por WhatsApp',
@@ -547,39 +591,10 @@ const SurveyView = ({
     }, [contactSourceData]);
 
     function inferContactState(row: SalesQualityRecord): ContactStateDefinition {
-        const hasEffectiveContact = !!(row.fecha_contacto_efectivo || row.fecha_respuesta_wpp || row.fecha_recontacto);
-        const hasFollowUp = !!(row.fecha_1_llamado || row.fecha_2_llamado || row.fecha_3_llamado || row.fecha_envio_wpp);
         const rawState = row.estado || '';
-
-        if (!rawState && (row.fecha_respuesta_wpp || row.fecha_envio_wpp)) {
-            return {
-                label: 'Contacto por WhatsApp',
-                bucket: 'Efectivo',
-                color: '#10B981',
-                contacted: true,
-                action: 'Contacto por WhatsApp',
-                priority: 3,
-            };
-        }
-
-        if (!rawState && hasEffectiveContact) {
-            return row.fecha_recontacto
-                ? CONTACT_STATE_DEFINITIONS[0]
-                : { ...CONTACT_STATE_DEFINITIONS[1], label: 'Contactado' };
-        }
-        if (!rawState && hasFollowUp) {
-            return {
-                label: 'Pendiente de clasificar',
-                bucket: 'Recuperable',
-                color: '#3B82F6',
-                contacted: false,
-                action: 'Revisar estado en base',
-                priority: 95,
-            };
-        }
-
         const resolved = resolveContactState(rawState);
-        if (normalizeContactStateKey(rawState).includes('whatsapp') || normalizeContactStateKey(rawState).includes('wsp') || normalizeContactStateKey(rawState).includes('wpp')) {
+
+        if (isWhatsappContactState(rawState)) {
             return {
                 label: 'Contacto por WhatsApp',
                 bucket: 'Efectivo',
@@ -589,21 +604,7 @@ const SurveyView = ({
                 priority: 3,
             };
         }
-        if (resolved.bucket === 'Sin dato' && hasEffectiveContact) {
-            return row.fecha_recontacto
-                ? CONTACT_STATE_DEFINITIONS[0]
-                : { ...CONTACT_STATE_DEFINITIONS[1], label: 'Contactado' };
-        }
-        if (resolved.bucket === 'Sin dato' && hasFollowUp) {
-            return {
-                label: rawState?.trim() || 'Pendiente de clasificar',
-                bucket: 'Recuperable',
-                color: '#3B82F6',
-                contacted: false,
-                action: 'Revisar estado en base',
-                priority: 96,
-            };
-        }
+
         return resolved;
     }
 
@@ -628,8 +629,9 @@ const SurveyView = ({
             contactStateMap.set(key, current);
 
             const normalizedResolvedLabel = normalizeContactStateKey(resolved.label);
-            const isWhatsappContact = normalizedResolvedLabel.includes('whatsapp') || normalizedResolvedLabel.includes('wsp') || normalizedResolvedLabel.includes('wpp');
-            if (normalizedResolvedLabel === 'contactado' || isWhatsappContact) effectiveCount += 1;
+            const isWhatsappContact = isWhatsappContactState(resolved.label);
+            const isChatBotContact = isChatBotContactState(resolved.label);
+            if (normalizedResolvedLabel === 'contactado' || isWhatsappContact || isChatBotContact) effectiveCount += 1;
             else if (resolved.contacted || resolved.bucket === 'Recuperable') managedCount += 1;
             else if (resolved.bucket === 'No contactable') noContactableCount += 1;
             else withoutStateCount += 1;
@@ -645,11 +647,12 @@ const SurveyView = ({
                 const rank = (row: ContactStateSummary) => {
                     const normalizedLabel = normalizeContactStateKey(row.label);
                     if (normalizedLabel === 'contactado') return 0;
-                    if (normalizedLabel.includes('whatsapp') || normalizedLabel.includes('wsp') || normalizedLabel.includes('wpp')) return 1;
-                    if (row.bucket === 'Efectivo') return 2;
-                    if (row.bucket === 'Recuperable') return 3;
-                    if (row.bucket === 'No contactable') return 4;
-                    return 5;
+                    if (isChatBotContactState(row.label)) return 1;
+                    if (isWhatsappContactState(row.label)) return 2;
+                    if (row.bucket === 'Efectivo') return 3;
+                    if (row.bucket === 'Recuperable') return 4;
+                    if (row.bucket === 'No contactable') return 5;
+                    return 6;
                 };
 
                 const rankDiff = rank(a) - rank(b);
@@ -676,31 +679,26 @@ const SurveyView = ({
     }, [filteredData]);
 
     const contactCenterChartRows = useMemo(() => {
-        const normalizedWhatsapp = (label: string) => {
-            const normalized = normalizeContactStateKey(label);
-            return normalized.includes('whatsapp') || normalized.includes('wsp') || normalized.includes('wpp');
-        };
-
         const combinedEffective = contactCenterMetrics.rows
-            .filter((row) => normalizeContactStateKey(row.label) === 'contactado' || normalizedWhatsapp(row.label))
+            .filter((row) => normalizeContactStateKey(row.label) === 'contactado' || isChatBotContactState(row.label))
             .reduce((acc, row) => {
                 acc.count += row.count;
                 return acc;
             }, {
-                label: 'Contactado + WhatsApp',
-                rawKey: 'contactado whatsapp',
+                label: 'Contactado + Chat Bot',
+                rawKey: 'contactado-chat-bot',
                 count: 0,
                 percentage: 0,
                 bucket: 'Efectivo' as const,
                 color: '#10B981',
                 contacted: true,
-                action: 'Contacto exitoso + WhatsApp',
+                action: 'Contacto exitoso + automatizado',
                 priority: 0,
             } as ContactStateSummary);
 
         const otherRows = contactCenterMetrics.rows.filter((row) => {
             const normalizedLabel = normalizeContactStateKey(row.label);
-            return normalizedLabel !== 'contactado' && !normalizedWhatsapp(row.label);
+            return normalizedLabel !== 'contactado' && !isChatBotContactState(row.label);
         });
 
         const total = contactCenterMetrics.total || 0;
@@ -1032,11 +1030,13 @@ const ClaimsView = ({
     loadingState, 
     selectedMonths, setSelectedMonths, 
     selectedBranches, toggleBranch, availableBranches,
-    selectedSaleTypes, toggleSaleType, availableSaleTypes
+    selectedSaleTypes, toggleSaleType, availableSaleTypes,
+    selectedSector, setSelectedSector
 }: any) => {
     
     // Logic similar to QualityDashboard (Postventa)
     const [selectedMotivo, setSelectedMotivo] = useState<string | null>(null);
+    const [showOnlyPending, setShowOnlyPending] = useState(false);
     
     const filteredDataFinal = useMemo(() => {
         return filteredData.filter((item: SalesClaimsRecord) => {
@@ -1048,9 +1048,12 @@ const ClaimsView = ({
                      if (!parts.includes(selectedMotivo)) matchMotivo = false;
                  }
             }
-            return matchMotivo;
+            const sectors = splitMultiValueField(item.sector);
+            const matchSector = !selectedSector || sectors.includes(selectedSector);
+            const matchPending = !showOnlyPending || !item.identificacion_problema || item.identificacion_problema.trim() === '';
+            return matchMotivo && matchSector && matchPending;
         });
-    }, [filteredData, selectedMotivo]);
+    }, [filteredData, selectedMotivo, selectedSector, showOnlyPending]);
 
     // KPI: Total Claims (Unique nro_r ideally, or just rows)
     const totalClaims = filteredDataFinal.length;
@@ -1115,11 +1118,45 @@ const ClaimsView = ({
     const sectorData = useMemo(() => {
         const counts: Record<string, number> = {};
         filteredDataFinal.forEach((d: SalesClaimsRecord) => {
-            const sec = d.sector ? normalizeString(d.sector) : 'Sin Sector';
-            counts[sec] = (counts[sec] || 0) + 1;
+            const sectors = splitMultiValueField(d.sector);
+            if (sectors.length === 0) {
+                counts['Sin Sector'] = (counts['Sin Sector'] || 0) + 1;
+                return;
+            }
+            sectors.forEach(sec => {
+                counts[sec] = (counts[sec] || 0) + 1;
+            });
         });
         return Object.entries(counts).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
     }, [filteredDataFinal]);
+
+    const sectorSummary = useMemo(() => {
+        const summary: Record<string, { total: number; pending: number }> = {};
+
+        filteredData.forEach((item: SalesClaimsRecord) => {
+            const sectors = splitMultiValueField(item.sector);
+            const resolvedSectors = sectors.length > 0 ? sectors : ['Sin Sector'];
+            const isPending = !item.identificacion_problema || item.identificacion_problema.trim() === '';
+
+            resolvedSectors.forEach(sector => {
+                if (!summary[sector]) {
+                    summary[sector] = { total: 0, pending: 0 };
+                }
+                summary[sector].total += 1;
+                if (isPending) {
+                    summary[sector].pending += 1;
+                }
+            });
+        });
+
+        return Object.entries(summary)
+            .map(([name, values]) => ({
+                name,
+                total: values.total,
+                pending: values.pending
+            }))
+            .sort((a, b) => b.pending - a.pending || b.total - a.total || a.name.localeCompare(b.name));
+    }, [filteredData]);
 
     // Chart: Annual Claims Count
     const annualClaimsData = useMemo(() => {
@@ -1192,7 +1229,13 @@ const ClaimsView = ({
                     <div className="font-black text-slate-900 text-[10px] uppercase tracking-wider mb-1">{normalizeString(row.responsable)}</div>
                     <div className="text-slate-400 text-[9px] font-black uppercase tracking-widest flex items-center gap-1.5">
                         <Icons.MapPin className="w-2.5 h-2.5" />
-                        {normalizeString(row.sector)}
+                        <div className="flex flex-wrap gap-1">
+                            {(splitMultiValueField(row.sector).length > 0 ? splitMultiValueField(row.sector) : ['Sin Sector']).map((sector) => (
+                                <span key={`${row.id}-${sector}`} className="rounded-full bg-slate-100 px-2 py-0.5 text-[8px] font-black uppercase tracking-widest text-slate-500">
+                                    {sector}
+                                </span>
+                            ))}
+                        </div>
                     </div>
                 </div>
             )
@@ -1234,9 +1277,76 @@ const ClaimsView = ({
         <div className="space-y-8">
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
                 <LuxuryKPICard title="Total Reclamos" value={totalClaims} color="bg-slate-950" icon={Icons.AlertCircle} />
-                <LuxuryKPICard title="Pendientes" value={openClaims} color="bg-orange-600" icon={Icons.Clock} />
+                <LuxuryKPICard
+                    title="Pendientes"
+                    value={openClaims}
+                    color="bg-orange-600"
+                    icon={Icons.Clock}
+                    onClick={() => setShowOnlyPending(prev => !prev)}
+                    isActive={showOnlyPending}
+                    footerDetail={showOnlyPending ? 'Filtro activo' : 'Click para filtrar'}
+                />
                 <LuxuryKPICard title="Días Prom. Demora" value={Number(avgDelay)} color="bg-blue-600" icon={Icons.Activity} />
             </div>
+
+            {showOnlyPending && (
+                <div className="rounded-2xl border border-orange-200 bg-orange-50/70 px-4 py-3 text-[10px] font-black uppercase tracking-[0.18em] text-orange-700">
+                    Mostrando solo reclamos pendientes dentro de los filtros activos.
+                </div>
+            )}
+
+            <ChartWrapper
+                title="Gestión por Sector Responsable"
+                subtitle="Cada sector se gestiona por separado"
+            >
+                <div className="space-y-4">
+                    <div className="flex flex-wrap gap-3">
+                        <button
+                            onClick={() => setSelectedSector(null)}
+                            className={`rounded-2xl border px-4 py-3 text-left transition-all ${
+                                selectedSector === null
+                                    ? 'border-slate-950 bg-slate-950 text-white shadow-lg shadow-slate-900/15'
+                                    : 'border-slate-200 bg-white text-slate-600 hover:border-slate-300 hover:bg-slate-50'
+                            }`}
+                        >
+                            <div className="text-[9px] font-black uppercase tracking-[0.25em]">Todos</div>
+                            <div className="mt-1 text-xl font-black tracking-tighter">{filteredData.length}</div>
+                        </button>
+                        {sectorSummary.map(sector => (
+                            <button
+                                key={sector.name}
+                                onClick={() => setSelectedSector(sector.name === selectedSector ? null : sector.name)}
+                                className={`min-w-[170px] rounded-2xl border px-4 py-3 text-left transition-all ${
+                                    selectedSector === sector.name
+                                        ? 'border-blue-600 bg-blue-600 text-white shadow-lg shadow-blue-600/20'
+                                        : 'border-slate-200 bg-white text-slate-700 hover:border-blue-200 hover:bg-blue-50/40'
+                                }`}
+                            >
+                                <div className="text-[9px] font-black uppercase tracking-[0.2em]">{sector.name}</div>
+                                <div className="mt-2 flex items-end justify-between gap-4">
+                                    <div>
+                                        <div className="text-2xl font-black tracking-tighter">{sector.pending}</div>
+                                        <div className={`text-[8px] font-black uppercase tracking-[0.2em] ${selectedSector === sector.name ? 'text-blue-100' : 'text-orange-500'}`}>
+                                            Pendientes
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <div className="text-lg font-black tracking-tighter">{sector.total}</div>
+                                        <div className={`text-[8px] font-black uppercase tracking-[0.2em] ${selectedSector === sector.name ? 'text-blue-100' : 'text-slate-400'}`}>
+                                            Totales
+                                        </div>
+                                    </div>
+                                </div>
+                            </button>
+                        ))}
+                    </div>
+                    {selectedSector && (
+                        <div className="rounded-2xl border border-blue-100 bg-blue-50/60 px-4 py-3 text-[10px] font-black uppercase tracking-[0.18em] text-blue-700">
+                            Sector activo: {selectedSector}
+                        </div>
+                    )}
+                </div>
+            </ChartWrapper>
 
             <ChartWrapper 
                 title="Motivos Principales de Reclamo"
@@ -1313,7 +1423,23 @@ const ClaimsView = ({
 
             <DataTable 
                 title="Listado de Reclamos"
-                subtitle={selectedMotivo ? `Filtrado por: ${selectedMotivo}` : 'Todos los reclamos'}
+                subtitle={
+                    showOnlyPending && selectedSector && selectedMotivo
+                        ? `Pendientes · Sector: ${selectedSector} · Motivo: ${selectedMotivo}`
+                        : showOnlyPending && selectedSector
+                            ? `Pendientes · Sector: ${selectedSector}`
+                            : showOnlyPending && selectedMotivo
+                                ? `Pendientes · Motivo: ${selectedMotivo}`
+                                : showOnlyPending
+                                    ? 'Solo reclamos pendientes'
+                    : selectedSector && selectedMotivo
+                        ? `Sector: ${selectedSector} · Motivo: ${selectedMotivo}`
+                        : selectedSector
+                            ? `Sector: ${selectedSector}`
+                            : selectedMotivo
+                                ? `Filtrado por: ${selectedMotivo}`
+                                : 'Todos los reclamos'
+                }
                 data={filteredDataFinal}
                 columns={columns}
                 pageSize={10}
@@ -1362,6 +1488,8 @@ const SalesQualityDashboard: React.FC<SalesQualityDashboardProps> = ({ onBack, i
   // -- Claims Specific Filters --
   const [claimsBranches, setClaimsBranches] = useState<string[]>([]);
   const [availableClaimsBranches, setAvailableClaimsBranches] = useState<string[]>([]);
+  const [selectedClaimsSector, setSelectedClaimsSector] = useState<string | null>(null);
+  const [availableClaimsSectors, setAvailableClaimsSectors] = useState<string[]>([]);
 
   // -- CEM OS Specific Filters --
   const [selectedCanal, setSelectedCanal] = useState<string | null>(null);
@@ -1429,6 +1557,9 @@ const SalesQualityDashboard: React.FC<SalesQualityDashboardProps> = ({ onBack, i
 
         setClaimsData(cData);
         setAvailableClaimsBranches([...new Set(cData.map(d => d.sucursal))].filter(Boolean).sort());
+        setAvailableClaimsSectors(
+          [...new Set(cData.flatMap(d => splitMultiValueField(d.sector)).filter(Boolean))].sort()
+        );
 
         const allRawTypes = [...sData, ...cData]
           .map(d => d.tipo_venta)
@@ -1514,10 +1645,12 @@ const SalesQualityDashboard: React.FC<SalesQualityDashboardProps> = ({ onBack, i
         
         const itemType = normalizeSaleType(item.tipo_venta);
         const matchSaleType = selectedSaleTypes.length === 0 || selectedSaleTypes.includes(itemType);
+        const itemSectors = splitMultiValueField(item.sector);
+        const matchSector = !selectedClaimsSector || itemSectors.includes(selectedClaimsSector);
         
-        return matchMonth && matchBranch && matchSaleType;
+        return matchMonth && matchBranch && matchSaleType && matchSector;
     });
-  }, [claimsData, selectedMonths, claimsBranches, selectedSaleTypes]);
+  }, [claimsData, selectedMonths, claimsBranches, selectedSaleTypes, selectedClaimsSector]);
 
   const annualClaimsChartData = useMemo(() => {
     return claimsData.filter((item: SalesClaimsRecord) => {
@@ -1525,10 +1658,12 @@ const SalesQualityDashboard: React.FC<SalesQualityDashboardProps> = ({ onBack, i
 
         const itemType = normalizeSaleType(item.tipo_venta);
         const matchSaleType = selectedSaleTypes.length === 0 || selectedSaleTypes.includes(itemType);
+        const itemSectors = splitMultiValueField(item.sector);
+        const matchSector = !selectedClaimsSector || itemSectors.includes(selectedClaimsSector);
 
-        return matchBranch && matchSaleType;
+        return matchBranch && matchSaleType && matchSector;
     });
-  }, [claimsData, claimsBranches, selectedSaleTypes]);
+  }, [claimsData, claimsBranches, selectedSaleTypes, selectedClaimsSector]);
 
   const totalUnidades = useMemo(() => {
     let activeData: any[] = [];
@@ -1641,6 +1776,20 @@ const SalesQualityDashboard: React.FC<SalesQualityDashboardProps> = ({ onBack, i
                     </select>
                     <Icons.ChevronDown className="w-3 h-3 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
+
+                {activeTab === 'claims' && (
+                    <div className="relative min-w-[170px]">
+                        <select 
+                            className="w-full text-[10px] font-black uppercase tracking-widest pl-4 pr-10 py-2.5 rounded-xl border border-white bg-white/80 backdrop-blur-xl text-slate-600 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all appearance-none cursor-pointer shadow-sm"
+                            value={selectedClaimsSector || ''}
+                            onChange={(e) => setSelectedClaimsSector(e.target.value || null)}
+                        >
+                            <option value="">Sector Resp.</option>
+                            {availableClaimsSectors.map(sector => <option key={sector} value={sector}>{sector}</option>)}
+                        </select>
+                        <Icons.ChevronDown className="w-3 h-3 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
+                    </div>
+                )}
             </>
         )}
 
@@ -1684,20 +1833,6 @@ const SalesQualityDashboard: React.FC<SalesQualityDashboardProps> = ({ onBack, i
                     <Icons.ChevronDown className="w-3 h-3 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
             </>
-        )}
-
-        {activeTab === 'claims' && (
-            <div className="relative min-w-[140px]">
-                <select 
-                    className="w-full text-[10px] font-black uppercase tracking-widest pl-4 pr-10 py-2.5 rounded-xl border border-white bg-white/80 backdrop-blur-xl text-slate-600 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all appearance-none cursor-pointer shadow-sm"
-                    value={claimsBranches[0] || ''}
-                    onChange={(e) => setClaimsBranches(e.target.value ? [e.target.value] : [])}
-                >
-                    <option value="">Sucursal</option>
-                    {availableClaimsBranches.map(b => <option key={b} value={b}>{b}</option>)}
-                </select>
-                <Icons.ChevronDown className="w-3 h-3 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
-            </div>
         )}
 
         {activeTab === 'cem_os' && (
@@ -1756,7 +1891,10 @@ const SalesQualityDashboard: React.FC<SalesQualityDashboardProps> = ({ onBack, i
   const scopeLabel = activeTab === 'surveys'
     ? (surveyBranches.length === 0 ? 'TODAS LAS SUCURSALES' : surveyBranches.join(' / '))
     : activeTab === 'claims'
-      ? (claimsBranches.length === 0 ? 'TODAS LAS SUCURSALES' : claimsBranches.join(' / '))
+      ? [
+          claimsBranches.length === 0 ? 'TODAS LAS SUCURSALES' : claimsBranches.join(' / '),
+          selectedClaimsSector ? `SECTOR ${selectedClaimsSector}` : null
+        ].filter(Boolean).join(' · ')
       : [
           selectedCodigo ? `CODIGO ${selectedCodigo}` : null,
           selectedZona ? `ZONA ${selectedZona}` : null,
@@ -1833,6 +1971,8 @@ const SalesQualityDashboard: React.FC<SalesQualityDashboardProps> = ({ onBack, i
                     selectedSaleTypes={selectedSaleTypes}
                     toggleSaleType={toggleSaleType}
                     availableSaleTypes={availableSaleTypes}
+                    selectedSector={selectedClaimsSector}
+                    setSelectedSector={setSelectedClaimsSector}
                 />
             ) : (
                 <CemOsDashboard 

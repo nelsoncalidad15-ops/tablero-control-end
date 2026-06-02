@@ -479,7 +479,7 @@ const Sparkline = ({ data, color }: { data: number[], color: string }) => {
   );
 };
 
-export const LuxuryKPICard = ({ title, value, color, icon: Icon, trend, isDark = false, isDanger = false, breakdown, sparklineData, featured = false, footerLabel, footerValue, footerDetail }: { 
+export const LuxuryKPICard = ({ title, value, color, icon: Icon, trend, isDark = false, isDanger = false, breakdown, sparklineData, featured = false, footerLabel, footerValue, footerDetail, onClick, isActive = false }: { 
   title: string, 
   value: string | number, 
   color: string, 
@@ -493,6 +493,8 @@ export const LuxuryKPICard = ({ title, value, color, icon: Icon, trend, isDark =
   footerLabel?: string,
   footerValue?: string | number,
   footerDetail?: string,
+  onClick?: () => void,
+  isActive?: boolean,
 }) => (
   <motion.div 
     whileHover={{ y: -4, scale: 1.02, boxShadow: "0 20px 40px rgba(0,0,0,0.08)" }}
@@ -504,7 +506,10 @@ export const LuxuryKPICard = ({ title, value, color, icon: Icon, trend, isDark =
     className={`${isDark ? 'bg-slate-900/90 border-white/10 shadow-2xl' : 'bg-white/70 border-white/60 shadow-[0_8px_32px_rgba(0,0,0,0.03)]'} 
       ${featured ? 'ring-2 ring-indigo-500/10 shadow-[0_16px_40px_rgba(79,70,229,0.08)]' : ''}
       ${isDanger ? 'border-rose-500/30 bg-rose-50/10' : ''}
+      ${isActive ? 'ring-2 ring-blue-500/30 border-blue-500/40 bg-blue-50/40' : ''}
+      ${onClick ? 'cursor-pointer' : ''}
       p-4 rounded-[1.5rem] border hover:border-blue-500/20 transition-all group overflow-hidden relative flex flex-col h-full backdrop-blur-xl`}
+    onClick={onClick}
   >
     <div className={`absolute -right-12 -top-12 w-40 h-40 rounded-full opacity-[0.03] group-hover:opacity-[0.08] transition-all duration-1000 ${color}`}></div>
     
@@ -564,7 +569,7 @@ export const LuxuryKPICard = ({ title, value, color, icon: Icon, trend, isDark =
           <span className={`block mb-0.5 font-black text-slate-400 uppercase tracking-widest ${featured ? 'text-[8px]' : 'text-[7px]'}`}>
             {footerLabel || 'Consolidado'}
           </span>
-          <h4 className={`font-black ${isDark ? 'text-white' : 'text-slate-900'} tracking-tighter leading-none italic ${featured ? 'text-4xl md:text-5xl opacity-100' : 'text-sm opacity-40'}`}>
+          <h4 className={`font-black ${isDark ? 'text-white' : 'text-slate-900'} tracking-tighter leading-none italic ${featured ? 'text-4xl md:text-5xl opacity-100' : 'text-2xl md:text-3xl opacity-75'}`}>
             {typeof footerValue !== 'undefined'
               ? footerValue
               : typeof value === 'number'

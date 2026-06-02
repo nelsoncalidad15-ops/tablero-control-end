@@ -298,6 +298,23 @@ export interface BillingRecord {
   [key: string]: any;
 }
 
+export interface PvtOccupationRecord {
+  id: string;
+  mes: string;
+  tecnico: string;
+  horas_disponibles: number;
+  hs_trabajadas: number;
+  horas_productivas_tracking: number;
+  horas_no_productivas_tracking: number;
+  horas_pauta_trabajadas: number;
+  horas_vendidas_siac: number;
+  grado_ocupacion: number;
+  grado_ocupacion_productiva: number;
+  productividad: number;
+  productividad_siac: number;
+  [key: string]: any;
+}
+
 export interface CemOsRecord {
   id: string;
   mes: string;
@@ -501,6 +518,7 @@ export interface AppConfig {
     action_plan?: string;
     action_plan_sales?: string;
     action_plan_form?: string;
+    pvt_occupation?: string;
     warranty_q1?: string;
     warranty_q2?: string;
     warranty_q3?: string;

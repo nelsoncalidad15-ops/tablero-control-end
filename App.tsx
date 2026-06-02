@@ -15,6 +15,7 @@ const PostventaDashboard = lazy(() => import('./components/PostventaDashboard'))
 const PostventaKpiDashboard = lazy(() => import('./components/PostventaKpiDashboard'));
 const PostventaBillingDashboard = lazy(() => import('./components/PostventaBillingDashboard'));
 const PostventaWarrantyDashboard = lazy(() => import('./components/PostventaWarrantyDashboard'));
+const PostventaPvtOccupationDashboard = lazy(() => import('./components/PostventaPvtOccupationDashboard'));
 const SalesQualityDashboard = lazy(() => import('./components/SalesQualityDashboard'));
 const InternalPostventaDashboard = lazy(() => import('./components/InternalPostventaDashboard'));
 const ActionPlanDashboard = lazy(() => import('./components/ActionPlanDashboard'));
@@ -74,6 +75,7 @@ function App() {
       preloadModule(() => import('./components/PostventaKpiDashboard'));
       preloadModule(() => import('./components/PostventaBillingDashboard'));
       preloadModule(() => import('./components/PostventaWarrantyDashboard'));
+      preloadModule(() => import('./components/PostventaPvtOccupationDashboard'));
       return;
     }
 
@@ -313,12 +315,13 @@ function App() {
             transition={{ duration: 0.7, delay: 0.08 }}
             className="rounded-[2.25rem] border border-white/10 bg-white/5 p-4 shadow-[0_30px_90px_rgba(2,6,23,0.45)] backdrop-blur-2xl md:p-5"
           >
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
             {([
               { id: 'operativo', path: '/postventa/operativo', name: 'Control Operativo', icon: Icons.Wrench, color: 'blue', desc: 'Gestión de taller' },
               { id: 'gestion_kpis', path: '/postventa/kpis', name: 'Gestión KPIs', icon: Icons.BarChart, color: 'indigo', desc: 'Indicadores clave' },
               { id: 'facturacion', path: '/postventa/facturacion', name: 'Facturación', icon: Icons.Banknote, color: 'amber', desc: 'Avance de ventas' },
-              { id: 'garantia', path: '/postventa/garantia', name: 'Garantía', icon: Icons.ShieldCheck, color: 'emerald', desc: 'Lote vs PPT' }
+              { id: 'garantia', path: '/postventa/garantia', name: 'Garantía', icon: Icons.ShieldCheck, color: 'emerald', desc: 'Lote vs PPT' },
+              { id: 'ocupacion_pvt', path: '/postventa/ocupacion-pvt', name: 'Ocupacion PVT', icon: Icons.Users, color: 'indigo', desc: 'Ocupación y productividad por técnico' }
             ] as const).map((item) => {
               const colorClasses = {
                 blue: "bg-blue-500/20 text-blue-400 shadow-blue-500/40 border-blue-500/30",
@@ -596,6 +599,13 @@ function App() {
             onBack={handleBack}
           />
         );
+      } else if (subType === 'ocupacion-pvt') {
+        dashboardContent = (
+          <PostventaPvtOccupationDashboard
+            sheetUrl={resolveDataSource('pvt_occupation', config.sheetUrls.pvt_occupation || '', FRONTEND_ONLY_POSTVENTA)}
+            onBack={handleBack}
+          />
+        );
       }
     } else if (area) {
       const areaId = area.id as keyof typeof config.sheetUrls;
@@ -659,6 +669,7 @@ function App() {
             <Route path="/postventa/kpis" element={<DashboardView type="postventa" subType="kpis" />} />
             <Route path="/postventa/facturacion" element={<DashboardView type="postventa" subType="facturacion" />} />
             <Route path="/postventa/garantia" element={<DashboardView type="postventa" subType="garantia" />} />
+            <Route path="/postventa/ocupacion-pvt" element={<DashboardView type="postventa" subType="ocupacion-pvt" />} />
             
             <Route path="/dashboard/:areaId" element={<DashboardView type="generic" />} />
             

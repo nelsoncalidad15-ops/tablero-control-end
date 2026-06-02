@@ -23,6 +23,7 @@ export const DETAILED_QUALITY_SHEET_KEY = "detailed_quality";
 export const DETAILED_QUALITY_SALTA_SHEET_KEY = "detailed_quality_salta";
 export const POSTVENTA_KPI_SHEET_KEY = "postventa_kpi";
 export const POSTVENTA_BILLING_SHEET_KEY = "postventa_billing";
+export const PVT_OCCUPATION_SHEET_KEY = "pvt_occupation";
 export const PCGC_SHEET_KEY = "pcgc";
 export const QUALITY_OBJECTIVES_SHEET_KEY = "quality_objectives";
 export const QUALITY_OBJECTIVES_SUMMARY_SHEET_KEY = "quality_objectives_summary";
@@ -151,6 +152,7 @@ export const DEFAULT_CONFIG = {
     detailed_quality_salta: DETAILED_QUALITY_SALTA_SHEET_KEY,
     postventa_kpis: POSTVENTA_KPI_SHEET_KEY,
     postventa_billing: POSTVENTA_BILLING_SHEET_KEY,
+    pvt_occupation: PVT_OCCUPATION_SHEET_KEY,
     pcgc: PCGC_SHEET_KEY,
     quality_objectives: QUALITY_OBJECTIVES_SHEET_KEY,
     quality_objectives_summary: QUALITY_OBJECTIVES_SUMMARY_SHEET_KEY,
@@ -174,6 +176,7 @@ export const DEFAULT_CONFIG = {
     detailed_quality_salta: string; 
     postventa_kpis: string; 
     postventa_billing: string; 
+    pvt_occupation: string;
     pcgc: string; 
     quality_objectives: string;
     quality_objectives_summary: string;

@@ -1,7 +1,7 @@
 
 /// <reference types="vite/client" />
 import Papa from 'papaparse';
-import { AutoRecord, QualityRecord, SalesQualityRecord, SalesClaimsRecord, DetailedQualityRecord, PostventaKpiRecord, BillingRecord, PCGCRecord, CemOsRecord, InternalPostventaRecord, ActionPlanRecord, CourseGrade, RelatorioItem, CollaboratorContact, CoursePhase, WarrantyRecord, QualityObjectiveRecord, QualityObjectiveSummaryRecord, QualityObjectiveScaleRecord } from '../types';
+import { AutoRecord, QualityRecord, SalesQualityRecord, SalesClaimsRecord, DetailedQualityRecord, PostventaKpiRecord, BillingRecord, PCGCRecord, CemOsRecord, InternalPostventaRecord, ActionPlanRecord, CourseGrade, RelatorioItem, CollaboratorContact, CoursePhase, WarrantyRecord, QualityObjectiveRecord, QualityObjectiveSummaryRecord, QualityObjectiveScaleRecord, PvtOccupationRecord } from '../types';
 import { MOCK_DATA } from '../constants';
 import { buildApiUrl } from './apiConfig';
 import { getStoredDashboardPassword } from './apiConfig';
@@ -771,6 +771,16 @@ export const fetchPostventaKpiData = async (sheetKey: string): Promise<Postventa
     }
 };
 
+export const fetchPvtOccupationData = async (sheetKey: string): Promise<PvtOccupationRecord[]> => {
+    try {
+      const text = await fetchFromProxy(sheetKey);
+      return parsePvtOccupationCSV(text);
+    } catch (error) {
+      console.error("Error loading PVT occupation data", error);
+      throw error;
+    }
+};
+
 export const fetchPostventaBillingData = async (sheetKey: string): Promise<BillingRecord[]> => {
     try {
       const text = await fetchFromProxy(sheetKey);
@@ -1507,6 +1517,51 @@ const parsePostventaKpiCSV = (csvText: string): PostventaKpiRecord[] => {
             records.push(record as PostventaKpiRecord);
         }
     }
+    return records;
+};
+
+const parsePvtOccupationCSV = (csvText: string): PvtOccupationRecord[] => {
+    const rows = parseCSV(csvText);
+    if (rows.length === 0) return [];
+
+    const isHeaderRow = (row: string[]) =>
+      normalizeKey(row[0] || '') === 'mes' &&
+      normalizeKey(row[1] || '') === 'tecnico';
+
+    const records: PvtOccupationRecord[] = [];
+
+    rows.forEach((row, index) => {
+      const values = row.map(cell => String(cell || '').trim());
+      const firstCell = values.find(Boolean) || '';
+
+      if (!firstCell) return;
+      if (isHeaderRow(values)) return;
+      if (normalizeKey(firstCell).includes('cuadrotaller')) return;
+
+      const mes = normalizeMonth(values[0] || '');
+      const tecnico = values[1] || '';
+
+      if (!SPANISH_MONTHS.includes(mes) || !tecnico || normalizeKey(tecnico) === 'total') {
+        return;
+      }
+
+      records.push({
+        id: `pvt-${index}-${normalizeKey(tecnico)}`,
+        mes,
+        tecnico,
+        horas_disponibles: parseNumber(values[2] || ''),
+        hs_trabajadas: parseNumber(values[3] || ''),
+        horas_productivas_tracking: parseNumber(values[4] || ''),
+        horas_no_productivas_tracking: parseNumber(values[5] || ''),
+        horas_pauta_trabajadas: parseNumber(values[6] || ''),
+        horas_vendidas_siac: parseNumber(values[7] || ''),
+        grado_ocupacion: parseNumber(values[8] || ''),
+        grado_ocupacion_productiva: parseNumber(values[9] || ''),
+        productividad: parseNumber(values[10] || ''),
+        productividad_siac: parseNumber(values[11] || ''),
+      });
+    });
+
     return records;
 };
 

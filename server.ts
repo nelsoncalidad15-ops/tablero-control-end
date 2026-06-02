@@ -88,6 +88,7 @@ async function startServer() {
     postventa_kpi: process.env.LINK_KPI_PV || process.env.SHEET_URL_POSTVENTA_KPI,
     postventa_kpis: process.env.LINK_KPI_PV || process.env.SHEET_URL_POSTVENTA_KPI,
     postventa_billing: process.env.LINK_FACTURACION || process.env.SHEET_URL_POSTVENTA_BILLING,
+    pvt_occupation: process.env.LINK_OCUPACION_PVT || process.env.SHEET_URL_PVT_OCCUPATION,
     internal_postventa: process.env.LINK_INTERNAL_POSTVENTA || process.env.SHEET_URL_INTERNAL_POSTVENTA,
     
     // Action Plan

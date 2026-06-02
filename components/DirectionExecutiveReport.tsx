@@ -388,7 +388,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
 
   return (
     <div className="min-h-screen bg-neutral-200 p-4 md:p-8 print:p-0 print:bg-white">
-      <div className="mx-auto mb-6 flex max-w-[297mm] flex-wrap items-center justify-between gap-4 rounded-[2rem] border border-neutral-300 bg-white px-6 py-5 shadow-lg print:hidden">
+      <div className="mx-auto mb-6 flex max-w-[210mm] flex-wrap items-center justify-between gap-4 rounded-[2rem] border border-neutral-300 bg-white px-6 py-5 shadow-lg print:hidden">
         <div className="flex items-center gap-4">
           <button
             onClick={onBack}
@@ -425,13 +425,13 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
         </div>
       </div>
 
-      <div className="mx-auto max-w-[297mm] overflow-hidden bg-white shadow-2xl print:shadow-none">
-        <section className="page-break-after h-[210mm] bg-neutral-950 text-white p-12 flex flex-col justify-between">
+      <div className="mx-auto max-w-[210mm] overflow-hidden bg-white shadow-2xl print:shadow-none">
+        <section className="page-break-after min-h-[297mm] bg-neutral-950 p-8 text-white flex flex-col justify-between">
           <div className="flex items-start justify-between">
             <div>
               <BrandMark variant="light" className="mb-10" />
               <p className="text-[11px] font-black uppercase tracking-[0.45em] text-neutral-400">Área de Calidad</p>
-              <h2 className="mt-6 max-w-4xl text-[4rem] font-black uppercase italic leading-[0.9] tracking-tight">
+              <h2 className="mt-6 max-w-4xl text-[3.15rem] font-black uppercase italic leading-[0.92] tracking-tight">
                 Informe de Cierre
                 <span className="block text-neutral-300">Dirección y Dueños</span>
               </h2>
@@ -442,7 +442,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
             </div>
           </div>
 
-          <div className="grid grid-cols-3 gap-6">
+          <div className="grid grid-cols-3 gap-4">
             {[
               { label: 'OS Marca', value: metrics.osAvg.toFixed(2) },
               { label: 'LVS Marca', value: metrics.lvsAvg.toFixed(2) },
@@ -450,7 +450,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
             ].map(card => (
               <div key={card.label} className="rounded-[2rem] border border-white/10 bg-white/5 p-6">
                 <p className="text-[10px] font-black uppercase tracking-[0.28em] text-neutral-500">{card.label}</p>
-                <p className="mt-4 text-5xl font-black italic tracking-tight text-white">{card.value}</p>
+                <p className="mt-4 text-4xl font-black italic tracking-tight text-white">{card.value}</p>
               </div>
             ))}
           </div>
@@ -466,14 +466,14 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
           </div>
         </section>
 
-        <section className="page-break-after h-[210mm] bg-white p-10">
+        <section className="page-break-after min-h-[297mm] bg-white p-8">
           <SectionHeader
             title={`Resumen Ejecutivo - ${selectedMonth}`}
             subtitle="Síntesis formal para lectura directiva"
             page="01"
           />
 
-          <div className="grid grid-cols-[1.15fr_0.85fr] gap-6 h-[calc(100%-72px)]">
+          <div className="grid grid-cols-1 gap-6">
             <div className="flex flex-col gap-6">
               <div className="rounded-[2rem] border border-neutral-200 bg-neutral-50 p-7">
                 <h3 className="text-[11px] font-black uppercase tracking-[0.28em] text-neutral-500">Contexto del cierre</h3>
@@ -517,14 +517,14 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
           </div>
         </section>
 
-        <section className="page-break-after h-[210mm] bg-white p-10">
+        <section className="page-break-after min-h-[297mm] bg-white p-8">
           <SectionHeader
             title={`OS General de Marca - ${selectedMonth}`}
             subtitle="Patentados, declarados y evolución histórica"
             page="02"
           />
 
-          <div className="grid grid-cols-[0.9fr_1.1fr] gap-6 h-[calc(100%-72px)]">
+          <div className="grid grid-cols-1 gap-6">
             <div className="flex flex-col gap-5">
               <HighlightCard title="Promedio OS" value={metrics.osAvg.toFixed(2)} />
               <div className="grid grid-cols-2 gap-4">
@@ -547,9 +547,9 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
               </div>
             </div>
 
-            <div className="rounded-[2rem] border border-neutral-200 bg-neutral-50 p-6 flex flex-col">
-              <h3 className="text-[11px] font-black uppercase tracking-[0.28em] text-neutral-500 text-center">Evolución Histórica OS</h3>
-              <div className="mt-6 flex-1">
+              <div className="rounded-[2rem] border border-neutral-200 bg-neutral-50 p-6 flex flex-col">
+                <h3 className="text-[11px] font-black uppercase tracking-[0.28em] text-neutral-500 text-center">Evolución Histórica OS</h3>
+              <div className="mt-6 h-[260px]">
                 <ResponsiveContainer width="100%" height="100%">
                   <BarChart data={metrics.osEvolution} margin={{ top: 16, right: 20, left: 0, bottom: 10 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#d4d4d4" />
@@ -569,14 +569,14 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
           </div>
         </section>
 
-        <section className="page-break-after h-[210mm] bg-white p-10">
+        <section className="page-break-after min-h-[297mm] bg-white p-8">
           <SectionHeader
             title={`LVS y Reclamos Postventa - ${selectedMonth}`}
             subtitle="Consolidado y apertura por sucursal"
             page="03"
           />
 
-          <div className="grid grid-cols-[0.95fr_1.05fr] gap-6 h-[calc(100%-72px)]">
+          <div className="grid grid-cols-1 gap-6">
             <div className="flex flex-col gap-5">
               <HighlightCard title="Promedio LVS" value={metrics.lvsAvg.toFixed(2)} />
               <div className="grid grid-cols-2 gap-4">
@@ -602,7 +602,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
               </div>
             </div>
 
-            <div className="grid grid-rows-[1fr_0.9fr] gap-6">
+            <div className="grid grid-cols-1 gap-6">
               <div className="rounded-[2rem] border border-neutral-200 bg-neutral-50 p-6">
                 <h3 className="text-[11px] font-black uppercase tracking-[0.28em] text-neutral-500 text-center">Evolución Histórica LVS</h3>
                 <div className="mt-4 h-[260px]">
@@ -620,7 +620,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
 
               <div className="rounded-[2rem] border border-neutral-200 bg-neutral-900 p-6 text-white">
                 <h3 className="text-[11px] font-black uppercase tracking-[0.28em] text-neutral-400">Encuesta interna postventa</h3>
-                <div className="mt-5 grid grid-cols-4 gap-3">
+                <div className="mt-5 grid grid-cols-2 gap-3">
                   <MiniScore label="Servicio" value={metrics.internalPostventaScore.servicio} />
                   <MiniScore label="Trato" value={metrics.internalPostventaScore.trato} />
                   <MiniScore label="Organización" value={metrics.internalPostventaScore.organizacion} />
@@ -634,14 +634,14 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
           </div>
         </section>
 
-        <section className="page-break-after h-[210mm] bg-white p-10">
+        <section className="page-break-after min-h-[297mm] bg-white p-8">
           <SectionHeader
             title={`Reclamos del Mes - ${selectedMonth}`}
             subtitle="Incidencias internas, motivos y resolución"
             page="04"
           />
 
-          <div className="grid grid-cols-2 gap-6 h-[calc(100%-72px)]">
+          <div className="grid grid-cols-1 gap-6">
             <div className="rounded-[2rem] border border-neutral-200 bg-neutral-50 p-6 flex flex-col">
               <div className="grid grid-cols-2 gap-4">
                 <MetricCard title="Reclamos Ventas" value={String(metrics.consolidatedClaims.ventas)} hint="Mes estudiado" />
@@ -652,7 +652,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
 
               <div className="mt-6 flex-1">
                 <h3 className="text-[11px] font-black uppercase tracking-[0.28em] text-neutral-500 text-center">Motivos principales postventa</h3>
-                <div className="mt-4 h-[250px]">
+                <div className="mt-4 h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={metrics.topPostventaClaimReasons} layout="vertical" margin={{ top: 0, right: 24, left: 30, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#d4d4d4" />
@@ -679,7 +679,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
             <div className="flex flex-col gap-6">
               <div className="rounded-[2rem] border border-neutral-200 bg-neutral-50 p-6 flex-1">
                 <h3 className="text-[11px] font-black uppercase tracking-[0.28em] text-neutral-500 text-center">Motivos principales ventas</h3>
-                <div className="mt-4 h-[250px]">
+                <div className="mt-4 h-[300px]">
                   <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={metrics.topSalesClaimReasons} layout="vertical" margin={{ top: 0, right: 24, left: 30, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#d4d4d4" />
@@ -713,14 +713,14 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
           </div>
         </section>
 
-        <section className="page-break-after h-[210mm] bg-white p-10">
+        <section className="page-break-after min-h-[297mm] bg-white p-8">
           <SectionHeader
             title={`Plan de Acción - ${selectedMonth}`}
             subtitle="Bloque editable para seguimiento y validación"
             page="05"
           />
 
-          <div className="grid grid-rows-[auto_1fr_auto] gap-5 h-[calc(100%-72px)]">
+          <div className="grid grid-cols-1 gap-5">
             <div className="rounded-[2rem] border border-neutral-200 bg-neutral-50 p-6">
               <EditableText
                 defaultText={actionSummary}
@@ -728,10 +728,10 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
               />
             </div>
 
-            <div className="grid grid-cols-[1.1fr_0.9fr] gap-6 min-h-0">
+            <div className="grid grid-cols-1 gap-6 min-h-0">
               <div className="rounded-[2rem] border border-neutral-200 bg-neutral-50 p-6 overflow-hidden">
                 <h3 className="text-[11px] font-black uppercase tracking-[0.28em] text-neutral-500">Acciones relevadas del sistema</h3>
-                <div className="mt-4 overflow-y-auto h-[430px] pr-2">
+                <div className="mt-4 pr-2">
                   <div className="space-y-4">
                     {metrics.actionPlansMonth.length > 0 ? (
                       metrics.actionPlansMonth.map(plan => (
@@ -803,10 +803,10 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
           </div>
         </section>
 
-        <section className="h-[210mm] bg-neutral-950 text-white p-12 flex flex-col justify-center items-center text-center">
+        <section className="min-h-[297mm] bg-neutral-950 text-white p-8 flex flex-col justify-center items-center text-center">
           <BrandMark variant="light" className="mb-10" />
           <p className="text-[11px] font-black uppercase tracking-[0.45em] text-neutral-500">Cierre del informe</p>
-          <h2 className="mt-8 text-7xl font-black uppercase italic tracking-tight">Dirección</h2>
+          <h2 className="mt-8 text-6xl font-black uppercase italic tracking-tight">Dirección</h2>
           <EditableText
             defaultText="Este documento resume el cierre del periodo bajo análisis y queda disponible para su validación, comentarios y definición de acciones."
             className="mt-8 max-w-4xl rounded-[1.5rem] border border-white/10 bg-white/5 p-6 text-lg leading-8 text-neutral-200 outline-none"
@@ -821,7 +821,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
         dangerouslySetInnerHTML={{
           __html: `
             @media print {
-              @page { size: A4 landscape; margin: 0; }
+              @page { size: A4 portrait; margin: 0; }
               body { margin: 0 !important; background: white !important; }
               .print\\:hidden { display: none !important; }
               .page-break-after { page-break-after: always; }

@@ -40,6 +40,8 @@ services:
         sync: false
       - key: LINK_FACTURACION
         sync: false
+      - key: LINK_OCUPACION_PVT
+        sync: false
       - key: LINK_OBJETIVOS_CALIDAD
         sync: false
       - key: LINK_OBJETIVOS_CALIDAD_RESUMEN

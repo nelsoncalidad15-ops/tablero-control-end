@@ -64,6 +64,11 @@ const GaugeMetric: React.FC<{
             { value: Math.max(0, 5 - point.value), fill: 'rgba(255,255,255,0.05)' }
         ];
 
+        const miniState = (val?: number) => {
+            if (val === undefined) return '--';
+            return `${val.toFixed(2)}`;
+        };
+
         return (
             <div className="rounded-[2rem] border border-white/10 bg-white/5 backdrop-blur-xl p-4 shadow-xl min-h-[260px] flex flex-col">
                 <div className="flex items-center justify-between gap-2 mb-3">
@@ -99,6 +104,25 @@ const GaugeMetric: React.FC<{
                         <span className={`text-4xl font-black tracking-tighter italic ${pointIsSuccess ? 'text-emerald-400' : 'text-rose-400'}`}>
                             {point.value.toFixed(2)}
                         </span>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-3 gap-2 mt-3 text-center">
+                    <div className="rounded-xl border border-white/10 bg-white/5 py-2">
+                        <div className="text-[7px] font-black text-slate-500 uppercase tracking-widest">Obj</div>
+                        <div className="text-sm font-black text-white">{target.toFixed(2)}</div>
+                    </div>
+                    <div className="rounded-xl border border-white/10 bg-white/5 py-2">
+                        <div className="text-[7px] font-black text-slate-500 uppercase tracking-widest">{inProgressMonthName || 'M-1'}</div>
+                        <div className={`text-sm font-black ${point.inProgressValue !== undefined && point.inProgressValue >= target ? 'text-emerald-400' : 'text-rose-400'}`}>
+                            {miniState(point.inProgressValue)}
+                        </div>
+                    </div>
+                    <div className="rounded-xl border border-white/10 bg-white/5 py-2">
+                        <div className="text-[7px] font-black text-slate-500 uppercase tracking-widest">{closedMonthName || 'M-2'}</div>
+                        <div className={`text-sm font-black ${point.closedValue !== undefined && point.closedValue >= target ? 'text-emerald-400' : 'text-rose-400'}`}>
+                            {miniState(point.closedValue)}
+                        </div>
                     </div>
                 </div>
 
@@ -345,13 +369,12 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
   }, [config]);
 
   const availableBranches = useMemo(() => {
-    const allowed = ['JUJUY', 'SALTA'];
-    return allowed.filter(branch =>
-      data.salesQuality.some(d => d.sucursal === branch) ||
-      data.quality.some(d => d.sucursal === branch) ||
-      data.detailedQuality.some(d => d.sucursal === branch) ||
-      data.cemOs.some(d => d.sucursal === branch)
-    );
+    const branches = new Set<string>();
+    data.salesQuality.forEach(d => d.sucursal && branches.add(d.sucursal));
+    data.quality.forEach(d => d.sucursal && branches.add(d.sucursal));
+    data.detailedQuality.forEach(d => d.sucursal && branches.add(d.sucursal));
+    data.cemOs.forEach(d => d.sucursal && branches.add(d.sucursal));
+    return Array.from(branches).filter(b => b !== 'Unknown').sort();
   }, [data]);
 
   const filteredData = useMemo(() => {

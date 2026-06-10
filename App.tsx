@@ -23,7 +23,6 @@ const PCGCDashboard = lazy(() => import('./components/PCGCDashboard'));
 const QualityObjectivesDashboard = lazy(() => import('./components/QualityObjectivesDashboard'));
 const RRHHDashboard = lazy(() => import('./components/RRHHDashboard'));
 const ExecutiveSummary = lazy(() => import('./components/ExecutiveSummary'));
-const ProfessionalReport = lazy(() => import('./components/ProfessionalReport'));
 const FullReportPrintView = lazy(() => import('./components/FullReportPrintView'));
 const ReportConfigModal = lazy(() => import('./components/ReportConfigModal'));
 
@@ -48,7 +47,6 @@ function App() {
   const handlePrefetchArea = (areaId: string) => {
     if (areaId === 'executive') {
       preloadModule(() => import('./components/ExecutiveSummary'));
-      preloadModule(() => import('./components/ProfessionalReport'));
       return;
     }
 
@@ -205,13 +203,6 @@ function App() {
               </div>
             </div>
             <div className="flex flex-wrap items-center justify-end gap-2">
-              <button
-                onClick={() => navigate('/report')}
-                className="inline-flex items-center gap-2 rounded-full border border-sky-400/30 bg-sky-500 px-4 py-2 text-[9px] font-black uppercase tracking-[0.3em] text-slate-950 shadow-[0_14px_32px_rgba(14,165,233,0.24)] transition-colors hover:bg-sky-400"
-              >
-                <Icons.FileText className="h-4 w-4" />
-                Generar reporte
-              </button>
               <button onClick={handleBackToPortal} className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-4 py-2 text-[9px] font-black uppercase tracking-[0.3em] text-white shadow-[0_14px_32px_rgba(15,23,42,0.28)] transition-colors hover:bg-white/10">
                 <Icons.ArrowLeft className="h-4 w-4" />
                 Volver al portal
@@ -662,7 +653,7 @@ function App() {
             <Route path="/calidad/refuerzo" element={<DashboardView type="calidad" subType="refuerzo" />} />
             
             <Route path="/executive" element={<DashboardView type="executive" />} />
-            <Route path="/report" element={<ProfessionalReport config={config} onBack={() => navigate('/executive')} />} />
+            <Route path="/report" element={<Navigate to="/executive" replace />} />
             
             <Route path="/postventa" element={<PostventaSelection />} />
             <Route path="/postventa/operativo" element={<DashboardView type="postventa" subType="operativo" />} />

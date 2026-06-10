@@ -426,7 +426,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
         </div>
 
         {/* REPORT CONTENT */}
-        <div ref={reportRef} className="max-w-[297mm] mx-auto bg-white shadow-2xl print:shadow-none min-h-[210mm] overflow-hidden print:block">
+        <div ref={reportRef} className="max-w-[297mm] mx-auto bg-white shadow-2xl print:shadow-none min-h-[210mm] overflow-hidden print:block" style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}>
             
             {/* PAGE 1: COVER SLIDE */}
             <div className="h-[210mm] relative overflow-hidden page-break-after-always bg-slate-950 print:bg-white" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>

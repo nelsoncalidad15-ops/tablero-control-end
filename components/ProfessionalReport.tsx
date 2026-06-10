@@ -206,7 +206,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
         let no = 0;
         data.forEach(d => {
             const val = String(d[key] || '').toLowerCase().trim();
-            if (val === 'si' || val === 'sÌ') yes++;
+            if (val === 'si' || val === 's√≠') yes++;
             else if (val === 'no') no++;
         });
         const total = yes + no;
@@ -215,7 +215,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
 
     const processMetrics = [
         { name: 'Prueba Manejo', value: calculateProcessMetric(internalVentasData, 'prueba_manejo') },
-        { name: 'FinanciaciÛn', value: calculateProcessMetric(internalVentasData, 'ofrecimiento_financiacion') },
+        { name: 'Financiaci√≥n', value: calculateProcessMetric(internalVentasData, 'ofrecimiento_financiacion') },
         { name: 'Toma Usados', value: calculateProcessMetric(internalVentasData, 'toma_usados') },
         { name: 'App Mi VW', value: calculateProcessMetric(internalVentasData, 'app_mi_vw') }
     ];
@@ -392,7 +392,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                 </button>
                 <div>
                     <h1 className="text-xl font-black text-slate-900 tracking-tighter italic">GENERADOR DE REPORTE</h1>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">ConfiguraciÛn de Informe Mensual</p>
+                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Configuraci√≥n de Informe Mensual</p>
                 </div>
             </div>
 
@@ -474,13 +474,13 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                             className="inline-block px-8 py-2.5 bg-blue-600/10 border border-blue-500/20 rounded-full text-blue-400 text-[10px] font-black uppercase tracking-[0.5em] mb-4 print:!bg-blue-50 print:!text-blue-600 print:!border-blue-100"
                             style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}
                         >
-                            Reporte de GestiÛn EstratÈgica
+                            Reporte de Gesti√≥n Estrat√©gica
                         </div>
                         <h1
                             className="text-[80px] md:text-[100px] font-black text-white tracking-tighter italic leading-[0.9] print:!text-black"
                             style={{ fontFamily: 'Arial Black, Arial, Helvetica, sans-serif' }}
                         >
-                            REUNI”N DE<br />
+                            REUNI√ìN DE<br />
                             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 print:!text-blue-600 print:!bg-none print:!bg-clip-border">CALIDAD</span>
                         </h1>
                         <div className="h-1.5 w-40 bg-gradient-to-r from-blue-500 to-emerald-500 mx-auto rounded-full print:!bg-blue-600"></div>
@@ -494,7 +494,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                 </div>
                 <div className="absolute bottom-12 right-12 flex items-center gap-6">
                     <div className="text-right">
-                        <p className="text-xs font-black text-slate-500 uppercase tracking-widest mb-1 print:!text-slate-400">CertificaciÛn de Calidad</p>
+                        <p className="text-xs font-black text-slate-500 uppercase tracking-widest mb-1 print:!text-slate-400">Certificaci√≥n de Calidad</p>
                         <p className="text-2xl font-black text-white italic tracking-tighter print:!text-black">Volkswagen Autosol</p>
                     </div>
                     <div className="w-16 h-16 border-2 border-white/20 rounded-full flex items-center justify-center font-black text-3xl text-white backdrop-blur-sm print:!border-slate-300 print:!text-black">W</div>
@@ -507,7 +507,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                 
                 <div className="flex items-center gap-4 mb-12">
                     <div className="w-10 h-10 bg-slate-950 rounded-xl flex items-center justify-center text-white font-black text-xs">A</div>
-                    <div className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Temario de GestiÛn</div>
+                    <div className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Temario de Gesti√≥n</div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-12 items-center">
@@ -517,11 +517,11 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                             {[
                                 "Resultados KPI: CEM Ventas",
                                 "Encuesta Interna - Ventas",
-                                "GestiÛn de Reclamos - Ventas",
+                                "Gesti√≥n de Reclamos - Ventas",
                                 "Verbatim CEM Ventas OS",
                                 "Resultados KPI: CEM Postventa",
                                 "Encuesta Interna - Postventas",
-                                "GestiÛn de Reclamos - Postventa"
+                                "Gesti√≥n de Reclamos - Postventa"
                             ].map((topic, i) => (
                                 <li key={i} className="flex items-center gap-4 text-lg font-black text-slate-700 tracking-tight italic group">
                                     <span className="w-8 h-8 rounded-lg bg-slate-100 flex items-center justify-center text-xs text-blue-600 group-hover:bg-blue-600 group-hover:text-white transition-all">0{i+1}</span>
@@ -535,7 +535,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                         <div className="relative bg-slate-50 p-10 rounded-[3rem] border border-slate-100 shadow-xl">
                             <Icons.ClipboardList className="w-24 h-24 text-blue-600 mb-4" />
                             <p className="text-xs text-slate-500 font-medium leading-relaxed">
-                                An·lisis detallado de los indicadores de satisfacciÛn del cliente y gestiÛn interna correspondientes al periodo seleccionado.
+                                An√°lisis detallado de los indicadores de satisfacci√≥n del cliente y gesti√≥n interna correspondientes al periodo seleccionado.
                             </p>
                         </div>
                     </div>
@@ -550,10 +550,10 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
             <div className="h-[210mm] p-12 page-break-after-always bg-white flex flex-col overflow-hidden">
                 <div className="flex justify-between items-center mb-6">
                     <div>
-                        <h2 className="text-4xl font-black text-slate-900 tracking-tighter italic uppercase">CEM VENTAS ó {reportMonths.mMinus2.toUpperCase()} (CERRADO)</h2>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mt-1">Indicadores Externos de SatisfacciÛn (Marca)</p>
+                        <h2 className="text-4xl font-black text-slate-900 tracking-tighter italic uppercase">CEM VENTAS ‚Äî {reportMonths.mMinus2.toUpperCase()} (CERRADO)</h2>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mt-1">Indicadores Externos de Satisfacci√≥n (Marca)</p>
                     </div>
-                    <div className="px-6 py-2 bg-blue-900 text-white text-xs font-black uppercase tracking-widest rounded-full shadow-xl shadow-blue-900/20">KPI ESTRAT…GICO</div>
+                    <div className="px-6 py-2 bg-blue-900 text-white text-xs font-black uppercase tracking-widest rounded-full shadow-xl shadow-blue-900/20">KPI ESTRAT√âGICO</div>
                 </div>
 
                 <div className="grid grid-cols-5 gap-4 mb-8">
@@ -573,7 +573,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
 
                 <div className="grid grid-cols-2 gap-6 flex-1 mb-6 min-h-0">
                     <div className="bg-slate-50 p-6 rounded-[2.5rem] border border-slate-100 flex flex-col min-h-0">
-                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 italic">EvoluciÛn HistÛrica CEM (OS)</h4>
+                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 italic">Evoluci√≥n Hist√≥rica CEM (OS)</h4>
                         <div className="flex-1 min-h-0">
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={filteredMetrics.cemVentas.evolution} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
@@ -609,7 +609,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                 <div className="p-6 bg-blue-900 rounded-[2rem] text-white relative overflow-hidden shadow-xl shadow-blue-900/20">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-bl-full"></div>
                     <p contentEditable suppressContentEditableWarning={true} className="text-xs leading-relaxed font-medium outline-none focus:bg-white/10 p-2 rounded transition-all cursor-text border border-transparent hover:border-white/20">
-                        El Ìndice CEM de {filteredMetrics.cemVentas.m2.avg.toFixed(2)} refleja la percepciÛn del cliente en el proceso de entrega para el mes cerrado de {reportMonths.mMinus2}.
+                        El √≠ndice CEM de {filteredMetrics.cemVentas.m2.avg.toFixed(2)} refleja la percepci√≥n del cliente en el proceso de entrega para el mes cerrado de {reportMonths.mMinus2}.
                     </p>
                 </div>
             </div>
@@ -619,15 +619,15 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                 <div className="flex justify-between items-center mb-6">
                     <div>
                         <h2 className="text-4xl font-black text-slate-900 tracking-tighter italic uppercase flex items-center gap-4">
-                            CEM VENTAS ó {reportMonths.mMinus1.toUpperCase()} 
+                            CEM VENTAS ‚Äî {reportMonths.mMinus1.toUpperCase()} 
                             <span className="flex items-center gap-2 px-4 py-1 bg-blue-100 text-blue-600 text-xs rounded-full normal-case not-italic tracking-normal">
                                 <span className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></span>
                                 EN PROGRESO
                             </span>
                         </h2>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mt-1">Indicadores Externos de SatisfacciÛn (Marca)</p>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mt-1">Indicadores Externos de Satisfacci√≥n (Marca)</p>
                     </div>
-                    <div className="px-6 py-2 bg-blue-600 text-white text-xs font-black uppercase tracking-widest rounded-full shadow-xl shadow-blue-600/20">KPI ESTRAT…GICO</div>
+                    <div className="px-6 py-2 bg-blue-600 text-white text-xs font-black uppercase tracking-widest rounded-full shadow-xl shadow-blue-600/20">KPI ESTRAT√âGICO</div>
                 </div>
 
                 <div className="grid grid-cols-5 gap-4 mb-8">
@@ -647,7 +647,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
 
                 <div className="grid grid-cols-2 gap-6 flex-1 mb-6 min-h-0">
                     <div className="bg-slate-50 p-6 rounded-[2.5rem] border border-slate-100 flex flex-col min-h-0">
-                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 italic">EvoluciÛn HistÛrica CEM (OS)</h4>
+                        <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4 italic">Evoluci√≥n Hist√≥rica CEM (OS)</h4>
                         <div className="flex-1 min-h-0">
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={filteredMetrics.cemVentas.evolution} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
@@ -683,7 +683,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                 <div className="p-6 bg-blue-600 rounded-[2rem] text-white relative overflow-hidden shadow-xl shadow-blue-600/20">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-white/5 rounded-bl-full"></div>
                     <p contentEditable suppressContentEditableWarning={true} className="text-xs leading-relaxed font-medium outline-none focus:bg-white/10 p-2 rounded transition-all cursor-text border border-transparent hover:border-white/20">
-                        El Ìndice CEM de {filteredMetrics.cemVentas.m1.avg.toFixed(2)} para el mes de {reportMonths.mMinus1} se encuentra actualmente en progreso. 
+                        El √≠ndice CEM de {filteredMetrics.cemVentas.m1.avg.toFixed(2)} para el mes de {reportMonths.mMinus1} se encuentra actualmente en progreso. 
                         Se han recibido {filteredMetrics.cemVentas.m1.respondieron} respuestas de {filteredMetrics.cemVentas.m1.declarados} encuestas declaradas.
                     </p>
                 </div>
@@ -693,7 +693,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
             <div className="min-h-[210mm] p-12 page-break-after-always bg-white flex flex-col">
                 <div className="flex justify-between items-center mb-6">
                     <div>
-                        <h2 className="text-4xl font-black text-slate-900 tracking-tighter italic uppercase">VERBATIM CEM ó {reportMonths.mMinus2.toUpperCase()}</h2>
+                        <h2 className="text-4xl font-black text-slate-900 tracking-tighter italic uppercase">VERBATIM CEM ‚Äî {reportMonths.mMinus2.toUpperCase()}</h2>
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mt-1">Comentarios de Clientes (Notas 1 a 5)</p>
                     </div>
                     <div className="px-6 py-2 bg-slate-900 text-white text-xs font-black uppercase tracking-widest rounded-full">DETALLE DE EXPERIENCIA</div>
@@ -727,7 +727,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan={5} className="p-20 text-center text-slate-400 font-black uppercase tracking-widest italic">No se registraron comentarios crÌticos en este periodo</td>
+                                    <td colSpan={5} className="p-20 text-center text-slate-400 font-black uppercase tracking-widest italic">No se registraron comentarios cr√≠ticos en este periodo</td>
                                 </tr>
                             )}
                         </tbody>
@@ -739,16 +739,16 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
             <div className="h-[210mm] p-12 page-break-after-always bg-white flex flex-col overflow-hidden">
                 <div className="flex justify-between items-center mb-6">
                     <div>
-                        <h2 className="text-4xl font-black text-slate-900 tracking-tighter italic uppercase">ENCUESTA INTERNA ó {reportMonths.mMinus1.toUpperCase()}</h2>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mt-1">GestiÛn de Calidad Interna (Ventas)</p>
+                        <h2 className="text-4xl font-black text-slate-900 tracking-tighter italic uppercase">ENCUESTA INTERNA ‚Äî {reportMonths.mMinus1.toUpperCase()}</h2>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mt-1">Gesti√≥n de Calidad Interna (Ventas)</p>
                     </div>
-                    <div className="px-6 py-2 bg-amber-600 text-white text-xs font-black uppercase tracking-widest rounded-full shadow-xl shadow-amber-600/20">AUDITORÕA INTERNA</div>
+                    <div className="px-6 py-2 bg-amber-600 text-white text-xs font-black uppercase tracking-widest rounded-full shadow-xl shadow-amber-600/20">AUDITOR√çA INTERNA</div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-6 flex-1 min-h-0">
                     <div className="space-y-4 flex flex-col">
                         <div className="p-4 bg-slate-50 rounded-[2.5rem] border border-slate-100 flex flex-col items-center justify-center text-center shadow-sm flex-1">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">SatisfacciÛn General (OS)</p>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Satisfacci√≥n General (OS)</p>
                             <div className="relative w-80 h-40">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <PieChart>
@@ -779,7 +779,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                         <div className="grid grid-cols-3 gap-4">
                             {[
                                 { label: 'Trato', value: filteredMetrics.internalVentas.avgTrato },
-                                { label: 'OrganizaciÛn', value: filteredMetrics.internalVentas.avgOrg },
+                                { label: 'Organizaci√≥n', value: filteredMetrics.internalVentas.avgOrg },
                                 { label: 'Asesoramiento', value: filteredMetrics.internalVentas.avgAses }
                             ].map((m, i) => (
                                 <div key={i} className="p-4 bg-slate-50 rounded-[1.5rem] border border-slate-100 text-center shadow-sm">
@@ -791,7 +791,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                     </div>
 
                     <div className="p-6 bg-slate-50 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col min-h-0">
-                        <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-6 italic text-center">Cumplimiento de Est·ndares de Venta</h4>
+                        <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-6 italic text-center">Cumplimiento de Est√°ndares de Venta</h4>
                         <div className="grid grid-cols-2 gap-x-8 gap-y-4 flex-1 min-h-0">
                             {filteredMetrics.internalVentas.processMetrics.map(m => (
                                 <div key={m.name} className="flex flex-col items-center">
@@ -833,8 +833,8 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
             <div className="h-[210mm] p-12 page-break-after-always bg-white flex flex-col overflow-hidden">
                 <div className="flex justify-between items-center mb-6">
                     <div>
-                        <h2 className="text-4xl font-black text-slate-900 tracking-tighter italic uppercase">RECLAMOS VENTAS ó {reportMonths.mMinus1.toUpperCase()}</h2>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mt-1">GestiÛn de Incidencias y Post-Venta</p>
+                        <h2 className="text-4xl font-black text-slate-900 tracking-tighter italic uppercase">RECLAMOS VENTAS ‚Äî {reportMonths.mMinus1.toUpperCase()}</h2>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mt-1">Gesti√≥n de Incidencias y Post-Venta</p>
                     </div>
                     <div className="px-6 py-2 bg-rose-600 text-white text-xs font-black uppercase tracking-widest rounded-full shadow-xl shadow-rose-600/20">INCIDENCIAS</div>
                 </div>
@@ -850,16 +850,16 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest">Casos Pendientes</p>
                         </div>
                         <div className="p-6 bg-rose-900 rounded-[2.5rem] text-white shadow-xl shadow-rose-900/20 flex flex-col justify-center">
-                            <h4 className="text-[9px] font-black text-rose-300 uppercase tracking-widest mb-1 italic">An·lisis de GestiÛn</h4>
+                            <h4 className="text-[9px] font-black text-rose-300 uppercase tracking-widest mb-1 italic">An√°lisis de Gesti√≥n</h4>
                             <p contentEditable suppressContentEditableWarning={true} className="text-[10px] leading-tight font-medium outline-none focus:bg-white/10 p-2 rounded transition-all cursor-text border border-transparent hover:border-white/20">
                                 Se observa un volumen de {filteredMetrics.claimsVentas.total} reclamos en el periodo. 
-                                La prioridad se centra en la resoluciÛn de los {filteredMetrics.claimsVentas.pending} casos pendientes.
+                                La prioridad se centra en la resoluci√≥n de los {filteredMetrics.claimsVentas.pending} casos pendientes.
                             </p>
                         </div>
                     </div>
 
                     <div className="bg-slate-50 p-8 rounded-[3rem] border border-slate-100 shadow-sm flex flex-col flex-1 min-h-0">
-                        <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4 italic text-center">Motivos de Reclamo - An·lisis Detallado</h4>
+                        <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4 italic text-center">Motivos de Reclamo - An√°lisis Detallado</h4>
                         <div className="flex-1 min-h-0">
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={filteredMetrics.claimsVentas.topReasons} layout="vertical" margin={{ left: 40, right: 80, top: 0, bottom: 0 }}>
@@ -881,8 +881,8 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
             <div className="h-[210mm] p-12 page-break-after-always bg-white flex flex-col overflow-hidden">
                 <div className="flex justify-between items-center mb-6">
                     <div>
-                        <h2 className="text-4xl font-black text-slate-900 tracking-tighter italic uppercase">CEM POSTVENTA ó {reportMonths.mMinus2.toUpperCase()} (CERRADO)</h2>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mt-1">Indicadores de SatisfacciÛn en Servicio (LVS)</p>
+                        <h2 className="text-4xl font-black text-slate-900 tracking-tighter italic uppercase">CEM POSTVENTA ‚Äî {reportMonths.mMinus2.toUpperCase()} (CERRADO)</h2>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mt-1">Indicadores de Satisfacci√≥n en Servicio (LVS)</p>
                     </div>
                     <div className="px-6 py-2 bg-blue-900 text-white text-xs font-black uppercase tracking-widest rounded-full shadow-xl shadow-blue-900/20">KPI SERVICIO</div>
                 </div>
@@ -891,7 +891,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                     <div className="space-y-6 flex flex-col min-h-0">
                         <div className="p-8 bg-blue-900 rounded-[3rem] text-white relative overflow-hidden shadow-2xl shadow-blue-900/40 flex-1 flex flex-col justify-center">
                             <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full -mr-24 -mt-24 blur-3xl"></div>
-                            <p className="text-[10px] font-black text-blue-200 uppercase tracking-widest mb-2">SatisfacciÛn LVS (VW) - {reportMonths.mMinus2}</p>
+                            <p className="text-[10px] font-black text-blue-200 uppercase tracking-widest mb-2">Satisfacci√≥n LVS (VW) - {reportMonths.mMinus2}</p>
                             <div className="text-[100px] font-black italic tracking-tighter leading-none mb-6">{filteredMetrics.cemPostventa.m2.avg.toFixed(2)}</div>
                             <div className="flex gap-4">
                                 <div className="px-6 py-3 bg-white/10 rounded-2xl backdrop-blur-md border border-white/10 flex-1">
@@ -899,15 +899,15 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                                     <p className="text-2xl font-black italic">{filteredMetrics.cemPostventa.avgTrato.toFixed(2)}</p>
                                 </div>
                                 <div className="px-6 py-3 bg-white/10 rounded-2xl backdrop-blur-md border border-white/10 flex-1">
-                                    <p className="text-[8px] font-black text-blue-200 uppercase tracking-widest mb-1">Calidad ReparaciÛn</p>
+                                    <p className="text-[8px] font-black text-blue-200 uppercase tracking-widest mb-1">Calidad Reparaci√≥n</p>
                                     <p className="text-2xl font-black italic">{filteredMetrics.cemPostventa.avgReparacion.toFixed(2)}</p>
                                 </div>
                             </div>
                         </div>
                         <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 shadow-sm">
-                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 italic">An·lisis de Postventa</h4>
+                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 italic">An√°lisis de Postventa</h4>
                             <p contentEditable suppressContentEditableWarning={true} className="text-xs leading-relaxed font-medium text-slate-600 outline-none focus:bg-white p-2 rounded transition-all cursor-text border border-transparent hover:border-slate-200">
-                                El nivel de satisfacciÛn en postventa para el mes cerrado de {reportMonths.mMinus2} se mantiene sÛlido y dentro de los est·ndares de calidad esperados.
+                                El nivel de satisfacci√≥n en postventa para el mes cerrado de {reportMonths.mMinus2} se mantiene s√≥lido y dentro de los est√°ndares de calidad esperados.
                             </p>
                         </div>
                     </div>
@@ -936,13 +936,13 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                 <div className="flex justify-between items-center mb-6">
                     <div>
                         <h2 className="text-4xl font-black text-slate-900 tracking-tighter italic uppercase flex items-center gap-4">
-                            CEM POSTVENTA ó {reportMonths.mMinus1.toUpperCase()}
+                            CEM POSTVENTA ‚Äî {reportMonths.mMinus1.toUpperCase()}
                             <span className="flex items-center gap-2 px-4 py-1 bg-blue-100 text-blue-600 text-xs rounded-full normal-case not-italic tracking-normal">
                                 <span className="w-2 h-2 bg-blue-600 rounded-full animate-pulse"></span>
                                 EN PROGRESO
                             </span>
                         </h2>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mt-1">Indicadores de SatisfacciÛn en Servicio (LVS)</p>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mt-1">Indicadores de Satisfacci√≥n en Servicio (LVS)</p>
                     </div>
                     <div className="px-6 py-2 bg-blue-600 text-white text-xs font-black uppercase tracking-widest rounded-full shadow-xl shadow-blue-600/20">KPI SERVICIO</div>
                 </div>
@@ -951,7 +951,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                     <div className="space-y-6 flex flex-col min-h-0">
                         <div className="p-8 bg-blue-600 rounded-[3rem] text-white relative overflow-hidden shadow-2xl shadow-blue-600/40 flex-1 flex flex-col justify-center">
                             <div className="absolute top-0 right-0 w-48 h-48 bg-white/10 rounded-full -mr-24 -mt-24 blur-3xl"></div>
-                            <p className="text-[10px] font-black text-blue-100 uppercase tracking-widest mb-2">SatisfacciÛn LVS (VW) - {reportMonths.mMinus1}</p>
+                            <p className="text-[10px] font-black text-blue-100 uppercase tracking-widest mb-2">Satisfacci√≥n LVS (VW) - {reportMonths.mMinus1}</p>
                             <div className="text-[100px] font-black italic tracking-tighter leading-none mb-6">{filteredMetrics.cemPostventa.m1.avg.toFixed(2)}</div>
                             <div className="flex gap-4">
                                 <div className="px-6 py-3 bg-white/10 rounded-2xl backdrop-blur-md border border-white/10 flex-1">
@@ -961,9 +961,9 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                             </div>
                         </div>
                         <div className="p-6 bg-slate-50 rounded-[2rem] border border-slate-100 shadow-sm">
-                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 italic">An·lisis de Postventa</h4>
+                            <h4 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2 italic">An√°lisis de Postventa</h4>
                             <p contentEditable suppressContentEditableWarning={true} className="text-xs leading-relaxed font-medium text-slate-600 outline-none focus:bg-white p-2 rounded transition-all cursor-text border border-transparent hover:border-slate-200">
-                                El nivel de satisfacciÛn en postventa para el mes de {reportMonths.mMinus1} se encuentra actualmente en proceso de mediciÛn. El promedio actual es de {filteredMetrics.cemPostventa.m1.avg.toFixed(2)}.
+                                El nivel de satisfacci√≥n en postventa para el mes de {reportMonths.mMinus1} se encuentra actualmente en proceso de medici√≥n. El promedio actual es de {filteredMetrics.cemPostventa.m1.avg.toFixed(2)}.
                             </p>
                         </div>
                     </div>
@@ -992,7 +992,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                 <div className="flex justify-between items-center mb-6">
                     <div>
                         <h2 className="text-4xl font-black text-slate-950 uppercase italic tracking-tighter leading-none">ENCUESTA INTERNA</h2>
-                        <p className="text-[10px] font-black text-blue-600 uppercase tracking-[0.5em] mt-2">POSTVENTA ó {reportMonths.mMinus1.toUpperCase()}</p>
+                        <p className="text-[10px] font-black text-blue-600 uppercase tracking-[0.5em] mt-2">POSTVENTA ‚Äî {reportMonths.mMinus1.toUpperCase()}</p>
                     </div>
                     <div className="text-right">
                         <div className="text-2xl font-black text-slate-950 italic leading-none">VW</div>
@@ -1004,7 +1004,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                     {[
                         { label: 'LVS (Servicio)', value: filteredMetrics.internalPostventa.lvs },
                         { label: 'Trato Personal', value: filteredMetrics.internalPostventa.trato },
-                        { label: 'OrganizaciÛn', value: filteredMetrics.internalPostventa.organizacion },
+                        { label: 'Organizaci√≥n', value: filteredMetrics.internalPostventa.organizacion },
                         { label: 'Trabajo Taller', value: filteredMetrics.internalPostventa.trabajoTaller },
                         { label: 'Lavado', value: filteredMetrics.internalPostventa.lavado },
                     ].map((m, i) => (
@@ -1024,7 +1024,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
 
                 <div className="grid grid-cols-1 gap-6 flex-1 min-h-0">
                     <div className="bg-slate-50 p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col min-h-0">
-                        <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4 italic text-center">Servicios m·s Frecuentes</h4>
+                        <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4 italic text-center">Servicios m√°s Frecuentes</h4>
                         <div className="flex-1 min-h-0">
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={filteredMetrics.internalPostventa.topServicios} layout="vertical" margin={{ left: 40, right: 40 }}>
@@ -1049,7 +1049,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                     <div className="p-6 bg-slate-950 rounded-[2rem] text-white">
                         <h4 className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-2 italic">Insights de Calidad Interna</h4>
                         <p contentEditable suppressContentEditableWarning={true} className="text-xs leading-relaxed font-medium text-slate-300 outline-none focus:bg-white/10 p-2 rounded transition-all cursor-text border border-transparent hover:border-white/10">
-                            La percepciÛn interna del servicio se mantiene en niveles de excelencia, con un fuerte enfoque en el trato personal y la organizaciÛn del taller. El lavado contin˙a siendo un ·rea de oportunidad para maximizar la satisfacciÛn final.
+                            La percepci√≥n interna del servicio se mantiene en niveles de excelencia, con un fuerte enfoque en el trato personal y la organizaci√≥n del taller. El lavado contin√∫a siendo un √°rea de oportunidad para maximizar la satisfacci√≥n final.
                         </p>
                     </div>
                 </div>
@@ -1059,10 +1059,10 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
             <div className="h-[210mm] p-12 page-break-after-always bg-white flex flex-col overflow-hidden">
                 <div className="flex justify-between items-center mb-6">
                     <div>
-                        <h2 className="text-4xl font-black text-slate-900 tracking-tighter italic uppercase">RECLAMOS POSTVENTA ó {reportMonths.mMinus1.toUpperCase()}</h2>
-                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mt-1">GestiÛn de Incidencias en Taller</p>
+                        <h2 className="text-4xl font-black text-slate-900 tracking-tighter italic uppercase">RECLAMOS POSTVENTA ‚Äî {reportMonths.mMinus1.toUpperCase()}</h2>
+                        <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mt-1">Gesti√≥n de Incidencias en Taller</p>
                     </div>
-                    <div className="px-6 py-2 bg-emerald-700 text-white text-xs font-black uppercase tracking-widest rounded-full shadow-xl shadow-emerald-700/20">GESTI”N TALLER</div>
+                    <div className="px-6 py-2 bg-emerald-700 text-white text-xs font-black uppercase tracking-widest rounded-full shadow-xl shadow-emerald-700/20">GESTI√ìN TALLER</div>
                 </div>
 
                 <div className="flex flex-col flex-1 gap-6 min-h-0">
@@ -1072,18 +1072,18 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                             <p className="text-3xl font-black text-slate-950 italic">{filteredMetrics.claimsPostventa.total}</p>
                         </div>
                         <div className="p-4 bg-slate-50 rounded-[2rem] border border-slate-100 text-center shadow-sm">
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Reclamos ⁄nicos (OR)</p>
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Reclamos √önicos (OR)</p>
                             <p className="text-3xl font-black text-slate-950 italic">{filteredMetrics.claimsPostventa.unique}</p>
                         </div>
                         <div className="p-4 bg-emerald-900 rounded-[2rem] text-white relative overflow-hidden shadow-xl shadow-emerald-900/20 flex flex-col justify-center text-center">
-                            <p className="text-[9px] font-black text-emerald-300 uppercase tracking-widest mb-1">ResoluciÛn</p>
+                            <p className="text-[9px] font-black text-emerald-300 uppercase tracking-widest mb-1">Resoluci√≥n</p>
                             <p className="text-3xl font-black text-white italic">{filteredMetrics.claimsPostventa.resolved}</p>
                         </div>
                     </div>
 
                     <div className="flex flex-col gap-6 flex-1 min-h-0">
                         <div className="bg-slate-50 p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col flex-[1.5] min-h-0">
-                            <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4 italic text-center">Motivos de Reclamo - An·lisis Detallado</h4>
+                            <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4 italic text-center">Motivos de Reclamo - An√°lisis Detallado</h4>
                             <div className="flex-1 min-h-0">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <BarChart data={filteredMetrics.claimsPostventa.topReasons} layout="vertical" margin={{ left: 40, right: 80, top: 0, bottom: 0 }}>
@@ -1108,7 +1108,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                         </div>
 
                         <div className="bg-slate-50 p-6 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col flex-1 min-h-0">
-                            <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4 italic text-center">EvoluciÛn Anual de Reclamos (OR ⁄nicas)</h4>
+                            <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-4 italic text-center">Evoluci√≥n Anual de Reclamos (OR √önicas)</h4>
                             <div className="flex-1 min-h-0">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <BarChart data={filteredMetrics.claimsPostventa.evolution} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
@@ -1139,17 +1139,17 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
 
                 <div className="text-center relative z-10 mb-8">
                     <h2 contentEditable suppressContentEditableWarning={true} className="text-[100px] font-black tracking-tighter italic leading-[0.8] mb-6 outline-none focus:bg-white/10 p-6 rounded uppercase cursor-text">
-                        °MUCHAS<br />
+                        ¬°MUCHAS<br />
                         <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 text-[120px]">GRACIAS!</span>
                     </h2>
                     <p contentEditable suppressContentEditableWarning={true} className="text-xl text-slate-400 max-w-2xl leading-relaxed font-medium outline-none focus:bg-white/10 p-4 rounded cursor-text mx-auto">
-                        Este reporte ha sido generado para el an·lisis estratÈgico de la calidad en Autosol. 
-                        Quedamos a su disposiciÛn para cualquier consulta adicional.
+                        Este reporte ha sido generado para el an√°lisis estrat√©gico de la calidad en Autosol. 
+                        Quedamos a su disposici√≥n para cualquier consulta adicional.
                     </p>
                 </div>
 
                 <div className="relative z-10 w-full max-w-2xl p-6 bg-white/5 backdrop-blur-2xl rounded-[3rem] border border-white/10 text-center shadow-2xl mx-auto">
-                    <h4 className="text-[11px] font-black text-blue-400 uppercase tracking-[0.4em] mb-4">VisualizaciÛn Interactiva</h4>
+                    <h4 className="text-[11px] font-black text-blue-400 uppercase tracking-[0.4em] mb-4">Visualizaci√≥n Interactiva</h4>
                     <div className="flex items-center justify-center gap-6 text-white font-black text-lg uppercase tracking-widest">
                         <Icons.ExternalLink className="w-6 h-6 text-blue-400" />
                         https://nelsoncalidad15-ops.github.io/tablero-control-end/

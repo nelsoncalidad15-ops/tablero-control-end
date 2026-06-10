@@ -472,20 +472,26 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                     <div className="text-center space-y-10 max-w-5xl px-12 pointer-events-auto">
                         <div 
                             className="inline-block px-8 py-2.5 bg-blue-600/10 border border-blue-500/20 rounded-full text-blue-400 text-[10px] font-black uppercase tracking-[0.5em] mb-4 print:!bg-blue-50 print:!text-blue-600 print:!border-blue-100"
+                            style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}
                         >
                             Reporte de Gestión Estratégica
                         </div>
-                        <h1 className="text-[80px] md:text-[100px] font-black text-white tracking-tighter italic leading-[0.9] uppercase print:!text-black">
+                        <h1
+                            className="text-[80px] md:text-[100px] font-black text-white tracking-tighter italic leading-[0.9] print:!text-black"
+                            style={{ fontFamily: 'Arial Black, Arial, Helvetica, sans-serif' }}
+                        >
                             REUNIÓN DE<br />
                             <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 print:!text-blue-600 print:!bg-none print:!bg-clip-border">CALIDAD</span>
                         </h1>
                         <div className="h-1.5 w-40 bg-gradient-to-r from-blue-500 to-emerald-500 mx-auto rounded-full print:!bg-blue-600"></div>
-                        <h2 className="text-2xl md:text-3xl font-black text-slate-300 tracking-tighter italic uppercase print:!text-slate-700">
-                            {selectedBranch || 'CONSOLIDADO GENERAL'} — {selectedMonth} {YEARS[0]}
+                        <h2
+                            className="text-2xl md:text-3xl font-black text-slate-300 tracking-tighter italic uppercase print:!text-slate-700"
+                            style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}
+                        >
+                            {selectedBranch || 'CONSOLIDADO GENERAL'} - {selectedMonth} {YEARS[0]}
                         </h2>
                     </div>
                 </div>
-
                 <div className="absolute bottom-12 right-12 flex items-center gap-6">
                     <div className="text-right">
                         <p className="text-xs font-black text-slate-500 uppercase tracking-widest mb-1 print:!text-slate-400">Certificación de Calidad</p>

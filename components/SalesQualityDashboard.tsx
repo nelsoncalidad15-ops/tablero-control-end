@@ -268,36 +268,33 @@ const MonthlyScoreCard = ({
     color,
     average,
     data,
-    expanded,
+    highlightedMonths,
     onClick,
 }: {
     title: string;
     color: string;
     average: number;
     data: Array<{ name: string; value: number; sample: number }>;
-    expanded: boolean;
+    highlightedMonths: string[];
     onClick: () => void;
 }) => {
+    const hasMonthSelection = highlightedMonths.length > 0;
     return (
         <button
             type="button"
             onClick={onClick}
-            className={`rounded-3xl border p-4 text-left shadow-sm transition-all hover:-translate-y-1 ${
-                expanded
-                    ? 'border-slate-900 bg-slate-950 text-white shadow-xl shadow-slate-300/30'
-                    : 'border-slate-100 bg-white/75 text-slate-900 hover:shadow-lg'
-            }`}
+            className="rounded-3xl border border-slate-100 bg-white/75 p-4 text-left text-slate-900 shadow-sm transition-all hover:-translate-y-1 hover:shadow-lg"
         >
             <div className="flex items-start justify-between gap-3">
                 <div>
-                    <p className={`text-[9px] font-black uppercase tracking-[0.28em] ${expanded ? 'text-white/55' : 'text-slate-400'}`}>
+                    <p className="text-[9px] font-black uppercase tracking-[0.28em] text-slate-400">
                         Tendencia mensual
                     </p>
                     <h4 className="mt-2 text-sm font-black uppercase tracking-[0.16em]">{title}</h4>
                 </div>
                 <div className="text-right">
                     <div className="text-2xl font-black tracking-tighter">{average > 0 ? average.toFixed(1) : '-'}</div>
-                    <div className={`text-[8px] font-black uppercase tracking-[0.24em] ${expanded ? 'text-white/55' : 'text-slate-400'}`}>
+                    <div className="text-[8px] font-black uppercase tracking-[0.24em] text-slate-400">
                         Promedio
                     </div>
                 </div>
@@ -306,12 +303,12 @@ const MonthlyScoreCard = ({
             <div className="mt-4 h-28">
                 <ResponsiveContainer width="100%" height="100%">
                     <BarChart data={data} margin={{ top: 6, right: 0, left: -22, bottom: 0 }}>
-                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={expanded ? 'rgba(255,255,255,0.08)' : '#E2E8F0'} />
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
                         <XAxis
                             dataKey="name"
                             axisLine={false}
                             tickLine={false}
-                            tick={{ fill: expanded ? '#CBD5E1' : '#64748B', fontSize: 10, fontWeight: 800 }}
+                            tick={{ fill: '#64748B', fontSize: 10, fontWeight: 800 }}
                             tickFormatter={(value) => String(value).slice(0, 3)}
                         />
                         <YAxis
@@ -336,17 +333,20 @@ const MonthlyScoreCard = ({
                         />
                         <Bar dataKey="value" radius={[8, 8, 0, 0]} barSize={16}>
                             {data.map((entry) => (
-                                <Cell key={entry.name} fill={entry.value > 0 ? color : expanded ? 'rgba(255,255,255,0.16)' : '#E2E8F0'} />
+                                <Cell
+                                    key={entry.name}
+                                    fill={entry.value > 0 ? color : '#E2E8F0'}
+                                    fillOpacity={hasMonthSelection ? (highlightedMonths.includes(entry.name) ? 1 : 0.22) : 0.9}
+                                    stroke={highlightedMonths.includes(entry.name) ? color : 'none'}
+                                    strokeWidth={highlightedMonths.includes(entry.name) ? 2 : 0}
+                                />
                             ))}
                         </Bar>
                     </BarChart>
                 </ResponsiveContainer>
             </div>
 
-            <div className={`mt-3 text-[9px] font-black uppercase tracking-[0.24em] ${expanded ? 'text-white/60' : 'text-slate-400'}`}>
-                {expanded ? 'Vista expandida activa' : 'Click para expandir'}
-            </div>
-        </button>
+            </button>
     );
 };
 
@@ -580,6 +580,8 @@ const resolveContactState = (rawValue: string): ContactStateDefinition => {
 
 // 1. SURVEY DASHBOARD (The original view)
 const SurveyView = ({ 
+    data,
+    trendData,
     filteredData, 
     contactData,
     loadingState, 
@@ -692,7 +694,7 @@ const SurveyView = ({
 
         return scoreTrendDefinitions.map((definition) => {
             const data = MONTHS.map((month) => {
-                const monthRows = filteredData.filter((row: SalesQualityRecord) => row.mes === month);
+                const monthRows = trendData.filter((row: SalesQualityRecord) => row.mes === month);
                 const stats = averageForRows(monthRows, definition.accessor, definition.allowZero);
                 return {
                     name: month,
@@ -712,7 +714,7 @@ const SurveyView = ({
                 average,
             };
         });
-    }, [filteredData, scoreTrendDefinitions]);
+        }, [trendData, scoreTrendDefinitions]);
 
     const expandedTrend = monthlyScoreTrends.find((item) => item.key === expandedTrendKey) || monthlyScoreTrends[0];
 
@@ -995,7 +997,7 @@ const SurveyView = ({
                                 color={trend.color}
                                 average={trend.average}
                                 data={trend.data}
-                                expanded={expandedTrend?.key === trend.key}
+                                highlightedMonths={selectedMonths}
                                 onClick={() => setExpandedTrendKey(trend.key)}
                             />
                         ))}
@@ -1047,7 +1049,13 @@ const SurveyView = ({
                                         />
                                         <Bar dataKey="value" radius={[14, 14, 0, 0]} barSize={28}>
                                             {expandedTrend.data.map((entry) => (
-                                                <Cell key={entry.name} fill={entry.value > 0 ? expandedTrend.color : '#E2E8F0'} />
+                                                <Cell
+                                                    key={entry.name}
+                                                    fill={entry.value > 0 ? expandedTrend.color : '#E2E8F0'}
+                                                    fillOpacity={selectedMonths.length > 0 ? (selectedMonths.includes(entry.name) ? 1 : 0.24) : 0.92}
+                                                    stroke={selectedMonths.includes(entry.name) ? expandedTrend.color : 'none'}
+                                                    strokeWidth={selectedMonths.includes(entry.name) ? 2 : 0}
+                                                />
                                             ))}
                                             <LabelList dataKey="value" position="top" formatter={(value: any) => Number(value) > 0 ? Number(value).toFixed(1) : ''} style={{ fill: '#0F172A', fontSize: 11, fontWeight: 900 }} />
                                         </Bar>
@@ -1862,6 +1870,30 @@ const SalesQualityDashboard: React.FC<SalesQualityDashboardProps> = ({ onBack, i
     });
   }, [surveyData, selectedMonths, surveyBranches, osFilter, selectedSaleTypes, selectedVendedor, selectedAdministrativo]);
 
+  const surveyTrendData = useMemo(() => {
+    return surveyData.filter((item: SalesQualityRecord) => {
+      const matchBranch = surveyBranches.length === 0 || surveyBranches.includes(item.sucursal);
+      
+      const itemType = normalizeSaleType(item.tipo_venta);
+      const matchSaleType = selectedSaleTypes.length === 0 || selectedSaleTypes.includes(itemType);
+      
+      const matchVendedor = !selectedVendedor || item.vendedor === selectedVendedor;
+      const matchAdministrativo = !selectedAdministrativo || item.administrativo === selectedAdministrativo;
+      let matchOS = true;
+      if (osFilter) {
+          if (!item.cem_general) {
+              matchOS = false;
+          } else {
+              if (osFilter === 'low') matchOS = item.cem_general > 0 && item.cem_general <= 3;
+              else if (osFilter === 'mid') matchOS = item.cem_general > 3 && item.cem_general < 5;
+              else if (osFilter === 'top') matchOS = item.cem_general === 5;
+              else matchOS = Math.floor(item.cem_general).toString() === osFilter;
+          }
+      }
+      return matchBranch && matchOS && matchSaleType && matchVendedor && matchAdministrativo;
+    });
+  }, [surveyData, surveyBranches, osFilter, selectedSaleTypes, selectedVendedor, selectedAdministrativo]);
+
   const contactCenterData = useMemo(() => {
     return surveyData.filter((item: SalesQualityRecord) => {
       const matchMonth = selectedMonths.length === 0 || selectedMonths.includes(item.mes);
@@ -2176,6 +2208,7 @@ const SalesQualityDashboard: React.FC<SalesQualityDashboardProps> = ({ onBack, i
             {activeTab === 'surveys' ? (
                 <SurveyView 
                     data={surveyData}
+                    trendData={surveyTrendData}
                     filteredData={filteredSurveyData}
                     contactData={contactCenterData}
                     loadingState={loadingState}

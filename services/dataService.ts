@@ -1095,6 +1095,7 @@ const parseSalesQualityCSV = (csvText: string): SalesQualityRecord[] => {
       if (currentLine.length < 3) continue;
 
       const record: any = { id: `sq-row-${i}` };
+      let followUpCommentIndex = 0;
       
       headers.forEach((header, index) => {
         const value = currentLine[index] || '';
@@ -1103,22 +1104,20 @@ const parseSalesQualityCSV = (csvText: string): SalesQualityRecord[] => {
             record.mes = value;
         }
 
-        // TIPO DE VENTA
         if (header.includes('tipo de venta') || header === 'canal' || header === 'origen') {
             record.tipo_venta = value;
         }
 
-        // CONTACT DATES
         if (header.includes('fecha de entrega') || (header.includes('fecha') && header.includes('entrega'))) record.fecha_entrega = value;
+        else if (header.includes('fecha limite de contacto')) record.fecha_limite_contacto = value;
         else if (header.includes('fecha 1') || header.includes('1º llamado')) record.fecha_1_llamado = value;
         else if (header.includes('fecha 2') || header.includes('2º llamado')) record.fecha_2_llamado = value;
         else if (header.includes('fecha 3') || header.includes('3º llamado')) record.fecha_3_llamado = value;
         else if (header.includes('contacto efectivo')) record.fecha_contacto_efectivo = value;
         else if (header.includes('recontacto')) record.fecha_recontacto = value;
-        else if (header.includes('envío mensaje')) record.fecha_envio_wpp = value;
+        else if ((header.includes('envio') || header.includes('env�o')) && header.includes('mensaje') && (header.includes('wpp') || header.includes('wsp') || header.includes('whatsapp'))) record.fecha_envio_wpp = value;
         else if (header.includes('respuesta mensaje')) record.fecha_respuesta_wpp = value;
 
-        // STANDARD FIELDS
         else if (header.includes('mes de entrega') || header === 'mes') record.mes = value;
         else if (header.includes('anio') || header.includes('ano')) record.anio = parseInt(value) || 2026;
         else if (header.includes('codigo de conc') || header.includes('codigo de conces')) {
@@ -1129,35 +1128,50 @@ const parseSalesQualityCSV = (csvText: string): SalesQualityRecord[] => {
             record.sucursal = normalizeBranch(value);
         }
         else if (header.includes('sucursal')) record.sucursal = value;
+        else if (header.includes('asesor contact center')) record.asesor_contact_center = value;
+        else if (header.includes('administrativo')) record.administrativo = value;
         else if (header.includes('modelo')) record.modelo = value;
         else if (header.includes('vendedor')) record.vendedor = value;
         else if (header.includes('nombre de cliente') || header === 'cliente') record.cliente = value;
-        else if (header.includes('vin') || header === 'chasis') record.vin = value;
+        else if (header.includes('telefono')) record.telefono = value;
+        else if (header.includes('validacion de mails')) record.validacion_mails = value;
+        else if (header === 'mails' || header.includes('mail cliente') || header.includes('e mail')) record.mails = value;
+        else if (header.includes('estado mail')) record.estado_mail = value;
+        else if ((header.includes('vin') || header.includes('chasis')) && !header.includes('coment')) record.vin = value;
+        else if (header.includes('enviar wpp')) record.enviar_wpp = value;
+        else if (header.includes('categorizacion del cliente')) record.categorizacion_cliente = value;
+        else if (header.includes('sector responsable enviar')) record.sector_responsable_enviar = value;
         
-        // ESTADO (Col N)
         else if (header === 'estado') record.estado = value; 
         
-        // NPS - Recomendaría
-        else if (header.includes('recomiendes') || header.includes('recomendarías')) record.nps = parseScore(value);
+        else if (header.includes('recomiendes') || header.includes('recomendarias') || header.includes('recomendaras') || header.includes('recomendar�as')) record.nps = parseScore(value);
 
-        // COMENTARIOS
         else if (header.includes('comentarios') || header.includes('seguimiento')) {
-             if (!record.comentarios) record.comentarios = value;
+             if (!record.comentarios && value) record.comentarios = value;
+             const followUpCommentField = [
+                'comentario_asesoramiento',
+                'comentario_organizacion',
+                'comentario_trato',
+                'comentario_general',
+                'comentario_estado_vehiculo',
+                'comentario_experiencia'
+             ][followUpCommentIndex];
+             if (followUpCommentField && !record[followUpCommentField]) {
+                record[followUpCommentField] = value;
+             }
+             followUpCommentIndex += 1;
         }
 
-        // CEM Scores (Parse Score handles nulls)
         else if (header.includes('asesoramiento') && header.includes('cem')) record.cem_asesoramiento = parseScore(value);
         else if (header.includes('organizacion') && header.includes('cem')) record.cem_organizacion = parseScore(value);
         else if (header.includes('trato') && header.includes('cem')) record.cem_trato = parseScore(value);
         else if (header.includes('satisfaccion general') && header.includes('cem')) record.cem_general = parseScore(value);
         
-        // Yes/No & Process
         else if (header.includes('prueba de manejo')) record.prueba_manejo = value;
         else if (header.includes('financiar') || header.includes('financiacion')) record.ofrecimiento_financiacion = value;
         else if (header.includes('usado') && header.includes('parte de pago')) record.toma_usados = value;
         else if (header.includes('contacto') && header.includes('despues de la entrega')) record.contacto_entrega = value;
         
-        // Admin / Delivery
         else if (header.includes('tramites') && header.includes('explicacion')) record.explicacion_tramites = parseScore(value); 
         else if (header.includes('plazo de entrega')) record.plazo_entrega = parseScore(value);
         else if (
@@ -1166,6 +1180,7 @@ const parseSalesQualityCSV = (csvText: string): SalesQualityRecord[] => {
             header.includes('satisfaccion con el estado del vehiculo en la entrega') ||
             header.includes('estado del vehiculo en la entrega')
         ) record.estado_vehiculo = parseScore(value);
+        else if (header.includes('segun tu experiencia') || header.includes('que aspectos te gustaron mas') || header.includes('que nos recomendarias mejorar')) record.experiencia_mejoras = value;
         else if (header.includes('explicacion') && header.includes('funcionamiento')) record.explicacion_entrega = parseScore(value);
         else if (header.includes('seguro')) record.ofrecimiento_seguro = value;
         else if (header.includes('app') && header.includes('vw')) record.app_mi_vw = value;
@@ -1173,15 +1188,12 @@ const parseSalesQualityCSV = (csvText: string): SalesQualityRecord[] => {
         record[header] = value;
       });
 
-      // AQ = "Entrega: ¿Cuál es su nivel de Satisfacción con el Estado del vehículo en la entrega?"
-      // Use the explicit column as the source of truth so we do not pick up a similar question by mistake.
       const estadoVehiculoAQ = currentLine[42];
       const estadoVehiculoAQScore = parseScore(estadoVehiculoAQ);
       if (estadoVehiculoAQScore !== null) {
         record.estado_vehiculo = estadoVehiculoAQScore;
       }
 
-      // Normalization
       if (!record.mes || normalizeMonth(record.mes) === 'Unknown') {
         record.mes = pickFirstValidMonth(
           record.mes,
@@ -1199,7 +1211,6 @@ const parseSalesQualityCSV = (csvText: string): SalesQualityRecord[] => {
       
       if (!record.tipo_venta) record.tipo_venta = 'Otro';
       
-      // Filter by VIN: Only records with a valid VIN are counted as real surveys
       if (record.vin && record.vin.trim() !== "" && record.vin !== "0") {
         records.push(record as SalesQualityRecord);
       }

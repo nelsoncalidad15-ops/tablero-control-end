@@ -66,13 +66,22 @@ export interface SalesQualityRecord {
   mes: string;
   anio: number;
   sucursal: string;
+  asesor_contact_center: string;
   vendedor: string;
+  administrativo: string;
   modelo: string;
   cliente: string;
   vin: string; // New: Column E
   estado: string; // Column N (Contactado, Buzon, etc)
+  enviar_wpp: string;
   tipo_venta: string; // New: Plan, Tradicional, etc.
   comentarios: string; // New field
+  telefono: string;
+  mails: string;
+  validacion_mails: string;
+  estado_mail: string;
+  categorizacion_cliente: string;
+  sector_responsable_enviar: string;
   nps: number | null; // Changed to allow null
   
   // Contact Logic
@@ -88,9 +97,13 @@ export interface SalesQualityRecord {
 
   // CEM Scores (1-5)
   cem_asesoramiento: number | null;
+  comentario_asesoramiento: string;
   cem_organizacion: number | null;
+  comentario_organizacion: string;
   cem_trato: number | null;
+  comentario_trato: string;
   cem_general: number | null; // OS
+  comentario_general: string;
 
   // Yes/No Questions
   prueba_manejo: string;
@@ -99,10 +112,13 @@ export interface SalesQualityRecord {
   contacto_entrega: string; // CLE
   explicacion_tramites: number; // Changed to number for Radar chart
   estado_vehiculo: number; // 1-5
+  comentario_estado_vehiculo: string;
   plazo_entrega: number; // 1-5
   explicacion_entrega: number; // 1-5
   ofrecimiento_seguro: string;
   app_mi_vw: string;
+  experiencia_mejoras: string;
+  comentario_experiencia: string;
   
   [key: string]: any;
 }

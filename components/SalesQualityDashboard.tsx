@@ -1,4 +1,4 @@
-ï»¿
+
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { 
@@ -370,15 +370,15 @@ const isChatBotContactState = (value: string) => {
 const CONTACT_STATE_DEFINITIONS: ContactStateDefinition[] = [
     { label: 'RECONTACTADO', bucket: 'Efectivo', color: '#0F766E', contacted: true, action: 'Seguimiento confirmado', priority: 1 },
     { label: 'Contactado', bucket: 'Efectivo', color: '#10B981', contacted: true, action: 'Contacto exitoso', priority: 2 },
-    { label: 'EnvÃ­o por WSP', bucket: 'Recuperable', color: '#3B82F6', contacted: false, action: 'Esperar respuesta', priority: 3 },
+    { label: 'Envío por WSP', bucket: 'Recuperable', color: '#3B82F6', contacted: false, action: 'Esperar respuesta', priority: 3 },
     { label: 'Llamar luego', bucket: 'Recuperable', color: '#6366F1', contacted: false, action: 'Reprogramar llamada', priority: 4 },
-    { label: 'BuzÃ³n de voz', bucket: 'Recuperable', color: '#8B5CF6', contacted: false, action: 'Reintento telefÃ³nico', priority: 5 },
+    { label: 'Buzón de voz', bucket: 'Recuperable', color: '#8B5CF6', contacted: false, action: 'Reintento telefónico', priority: 5 },
     { label: 'No contactado', bucket: 'No contactable', color: '#F43F5E', contacted: false, action: 'Sin respuesta efectiva', priority: 6 },
     { label: 'No se Encuesta', bucket: 'No contactable', color: '#E11D48', contacted: false, action: 'Base sin encuestar', priority: 7 },
-    { label: 'NÃºmero Incorrecto', bucket: 'No contactable', color: '#FB7185', contacted: false, action: 'Depurar contacto', priority: 8 },
-    { label: 'Fuera de Servicio', bucket: 'No contactable', color: '#BE123C', contacted: false, action: 'NÃºmero inactivo', priority: 9 },
+    { label: 'Número Incorrecto', bucket: 'No contactable', color: '#FB7185', contacted: false, action: 'Depurar contacto', priority: 8 },
+    { label: 'Fuera de Servicio', bucket: 'No contactable', color: '#BE123C', contacted: false, action: 'Número inactivo', priority: 9 },
     { label: 'No quiere responder', bucket: 'No contactable', color: '#DC2626', contacted: false, action: 'Resistencia al contacto', priority: 10 },
-    { label: 'No retirÃ³', bucket: 'No contactable', color: '#F97316', contacted: false, action: 'Caso pendiente', priority: 11 },
+    { label: 'No retiró', bucket: 'No contactable', color: '#F97316', contacted: false, action: 'Caso pendiente', priority: 11 },
     { label: 'Duplicado', bucket: 'No contactable', color: '#94A3B8', contacted: false, action: 'Excluir de la base', priority: 12 },
     { label: 'Cerrado Sin Respuesta', bucket: 'No contactable', color: '#64748B', contacted: false, action: 'Cierre administrativo', priority: 13 },
 ];
@@ -402,7 +402,7 @@ const resolveContactState = (rawValue: string): ContactStateDefinition => {
     if (normalized.includes('no se encuesta') || normalized.includes('no encuesta')) return CONTACT_STATE_DEFINITIONS[6];
     if (normalized.includes('no contactado') || normalized.includes('no contacta')) return CONTACT_STATE_DEFINITIONS[5];
     if (normalized.includes('no quiere responder')) return CONTACT_STATE_DEFINITIONS[9];
-    if (normalized.includes('no retiro') || normalized.includes('no retirÃ³')) return CONTACT_STATE_DEFINITIONS[10];
+    if (normalized.includes('no retiro') || normalized.includes('no retiró')) return CONTACT_STATE_DEFINITIONS[10];
     if (normalized.includes('numero incorrecto') || normalized.includes('numero erroneo') || normalized.includes('numero equivocado')) return CONTACT_STATE_DEFINITIONS[7];
     if (normalized.includes('fuera de servicio') || normalized.includes('fuera servicio')) return CONTACT_STATE_DEFINITIONS[8];
     if (normalized.includes('duplicado')) return CONTACT_STATE_DEFINITIONS[11];
@@ -492,7 +492,7 @@ const SurveyView = ({
         let no = 0;
         filteredData.forEach((d: any) => {
             const val = String(d[key]).toLowerCase().trim();
-            if (val === 'si' || val === 'sÃ­') yes++;
+            if (val === 'si' || val === 'sí') yes++;
             else if (val === 'no') no++;
         });
         return { yes, no };
@@ -505,7 +505,7 @@ const SurveyView = ({
 
         filteredData.forEach((d: any) => {
             const raw = String(d[key] ?? '').toLowerCase().trim();
-            if (!raw || raw === '(vacÃ­o)' || raw === '(vacio)' || raw === '-') return;
+            if (!raw || raw === '(vacío)' || raw === '(vacio)' || raw === '-') return;
 
             const normalized = raw.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
             if (normalized === 'si') yes++;
@@ -568,9 +568,9 @@ const SurveyView = ({
     
         const percent = totalRows > 0 ? (contactedEffective / totalRows) * 100 : 0;
         const methodData = [
-            { name: '1Âº Llamado', value: effectiveOn1st, fill: '#3B82F6' },
-            { name: '2Âº Llamado', value: effectiveOn2nd, fill: '#6366F1' },
-            { name: '3Âº Llamado', value: effectiveOn3rd, fill: '#8B5CF6' },
+            { name: '1º Llamado', value: effectiveOn1st, fill: '#3B82F6' },
+            { name: '2º Llamado', value: effectiveOn2nd, fill: '#6366F1' },
+            { name: '3º Llamado', value: effectiveOn3rd, fill: '#8B5CF6' },
             { name: 'WhatsApp', value: effectiveViaWpp, fill: '#10B981' }
         ];
         const statusChartData = Object.entries(statusCounts).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
@@ -583,9 +583,9 @@ const SurveyView = ({
 
     const deliveryData = useMemo(() => {
         return [
-            { subject: 'Estado VehÃ­culo', A: calculateAverageStats('estado_vehiculo', true).value, fullMark: 5 },
-            { subject: 'ExplicaciÃ³n Entrega', A: calculateAverageStats('explicacion_entrega').value, fullMark: 5 },
-            { subject: 'TrÃ¡mites Adm.', A: calculateAverageStats('explicacion_tramites').value, fullMark: 5 },
+            { subject: 'Estado Vehículo', A: calculateAverageStats('estado_vehiculo', true).value, fullMark: 5 },
+            { subject: 'Explicación Entrega', A: calculateAverageStats('explicacion_entrega').value, fullMark: 5 },
+            { subject: 'Trámites Adm.', A: calculateAverageStats('explicacion_tramites').value, fullMark: 5 },
             { subject: 'Plazo Entrega', A: calculateAverageStats('plazo_entrega').value, fullMark: 5 },
         ];
     }, [contactSourceData]);
@@ -715,92 +715,110 @@ const SurveyView = ({
         return chartRows;
     }, [contactCenterMetrics]);
 
+    const renderDateCell = (val: any) => {
+        const text = String(val || '').trim();
+        return text
+            ? <span className="text-[10px] font-black uppercase tracking-widest text-slate-600">{text}</span>
+            : <span className="text-[9px] font-black uppercase tracking-widest text-slate-300">-</span>;
+    };
+
+    const renderTextCell = (val: any) => {
+        const text = String(val || '').trim();
+        return text
+            ? <span className="text-[10px] font-bold text-slate-700">{text}</span>
+            : <span className="text-[9px] font-black uppercase tracking-widest text-slate-300">-</span>;
+    };
+
+    const renderTagCell = (val: any) => {
+        const text = String(val || '').trim();
+        return text
+            ? <span className="inline-flex rounded-full border border-slate-200 bg-slate-50 px-2 py-1 text-[9px] font-black uppercase tracking-widest text-slate-600">{text}</span>
+            : <span className="text-[9px] font-black uppercase tracking-widest text-slate-300">-</span>;
+    };
+
+    const renderScoreCell = (val: any) => {
+        const numVal = Number(val);
+        if (!numVal) return <span className="text-[9px] font-black uppercase tracking-widest text-slate-300">-</span>;
+
+        const tone = numVal >= 5
+            ? 'bg-emerald-50 text-emerald-600 border-emerald-100'
+            : numVal >= 4
+                ? 'bg-blue-50 text-blue-600 border-blue-100'
+                : 'bg-rose-50 text-rose-600 border-rose-100';
+
+        return (
+            <div className={`inline-flex items-center justify-center min-w-10 h-10 rounded-2xl px-2 font-black text-xs shadow-sm border ${tone}`}>
+                {numVal}
+            </div>
+        );
+    };
+
+    const renderLongTextCell = (val: any) => {
+        const text = String(val || '').trim();
+        return text
+            ? (
+                <div className="max-w-sm min-w-[240px] rounded-2xl border border-slate-100 bg-slate-50 px-3 py-2">
+                    <p className="text-[10px] leading-relaxed text-slate-700">{text}</p>
+                </div>
+            )
+            : <span className="text-[9px] font-black uppercase tracking-widest text-slate-300">Sin dato</span>;
+    };
+
     const columns = [
-        {
-            header: 'Fecha',
-            accessor: 'mes',
-            render: (val: any) => <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">{String(val)}</span>
-        },
-        {
-            header: 'Cliente / Modelo',
-            accessor: 'cliente',
-            render: (_: any, row: any) => (
-                <div>
-                    <div className="font-black text-slate-900 text-sm tracking-tight mb-1">{row.cliente}</div>
-                    <div className="flex gap-2">
-                        <StatusBadge status="info" label={row.modelo || ''} />
-                        <StatusBadge status="warning" label={normalizeSaleType(row.tipo_venta)} />
-                    </div>
-                </div>
-            )
-        },
-        {
-            header: 'OS (Gral)',
-            accessor: 'cem_general',
-            className: 'text-center',
-            render: (val: any) => {
-                const numVal = Number(val);
-                return (
-                    <div className={`inline-flex items-center justify-center w-10 h-10 rounded-2xl font-black text-xs shadow-sm border ${
-                        numVal >= 5 ? 'bg-emerald-50 text-emerald-600 border-emerald-100' : 
-                        numVal >= 4 ? 'bg-blue-50 text-blue-600 border-blue-100' :
-                        'bg-rose-50 text-rose-600 border-rose-100'
-                    }`}>
-                        {numVal || '-'}
-                    </div>
-                );
-            }
-        },
-        {
-            header: 'Rec. NPS',
-            accessor: 'nps',
-            className: 'text-center',
-            render: (val: any) => {
-                const numVal = Number(val);
-                return (
-                    <div className={`inline-flex items-center justify-center w-10 h-10 rounded-2xl font-black text-xs shadow-sm border ${
-                        numVal >= 5 ? 'bg-amber-50 text-amber-600 border-amber-100' : 
-                        numVal >= 4 ? 'bg-orange-50 text-orange-600 border-orange-100' :
-                        'bg-slate-50 text-slate-400 border-slate-100'
-                    }`}>
-                        {numVal || '-'}
-                    </div>
-                );
-            }
-        },
-        {
-            header: 'Asesor',
-            accessor: 'vendedor',
-            render: (val: any) => <span className="text-[10px] font-black uppercase tracking-tight text-slate-500">{String(val)}</span>
-        },
-        {
-            header: 'Comentarios / Observaciones',
-            accessor: 'comentarios',
-            render: (val: any) => val && String(val).length > 5 ? (
-                <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 relative group/comment max-w-md">
-                    <div className="absolute -left-1 top-4 w-1 h-4 bg-amber-500 rounded-full"></div>
-                    <p className="text-xs text-slate-700 italic leading-relaxed font-medium">"{String(val)}"</p>
-                </div>
-            ) : (
-                <span className="text-slate-200 italic text-[10px] uppercase tracking-widest font-black">Sin comentarios</span>
-            )
-        }
+        { header: 'Fecha 1º llamado', accessor: 'fecha_1_llamado', render: renderDateCell },
+        { header: 'ENVIAR WPP', accessor: 'enviar_wpp', render: renderTagCell },
+        { header: 'Fecha 2º llamado', accessor: 'fecha_2_llamado', render: renderDateCell },
+        { header: 'Fecha 3º llamado', accessor: 'fecha_3_llamado', render: renderDateCell },
+        { header: 'Fecha de Contacto Efectivo', accessor: 'fecha_contacto_efectivo', render: renderDateCell },
+        { header: 'Fecha envio Mensaje por Wpp', accessor: 'fecha_envio_wpp', render: renderDateCell },
+        { header: 'Fecha Respuesta Mensaje por Wpp', accessor: 'fecha_respuesta_wpp', render: renderDateCell },
+        { header: 'Fecha de RECONTACTO', accessor: 'fecha_recontacto', render: renderDateCell },
+        { header: 'Asesor Contact Center', accessor: 'asesor_contact_center', render: renderTextCell },
+        { header: 'Estado', accessor: 'estado', render: renderTagCell },
+        { header: 'Fecha de Entrega', accessor: 'fecha_entrega', render: renderDateCell },
+        { header: 'Fecha Limite de contacto', accessor: 'fecha_limite_contacto', render: renderDateCell },
+        { header: 'Modelo', accessor: 'modelo', render: renderTextCell },
+        { header: 'Chasis o VIN', accessor: 'vin', render: renderTextCell },
+        { header: 'Nombre de Cliente', accessor: 'cliente', render: renderTextCell },
+        { header: 'Tipo de Venta', accessor: 'tipo_venta', render: (val: any) => renderTagCell(normalizeSaleType(String(val || ''))) },
+        { header: 'Vendedor', accessor: 'vendedor', render: renderTextCell },
+        { header: 'Administrativo', accessor: 'administrativo', render: renderTextCell },
+        { header: 'Telefono', accessor: 'telefono', render: renderTextCell },
+        { header: 'Mails', accessor: 'mails', render: renderLongTextCell },
+        { header: 'Validacion de Mails', accessor: 'validacion_mails', render: renderTagCell },
+        { header: 'Sucursal', accessor: 'sucursal', render: renderTagCell },
+        { header: 'CEM Asesoramiento', accessor: 'cem_asesoramiento', render: renderScoreCell },
+        { header: 'Comentarios seguimiento Asesoramiento', accessor: 'comentario_asesoramiento', render: renderLongTextCell },
+        { header: 'CEM Organizacion', accessor: 'cem_organizacion', render: renderScoreCell },
+        { header: 'Comentarios seguimiento Organizacion', accessor: 'comentario_organizacion', render: renderLongTextCell },
+        { header: 'CEM Trato', accessor: 'cem_trato', render: renderScoreCell },
+        { header: 'Comentarios seguimiento Trato', accessor: 'comentario_trato', render: renderLongTextCell },
+        { header: 'CEM Satisfaccion General OS', accessor: 'cem_general', render: renderScoreCell },
+        { header: 'Comentarios seguimiento General', accessor: 'comentario_general', render: renderLongTextCell },
+        { header: 'Prueba de Manejo', accessor: 'prueba_manejo', render: renderTagCell },
+        { header: 'Entrega Estado del vehiculo', accessor: 'estado_vehiculo', render: renderScoreCell },
+        { header: 'Comentarios seguimiento Entrega', accessor: 'comentario_estado_vehiculo', render: renderLongTextCell },
+        { header: 'Aspectos valorados / mejoras', accessor: 'experiencia_mejoras', render: renderLongTextCell },
+        { header: 'Comentarios seguimiento Experiencia', accessor: 'comentario_experiencia', render: renderLongTextCell },
+        { header: 'Categorizacion del cliente', accessor: 'categorizacion_cliente', render: renderTagCell },
+        { header: 'Sector Responsable ENVIAR', accessor: 'sector_responsable_enviar', render: renderTagCell },
+        { header: 'Estado MAIL', accessor: 'estado_mail', render: renderTagCell },
     ];
 
     return (
         <div className="space-y-8">
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-6">
-                <LuxuryKPICard title="SatisfacciÃ³n General (OS)" value={metrics.general.value} color="bg-slate-950" icon={Icons.Star} featured footerLabel="Muestra" footerDetail={`${metrics.general.sampleCount} notas`} />
+                <LuxuryKPICard title="Satisfacción General (OS)" value={metrics.general.value} color="bg-slate-950" icon={Icons.Star} featured footerLabel="Muestra" footerDetail={`${metrics.general.sampleCount} notas`} />
                 <LuxuryKPICard title="CEM - Trato" value={metrics.trato.value} color="bg-blue-600" icon={Icons.Users} featured footerLabel="Muestra" footerDetail={`${metrics.trato.sampleCount} notas`} />
-                <LuxuryKPICard title="CEM - OrganizaciÃ³n" value={metrics.organizacion.value} color="bg-indigo-600" icon={Icons.Layers} featured footerLabel="Muestra" footerDetail={`${metrics.organizacion.sampleCount} notas`} />
+                <LuxuryKPICard title="CEM - Organización" value={metrics.organizacion.value} color="bg-indigo-600" icon={Icons.Layers} featured footerLabel="Muestra" footerDetail={`${metrics.organizacion.sampleCount} notas`} />
                 <LuxuryKPICard title="CEM - Asesoramiento" value={metrics.asesoramiento.value} color="bg-emerald-600" icon={Icons.Activity} featured footerLabel="Muestra" footerDetail={`${metrics.asesoramiento.sampleCount} notas`} />
-                <LuxuryKPICard title="RecomendaciÃ³n (NPS)" value={metrics.nps.value} color="bg-amber-600" icon={Icons.ThumbsUp} featured footerLabel="Muestra" footerDetail={`${metrics.nps.sampleCount} notas`} />
+                <LuxuryKPICard title="Recomendación (NPS)" value={metrics.nps.value} color="bg-amber-600" icon={Icons.ThumbsUp} featured footerLabel="Muestra" footerDetail={`${metrics.nps.sampleCount} notas`} />
             </div>
             
             <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
                  <ChartWrapper 
                     title="Adherencia a Procesos"
-                    subtitle="Cumplimiento de estÃ¡ndares de venta"
+                    subtitle="Cumplimiento de estándares de venta"
                     className="xl:col-span-3"
                 >
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 py-4">
@@ -863,7 +881,7 @@ const SurveyView = ({
                     icon={Icons.ShieldAlert}
                     breakdown={[
                         {
-                            name: 'Base crÃ­tica',
+                            name: 'Base crítica',
                             value: `${contactCenterMetrics.noContactableRate.toFixed(1)}%`,
                             secondaryValue: `${contactCenterMetrics.total} casos`,
                             percentage: contactCenterMetrics.noContactableRate,
@@ -982,7 +1000,7 @@ const SurveyView = ({
                                             <th className="px-5 py-3 text-[8px] font-black uppercase tracking-widest text-slate-400">Estado</th>
                                             <th className="px-5 py-3 text-[8px] font-black uppercase tracking-widest text-slate-400">Cant.</th>
                                             <th className="px-5 py-3 text-[8px] font-black uppercase tracking-widest text-slate-400">%</th>
-                                            <th className="px-5 py-3 text-[8px] font-black uppercase tracking-widest text-slate-400">ClasificaciÃ³n</th>
+                                            <th className="px-5 py-3 text-[8px] font-black uppercase tracking-widest text-slate-400">Clasificación</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100">
@@ -1213,7 +1231,7 @@ const ClaimsView = ({
             accessor: 'reclamo',
             render: (_: any, row: any) => (
                 <div className="min-w-[400px] max-w-2xl">
-                    <div className="text-slate-950 font-bold text-[11px] leading-relaxed mb-3">"{row.reclamo || 'Sin descripciÃ³n'}"</div>
+                    <div className="text-slate-950 font-bold text-[11px] leading-relaxed mb-3">"{row.reclamo || 'Sin descripción'}"</div>
                     <div className="flex items-center gap-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-blue-600"></div>
                         <div className="text-blue-600 font-black text-[10px] uppercase tracking-wider">{row.motivo || 'Sin Motivo'}</div>
@@ -1241,7 +1259,7 @@ const ClaimsView = ({
             )
         },
         {
-            header: 'AnÃ¡lisis y Acciones',
+            header: 'Análisis y Acciones',
             accessor: 'analisis_causa',
             render: (_: any, row: any) => (
                 <div className="min-w-[350px] max-w-xl space-y-3">
@@ -1249,7 +1267,7 @@ const ClaimsView = ({
                         <div className="flex gap-3">
                             <div className="w-px bg-slate-200 shrink-0"></div>
                             <div>
-                                <div className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">AnÃ¡lisis de Causa</div>
+                                <div className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Análisis de Causa</div>
                                 <div className="text-[10px] font-medium text-slate-600 leading-tight italic">"{row.analisis_causa}"</div>
                             </div>
                         </div>
@@ -1257,7 +1275,7 @@ const ClaimsView = ({
                     <div className="grid grid-cols-1 gap-3">
                         {row.accion_contencion && (
                             <div className="bg-orange-50/50 p-2 rounded-xl border border-orange-100/50">
-                                <div className="text-[8px] font-black text-orange-600 uppercase tracking-widest mb-1">ContenciÃ³n</div>
+                                <div className="text-[8px] font-black text-orange-600 uppercase tracking-widest mb-1">Contención</div>
                                 <div className="text-[10px] font-bold text-slate-600 leading-tight">{row.accion_contencion}</div>
                             </div>
                         )}
@@ -1286,7 +1304,7 @@ const ClaimsView = ({
                     isActive={showOnlyPending}
                     footerDetail={showOnlyPending ? 'Filtro activo' : 'Click para filtrar'}
                 />
-                <LuxuryKPICard title="DÃ­as Prom. Demora" value={Number(avgDelay)} color="bg-blue-600" icon={Icons.Activity} />
+                <LuxuryKPICard title="Días Prom. Demora" value={Number(avgDelay)} color="bg-blue-600" icon={Icons.Activity} />
             </div>
 
             {showOnlyPending && (
@@ -1296,7 +1314,7 @@ const ClaimsView = ({
             )}
 
             <ChartWrapper
-                title="GestiÃ³n por Sector Responsable"
+                title="Gestión por Sector Responsable"
                 subtitle="Cada sector se gestiona por separado"
             >
                 <div className="space-y-4">
@@ -1350,7 +1368,7 @@ const ClaimsView = ({
 
             <ChartWrapper 
                 title="Motivos Principales de Reclamo"
-                subtitle="Top CategorÃ­as"
+                subtitle="Top Categorías"
             >
                 <div className="h-[500px]">
                     <ResponsiveContainer width="100%" height="100%">
@@ -1387,7 +1405,7 @@ const ClaimsView = ({
             <div className="grid grid-cols-1 gap-6">
                 <ChartWrapper 
                     title="Volumen Anual de Reclamos"
-                    subtitle="DistribuciÃ³n por mes"
+                    subtitle="Distribución por mes"
                 >
                     <div className="h-[350px]">
                         <ResponsiveContainer width="100%" height="100%">
@@ -1425,15 +1443,15 @@ const ClaimsView = ({
                 title="Listado de Reclamos"
                 subtitle={
                     showOnlyPending && selectedSector && selectedMotivo
-                        ? `Pendientes Â· Sector: ${selectedSector} Â· Motivo: ${selectedMotivo}`
+                        ? `Pendientes · Sector: ${selectedSector} · Motivo: ${selectedMotivo}`
                         : showOnlyPending && selectedSector
-                            ? `Pendientes Â· Sector: ${selectedSector}`
+                            ? `Pendientes · Sector: ${selectedSector}`
                             : showOnlyPending && selectedMotivo
-                                ? `Pendientes Â· Motivo: ${selectedMotivo}`
+                                ? `Pendientes · Motivo: ${selectedMotivo}`
                                 : showOnlyPending
                                     ? 'Solo reclamos pendientes'
                     : selectedSector && selectedMotivo
-                        ? `Sector: ${selectedSector} Â· Motivo: ${selectedMotivo}`
+                        ? `Sector: ${selectedSector} · Motivo: ${selectedMotivo}`
                         : selectedSector
                             ? `Sector: ${selectedSector}`
                             : selectedMotivo
@@ -1842,7 +1860,7 @@ const SalesQualityDashboard: React.FC<SalesQualityDashboardProps> = ({ onBack, i
                     value={selectedCodigo || ''}
                     onChange={(e) => setSelectedCodigo(e.target.value || null)}
                 >
-                    <option value="">CÃ³digo</option>
+                    <option value="">Código</option>
                     {availableCemOsFilters.codigos.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
                 <select 
@@ -1894,14 +1912,14 @@ const SalesQualityDashboard: React.FC<SalesQualityDashboardProps> = ({ onBack, i
       ? [
           claimsBranches.length === 0 ? 'TODAS LAS SUCURSALES' : claimsBranches.join(' / '),
           selectedClaimsSector ? `SECTOR ${selectedClaimsSector}` : null
-        ].filter(Boolean).join(' Â· ')
+        ].filter(Boolean).join(' · ')
       : [
           selectedCodigo ? `CODIGO ${selectedCodigo}` : null,
           selectedZona ? `ZONA ${selectedZona}` : null,
           selectedCanal ? `CANAL ${selectedCanal}` : null,
           selectedVendedor ? `ASESOR ${selectedVendedor}` : null,
           selectedEstadoUnidad ? `ESTADO ${selectedEstadoUnidad}` : null
-        ].filter(Boolean).join(' Â· ') || 'SIN FILTRO';
+        ].filter(Boolean).join(' · ') || 'SIN FILTRO';
 
   return (
     <DashboardFrame
@@ -1919,7 +1937,7 @@ const SalesQualityDashboard: React.FC<SalesQualityDashboardProps> = ({ onBack, i
             </span>
           </>
         }
-        subtitle={activeTab === 'surveys' ? "Encuestas de SatisfacciÃ³n" : activeTab === 'claims' ? "GestiÃ³n de Reclamos" : "CEM OS"}
+        subtitle={activeTab === 'surveys' ? "Encuestas de Satisfacción" : activeTab === 'claims' ? "Gestión de Reclamos" : "CEM OS"}
         lastUpdated={new Date().toLocaleTimeString()}
         filters={null}
         isLoading={loadingState === LoadingState.LOADING}

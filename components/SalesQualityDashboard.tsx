@@ -763,46 +763,28 @@ const SurveyView = ({
             )
             : <span className="text-[9px] font-black uppercase tracking-widest text-slate-300">Sin dato</span>;
     };
+    const renderSummaryCell = (_: any, row: SalesQualityRecord) => {
+        const summary = [
+            row.comentario_experiencia,
+            row.comentario_estado_vehiculo,
+            row.comentario_general,
+            row.comentarios,
+        ].find((value) => String(value || '').trim().length > 0) || '';
+
+        return renderLongTextCell(summary);
+    };
 
     const columns = [
-        { header: 'Fecha 1º llamado', accessor: 'fecha_1_llamado', render: renderDateCell },
-        { header: 'ENVIAR WPP', accessor: 'enviar_wpp', render: renderTagCell },
-        { header: 'Fecha 2º llamado', accessor: 'fecha_2_llamado', render: renderDateCell },
-        { header: 'Fecha 3º llamado', accessor: 'fecha_3_llamado', render: renderDateCell },
-        { header: 'Fecha de Contacto Efectivo', accessor: 'fecha_contacto_efectivo', render: renderDateCell },
-        { header: 'Fecha envio Mensaje por Wpp', accessor: 'fecha_envio_wpp', render: renderDateCell },
-        { header: 'Fecha Respuesta Mensaje por Wpp', accessor: 'fecha_respuesta_wpp', render: renderDateCell },
-        { header: 'Fecha de RECONTACTO', accessor: 'fecha_recontacto', render: renderDateCell },
-        { header: 'Asesor Contact Center', accessor: 'asesor_contact_center', render: renderTextCell },
-        { header: 'Estado', accessor: 'estado', render: renderTagCell },
-        { header: 'Fecha de Entrega', accessor: 'fecha_entrega', render: renderDateCell },
-        { header: 'Fecha Limite de contacto', accessor: 'fecha_limite_contacto', render: renderDateCell },
-        { header: 'Modelo', accessor: 'modelo', render: renderTextCell },
         { header: 'Chasis o VIN', accessor: 'vin', render: renderTextCell },
         { header: 'Nombre de Cliente', accessor: 'cliente', render: renderTextCell },
         { header: 'Tipo de Venta', accessor: 'tipo_venta', render: (val: any) => renderTagCell(normalizeSaleType(String(val || ''))) },
         { header: 'Vendedor', accessor: 'vendedor', render: renderTextCell },
-        { header: 'Administrativo', accessor: 'administrativo', render: renderTextCell },
-        { header: 'Telefono', accessor: 'telefono', render: renderTextCell },
-        { header: 'Mails', accessor: 'mails', render: renderLongTextCell },
-        { header: 'Validacion de Mails', accessor: 'validacion_mails', render: renderTagCell },
-        { header: 'Sucursal', accessor: 'sucursal', render: renderTagCell },
         { header: 'CEM Asesoramiento', accessor: 'cem_asesoramiento', render: renderScoreCell },
-        { header: 'Comentarios seguimiento Asesoramiento', accessor: 'comentario_asesoramiento', render: renderLongTextCell },
         { header: 'CEM Organizacion', accessor: 'cem_organizacion', render: renderScoreCell },
-        { header: 'Comentarios seguimiento Organizacion', accessor: 'comentario_organizacion', render: renderLongTextCell },
         { header: 'CEM Trato', accessor: 'cem_trato', render: renderScoreCell },
-        { header: 'Comentarios seguimiento Trato', accessor: 'comentario_trato', render: renderLongTextCell },
         { header: 'CEM Satisfaccion General OS', accessor: 'cem_general', render: renderScoreCell },
-        { header: 'Comentarios seguimiento General', accessor: 'comentario_general', render: renderLongTextCell },
-        { header: 'Prueba de Manejo', accessor: 'prueba_manejo', render: renderTagCell },
         { header: 'Entrega Estado del vehiculo', accessor: 'estado_vehiculo', render: renderScoreCell },
-        { header: 'Comentarios seguimiento Entrega', accessor: 'comentario_estado_vehiculo', render: renderLongTextCell },
-        { header: 'Aspectos valorados / mejoras', accessor: 'experiencia_mejoras', render: renderLongTextCell },
-        { header: 'Comentarios seguimiento Experiencia', accessor: 'comentario_experiencia', render: renderLongTextCell },
-        { header: 'Categorizacion del cliente', accessor: 'categorizacion_cliente', render: renderTagCell },
-        { header: 'Sector Responsable ENVIAR', accessor: 'sector_responsable_enviar', render: renderTagCell },
-        { header: 'Estado MAIL', accessor: 'estado_mail', render: renderTagCell },
+        { header: 'Resumen comentarios seguimiento', accessor: 'comentarios', render: renderSummaryCell },
     ];
 
     return (
@@ -815,32 +797,26 @@ const SurveyView = ({
                 <LuxuryKPICard title="Recomendación (NPS)" value={metrics.nps.value} color="bg-amber-600" icon={Icons.ThumbsUp} featured footerLabel="Muestra" footerDetail={`${metrics.nps.sampleCount} notas`} />
             </div>
             
-            <div className="grid grid-cols-1 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 xl:grid-cols-[1.4fr_0.8fr] gap-6">
                  <ChartWrapper 
                     title="Adherencia a Procesos"
-                    subtitle="Cumplimiento de estándares de venta"
-                    className="xl:col-span-3"
+                    subtitle="Preguntas actualmente vigentes en la encuesta"
                 >
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 py-4">
+                    <div className="grid grid-cols-1 gap-6 py-4">
                         <TripleDonut
                             title="Prueba de Manejo"
-                            subtitle="Columna AH"
+                            subtitle="Pregunta activa"
                             data={[
                                 { name: 'Si', value: metrics.pruebaManejo.yes, fill: '#10B981' },
                                 { name: 'No', value: metrics.pruebaManejo.no, fill: '#F43F5E' },
                                 { name: 'No, no era necesario', value: metrics.pruebaManejo.notNecessary, fill: '#8B5CF6' },
                             ]}
                         />
-                        <MiniDonut yes={metrics.financiacion.yes} no={metrics.financiacion.no} title="Ofrecimiento Finan." />
-                        <MiniDonut yes={metrics.usados.yes} no={metrics.usados.no} title="Toma de Usados" />
-                        <MiniDonut yes={metrics.cle.yes} no={metrics.cle.no} title="Contacto Post-Entrega" />
-                        <MiniDonut yes={metrics.seguro.yes} no={metrics.seguro.no} title="Ofrecimiento Seguro" />
-                        <MiniDonut yes={metrics.app.yes} no={metrics.app.no} title="App Mi VW" />
                     </div>
                 </ChartWrapper>
-                <ChartWrapper title="Experiencia de Entrega" subtitle="Puntajes promedio">
-                    <div className="h-full min-h-[400px]">
-                        <DeliveryCircles data={deliveryData} />
+                <ChartWrapper title="Experiencia de Entrega" subtitle="Pregunta actualmente vigente">
+                    <div className="h-full min-h-[280px]">
+                        <DeliveryCircles data={deliveryData.filter((item) => item.subject === 'Estado Vehículo')} />
                     </div>
                 </ChartWrapper>
             </div>

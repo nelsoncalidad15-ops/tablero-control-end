@@ -199,6 +199,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
     const avgInternalTrato = internalVentasData.filter(d => d.cem_trato !== null).reduce((a, b) => a + (b.cem_trato || 0), 0) / (internalVentasData.filter(d => d.cem_trato !== null).length || 1);
     const avgInternalOrg = internalVentasData.filter(d => d.cem_organizacion !== null).reduce((a, b) => a + (b.cem_organizacion || 0), 0) / (internalVentasData.filter(d => d.cem_organizacion !== null).length || 1);
     const avgInternalAses = internalVentasData.filter(d => d.cem_asesoramiento !== null).reduce((a, b) => a + (b.cem_asesoramiento || 0), 0) / (internalVentasData.filter(d => d.cem_asesoramiento !== null).length || 1);
+    const avgInternalVehiculo = internalVentasData.filter(d => d.estado_vehiculo !== null).reduce((a, b) => a + (b.estado_vehiculo || 0), 0) / (internalVentasData.filter(d => d.estado_vehiculo !== null).length || 1);
 
     // Adherencia a Procesos (Internal Ventas)
     const calculateProcessMetric = (data: any[], key: string) => {
@@ -346,6 +347,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
             avgTrato: avgInternalTrato,
             avgOrg: avgInternalOrg,
             avgAses: avgInternalAses,
+            avgVehiculo: avgInternalVehiculo,
             processMetrics
         },
         claimsVentas: {
@@ -745,10 +747,10 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                     <div className="px-6 py-2 bg-amber-600 text-white text-xs font-black uppercase tracking-widest rounded-full shadow-xl shadow-amber-600/20">AUDITORÍA INTERNA</div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-6 flex-1 min-h-0">
+                <div className="grid grid-cols-[1.2fr_1fr] gap-6 flex-1 min-h-0">
                     <div className="space-y-4 flex flex-col">
                         <div className="p-4 bg-slate-50 rounded-[2.5rem] border border-slate-100 flex flex-col items-center justify-center text-center shadow-sm flex-1">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Satisfacción General (OS)</p>
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Satisfaccion General (OS)</p>
                             <div className="relative w-80 h-40">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <PieChart>
@@ -776,11 +778,12 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                                 </div>
                             </div>
                         </div>
-                        <div className="grid grid-cols-3 gap-4">
+                        <div className="grid grid-cols-2 gap-4">
                             {[
                                 { label: 'Trato', value: filteredMetrics.internalVentas.avgTrato },
-                                { label: 'Organización', value: filteredMetrics.internalVentas.avgOrg },
-                                { label: 'Asesoramiento', value: filteredMetrics.internalVentas.avgAses }
+                                { label: 'Organizacion', value: filteredMetrics.internalVentas.avgOrg },
+                                { label: 'Asesoramiento', value: filteredMetrics.internalVentas.avgAses },
+                                { label: 'Estado del Vehiculo', value: filteredMetrics.internalVentas.avgVehiculo }
                             ].map((m, i) => (
                                 <div key={i} className="p-4 bg-slate-50 rounded-[1.5rem] border border-slate-100 text-center shadow-sm">
                                     <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">{m.label}</p>
@@ -791,37 +794,19 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                     </div>
 
                     <div className="p-6 bg-slate-50 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col min-h-0">
-                        <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-6 italic text-center">Cumplimiento de Estándares de Venta</h4>
-                        <div className="grid grid-cols-2 gap-x-8 gap-y-4 flex-1 min-h-0">
-                            {filteredMetrics.internalVentas.processMetrics.map(m => (
-                                <div key={m.name} className="flex flex-col items-center">
-                                    <div className="relative w-56 h-28">
-                                        <ResponsiveContainer width="100%" height="100%">
-                                            <PieChart>
-                                                <Pie
-                                                    data={[
-                                                        { value: m.value },
-                                                        { value: 100 - m.value }
-                                                    ]}
-                                                    cx="50%"
-                                                    cy="100%"
-                                                    startAngle={180}
-                                                    endAngle={0}
-                                                    innerRadius={70}
-                                                    outerRadius={100}
-                                                    paddingAngle={0}
-                                                    dataKey="value"
-                                                >
-                                                    <Cell fill="#d97706" />
-                                                    <Cell fill="#f1f5f9" />
-                                                </Pie>
-                                            </PieChart>
-                                        </ResponsiveContainer>
-                                        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 text-4xl font-black text-slate-950">
-                                            {m.value.toFixed(0)}%
-                                        </div>
-                                    </div>
-                                    <p className="text-[10px] font-black text-slate-500 uppercase tracking-widest text-center mt-2 leading-tight">{m.name}</p>
+                        <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-6 italic text-center">Indicadores vigentes de la encuesta</h4>
+                        <div className="grid grid-cols-2 gap-4 flex-1 min-h-0 content-center">
+                            {[
+                                { label: 'CEM Trato', value: filteredMetrics.internalVentas.avgTrato, color: '#2563eb' },
+                                { label: 'CEM Organizacion', value: filteredMetrics.internalVentas.avgOrg, color: '#4f46e5' },
+                                { label: 'CEM Asesoramiento', value: filteredMetrics.internalVentas.avgAses, color: '#10b981' },
+                                { label: 'Entrega Estado del Vehiculo', value: filteredMetrics.internalVentas.avgVehiculo, color: '#f59e0b' },
+                            ].map((metric, index) => (
+                                <div key={index} className="rounded-[2rem] border border-slate-100 bg-white px-5 py-6 text-center shadow-sm">
+                                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-[0.24em] leading-tight min-h-[32px]">{metric.label}</p>
+                                    <p className="mt-4 text-4xl font-black italic tracking-tighter" style={{ color: metric.color }}>
+                                        {metric.value.toFixed(2)}
+                                    </p>
                                 </div>
                             ))}
                         </div>
@@ -1066,18 +1051,14 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                 </div>
 
                 <div className="flex flex-col flex-1 gap-6 min-h-0">
-                    <div className="grid grid-cols-3 gap-4">
+                    <div className="grid grid-cols-2 gap-4">
                         <div className="p-4 bg-slate-50 rounded-[2rem] border border-slate-100 text-center shadow-sm">
                             <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Cantidad de Reclamos</p>
                             <p className="text-3xl font-black text-slate-950 italic">{filteredMetrics.claimsPostventa.total}</p>
                         </div>
                         <div className="p-4 bg-slate-50 rounded-[2rem] border border-slate-100 text-center shadow-sm">
-                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Reclamos Únicos (OR)</p>
+                            <p className="text-[9px] font-black text-slate-400 uppercase tracking-widest mb-1">Reclamos Unicos (OR)</p>
                             <p className="text-3xl font-black text-slate-950 italic">{filteredMetrics.claimsPostventa.unique}</p>
-                        </div>
-                        <div className="p-4 bg-emerald-900 rounded-[2rem] text-white relative overflow-hidden shadow-xl shadow-emerald-900/20 flex flex-col justify-center text-center">
-                            <p className="text-[9px] font-black text-emerald-300 uppercase tracking-widest mb-1">Resolución</p>
-                            <p className="text-3xl font-black text-white italic">{filteredMetrics.claimsPostventa.resolved}</p>
                         </div>
                     </div>
 
@@ -1206,3 +1187,4 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
 };
 
 export default ProfessionalReport;
+

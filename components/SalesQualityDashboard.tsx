@@ -263,6 +263,93 @@ const ScorePieCard = ({ title, value, color }: { title: string; value: number; c
     );
 };
 
+const MonthlyScoreCard = ({
+    title,
+    color,
+    average,
+    data,
+    expanded,
+    onClick,
+}: {
+    title: string;
+    color: string;
+    average: number;
+    data: Array<{ name: string; value: number; sample: number }>;
+    expanded: boolean;
+    onClick: () => void;
+}) => {
+    return (
+        <button
+            type="button"
+            onClick={onClick}
+            className={`rounded-3xl border p-4 text-left shadow-sm transition-all hover:-translate-y-1 ${
+                expanded
+                    ? 'border-slate-900 bg-slate-950 text-white shadow-xl shadow-slate-300/30'
+                    : 'border-slate-100 bg-white/75 text-slate-900 hover:shadow-lg'
+            }`}
+        >
+            <div className="flex items-start justify-between gap-3">
+                <div>
+                    <p className={`text-[9px] font-black uppercase tracking-[0.28em] ${expanded ? 'text-white/55' : 'text-slate-400'}`}>
+                        Tendencia mensual
+                    </p>
+                    <h4 className="mt-2 text-sm font-black uppercase tracking-[0.16em]">{title}</h4>
+                </div>
+                <div className="text-right">
+                    <div className="text-2xl font-black tracking-tighter">{average > 0 ? average.toFixed(1) : '-'}</div>
+                    <div className={`text-[8px] font-black uppercase tracking-[0.24em] ${expanded ? 'text-white/55' : 'text-slate-400'}`}>
+                        Promedio
+                    </div>
+                </div>
+            </div>
+
+            <div className="mt-4 h-28">
+                <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={data} margin={{ top: 6, right: 0, left: -22, bottom: 0 }}>
+                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke={expanded ? 'rgba(255,255,255,0.08)' : '#E2E8F0'} />
+                        <XAxis
+                            dataKey="name"
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{ fill: expanded ? '#CBD5E1' : '#64748B', fontSize: 10, fontWeight: 800 }}
+                            tickFormatter={(value) => String(value).slice(0, 3)}
+                        />
+                        <YAxis
+                            domain={[0, 5]}
+                            axisLine={false}
+                            tickLine={false}
+                            tick={{ fill: '#94A3B8', fontSize: 10, fontWeight: 800 }}
+                            width={24}
+                        />
+                        <Tooltip
+                            contentStyle={{
+                                borderRadius: '16px',
+                                border: 'none',
+                                boxShadow: '0 20px 30px rgba(15,23,42,0.10)',
+                                background: 'rgba(255,255,255,0.96)',
+                            }}
+                            formatter={(value: any, _name, props) => {
+                                const row = props.payload as { sample: number };
+                                return [`${Number(value).toFixed(2)}`, `${row.sample} notas`];
+                            }}
+                            labelFormatter={(label) => `Mes: ${label}`}
+                        />
+                        <Bar dataKey="value" radius={[8, 8, 0, 0]} barSize={16}>
+                            {data.map((entry) => (
+                                <Cell key={entry.name} fill={entry.value > 0 ? color : expanded ? 'rgba(255,255,255,0.16)' : '#E2E8F0'} />
+                            ))}
+                        </Bar>
+                    </BarChart>
+                </ResponsiveContainer>
+            </div>
+
+            <div className={`mt-3 text-[9px] font-black uppercase tracking-[0.24em] ${expanded ? 'text-white/60' : 'text-slate-400'}`}>
+                {expanded ? 'Vista expandida activa' : 'Click para expandir'}
+            </div>
+        </button>
+    );
+};
+
 // --- HELPER FUNCTIONS ---
 
 const parseDateString = (dateStr: string): Date | null => {
@@ -408,15 +495,15 @@ const isChatBotContactState = (value: string) => {
 const CONTACT_STATE_DEFINITIONS: ContactStateDefinition[] = [
     { label: 'RECONTACTADO', bucket: 'Efectivo', color: '#0F766E', contacted: true, action: 'Seguimiento confirmado', priority: 1 },
     { label: 'Contactado', bucket: 'Efectivo', color: '#10B981', contacted: true, action: 'Contacto exitoso', priority: 2 },
-    { label: 'Envío por WSP', bucket: 'Recuperable', color: '#3B82F6', contacted: false, action: 'Esperar respuesta', priority: 3 },
+    { label: 'Envï¿½o por WSP', bucket: 'Recuperable', color: '#3B82F6', contacted: false, action: 'Esperar respuesta', priority: 3 },
     { label: 'Llamar luego', bucket: 'Recuperable', color: '#6366F1', contacted: false, action: 'Reprogramar llamada', priority: 4 },
-    { label: 'Buzón de voz', bucket: 'Recuperable', color: '#8B5CF6', contacted: false, action: 'Reintento telefónico', priority: 5 },
+    { label: 'Buzï¿½n de voz', bucket: 'Recuperable', color: '#8B5CF6', contacted: false, action: 'Reintento telefï¿½nico', priority: 5 },
     { label: 'No contactado', bucket: 'No contactable', color: '#F43F5E', contacted: false, action: 'Sin respuesta efectiva', priority: 6 },
     { label: 'No se Encuesta', bucket: 'No contactable', color: '#E11D48', contacted: false, action: 'Base sin encuestar', priority: 7 },
-    { label: 'Número Incorrecto', bucket: 'No contactable', color: '#FB7185', contacted: false, action: 'Depurar contacto', priority: 8 },
-    { label: 'Fuera de Servicio', bucket: 'No contactable', color: '#BE123C', contacted: false, action: 'Número inactivo', priority: 9 },
+    { label: 'Nï¿½mero Incorrecto', bucket: 'No contactable', color: '#FB7185', contacted: false, action: 'Depurar contacto', priority: 8 },
+    { label: 'Fuera de Servicio', bucket: 'No contactable', color: '#BE123C', contacted: false, action: 'Nï¿½mero inactivo', priority: 9 },
     { label: 'No quiere responder', bucket: 'No contactable', color: '#DC2626', contacted: false, action: 'Resistencia al contacto', priority: 10 },
-    { label: 'No retiró', bucket: 'No contactable', color: '#F97316', contacted: false, action: 'Caso pendiente', priority: 11 },
+    { label: 'No retirï¿½', bucket: 'No contactable', color: '#F97316', contacted: false, action: 'Caso pendiente', priority: 11 },
     { label: 'Duplicado', bucket: 'No contactable', color: '#94A3B8', contacted: false, action: 'Excluir de la base', priority: 12 },
     { label: 'Cerrado Sin Respuesta', bucket: 'No contactable', color: '#64748B', contacted: false, action: 'Cierre administrativo', priority: 13 },
 ];
@@ -440,7 +527,7 @@ const resolveContactState = (rawValue: string): ContactStateDefinition => {
     if (normalized.includes('no se encuesta') || normalized.includes('no encuesta')) return CONTACT_STATE_DEFINITIONS[6];
     if (normalized.includes('no contactado') || normalized.includes('no contacta')) return CONTACT_STATE_DEFINITIONS[5];
     if (normalized.includes('no quiere responder')) return CONTACT_STATE_DEFINITIONS[9];
-    if (normalized.includes('no retiro') || normalized.includes('no retiró')) return CONTACT_STATE_DEFINITIONS[10];
+    if (normalized.includes('no retiro') || normalized.includes('no retirï¿½')) return CONTACT_STATE_DEFINITIONS[10];
     if (normalized.includes('numero incorrecto') || normalized.includes('numero erroneo') || normalized.includes('numero equivocado')) return CONTACT_STATE_DEFINITIONS[7];
     if (normalized.includes('fuera de servicio') || normalized.includes('fuera servicio')) return CONTACT_STATE_DEFINITIONS[8];
     if (normalized.includes('duplicado')) return CONTACT_STATE_DEFINITIONS[11];
@@ -501,6 +588,7 @@ const SurveyView = ({
     selectedSaleTypes, toggleSaleType, availableSaleTypes,
     osFilter, setOsFilter
 }: any) => {
+    const [expandedTrendKey, setExpandedTrendKey] = useState<string>('general');
 
     const calculateAverageStats = (key: keyof SalesQualityRecord, allowZero: boolean = false) => {
         let sum = 0;
@@ -530,7 +618,7 @@ const SurveyView = ({
         let no = 0;
         filteredData.forEach((d: any) => {
             const val = String(d[key]).toLowerCase().trim();
-            if (val === 'si' || val === 'sí') yes++;
+            if (val === 'si' || val === 'sï¿½') yes++;
             else if (val === 'no') no++;
         });
         return { yes, no };
@@ -543,7 +631,7 @@ const SurveyView = ({
 
         filteredData.forEach((d: any) => {
             const raw = String(d[key] ?? '').toLowerCase().trim();
-            if (!raw || raw === '(vacío)' || raw === '(vacio)' || raw === '-') return;
+            if (!raw || raw === '(vacï¿½o)' || raw === '(vacio)' || raw === '-') return;
 
             const normalized = raw.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
             if (normalized === 'si') yes++;
@@ -567,6 +655,66 @@ const SurveyView = ({
         seguro: calculateYesNo('ofrecimiento_seguro'),
         app: calculateYesNo('app_mi_vw')
     }), [filteredData]);
+
+    const scoreTrendDefinitions = useMemo(() => ([
+        { key: 'asesoramiento', title: 'CEM Asesoramiento', accessor: 'cem_asesoramiento' as keyof SalesQualityRecord, color: '#10B981', allowZero: false },
+        { key: 'organizacion', title: 'CEM Organizacion', accessor: 'cem_organizacion' as keyof SalesQualityRecord, color: '#4F46E5', allowZero: false },
+        { key: 'trato', title: 'CEM Trato', accessor: 'cem_trato' as keyof SalesQualityRecord, color: '#2563EB', allowZero: false },
+        { key: 'general', title: 'Satisfaccion General (OS)', accessor: 'cem_general' as keyof SalesQualityRecord, color: '#0F172A', allowZero: false },
+        { key: 'estado_vehiculo', title: 'Estado del Vehiculo', accessor: 'estado_vehiculo' as keyof SalesQualityRecord, color: '#F59E0B', allowZero: true },
+    ]), []);
+
+    const monthlyScoreTrends = useMemo(() => {
+        const averageForRows = (rows: SalesQualityRecord[], key: keyof SalesQualityRecord, allowZero: boolean) => {
+            let sum = 0;
+            let count = 0;
+
+            rows.forEach((row) => {
+                const rawValue = row[key];
+                const numericValue =
+                    typeof rawValue === 'number'
+                        ? rawValue
+                        : typeof rawValue === 'string'
+                            ? Number(rawValue.replace(',', '.').trim())
+                            : NaN;
+
+                if (Number.isFinite(numericValue) && (allowZero ? numericValue >= 0 : numericValue > 0)) {
+                    sum += numericValue;
+                    count += 1;
+                }
+            });
+
+            return {
+                value: count > 0 ? sum / count : 0,
+                sample: count,
+            };
+        };
+
+        return scoreTrendDefinitions.map((definition) => {
+            const data = MONTHS.map((month) => {
+                const monthRows = filteredData.filter((row: SalesQualityRecord) => row.mes === month);
+                const stats = averageForRows(monthRows, definition.accessor, definition.allowZero);
+                return {
+                    name: month,
+                    value: Number(stats.value.toFixed(2)),
+                    sample: stats.sample,
+                };
+            });
+
+            const validPoints = data.filter((item) => item.sample > 0);
+            const average = validPoints.length > 0
+                ? validPoints.reduce((acc, item) => acc + item.value, 0) / validPoints.length
+                : 0;
+
+            return {
+                ...definition,
+                data,
+                average,
+            };
+        });
+    }, [filteredData, scoreTrendDefinitions]);
+
+    const expandedTrend = monthlyScoreTrends.find((item) => item.key === expandedTrendKey) || monthlyScoreTrends[0];
 
     const contactSourceData = contactData || filteredData;
 
@@ -606,9 +754,9 @@ const SurveyView = ({
     
         const percent = totalRows > 0 ? (contactedEffective / totalRows) * 100 : 0;
         const methodData = [
-            { name: '1º Llamado', value: effectiveOn1st, fill: '#3B82F6' },
-            { name: '2º Llamado', value: effectiveOn2nd, fill: '#6366F1' },
-            { name: '3º Llamado', value: effectiveOn3rd, fill: '#8B5CF6' },
+            { name: '1ï¿½ Llamado', value: effectiveOn1st, fill: '#3B82F6' },
+            { name: '2ï¿½ Llamado', value: effectiveOn2nd, fill: '#6366F1' },
+            { name: '3ï¿½ Llamado', value: effectiveOn3rd, fill: '#8B5CF6' },
             { name: 'WhatsApp', value: effectiveViaWpp, fill: '#10B981' }
         ];
         const statusChartData = Object.entries(statusCounts).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
@@ -621,9 +769,9 @@ const SurveyView = ({
 
     const deliveryData = useMemo(() => {
         return [
-            { subject: 'Estado Vehículo', A: calculateAverageStats('estado_vehiculo', true).value, fullMark: 5 },
-            { subject: 'Explicación Entrega', A: calculateAverageStats('explicacion_entrega').value, fullMark: 5 },
-            { subject: 'Trámites Adm.', A: calculateAverageStats('explicacion_tramites').value, fullMark: 5 },
+            { subject: 'Estado Vehï¿½culo', A: calculateAverageStats('estado_vehiculo', true).value, fullMark: 5 },
+            { subject: 'Explicaciï¿½n Entrega', A: calculateAverageStats('explicacion_entrega').value, fullMark: 5 },
+            { subject: 'Trï¿½mites Adm.', A: calculateAverageStats('explicacion_tramites').value, fullMark: 5 },
             { subject: 'Plazo Entrega', A: calculateAverageStats('plazo_entrega').value, fullMark: 5 },
         ];
     }, [contactSourceData]);
@@ -818,32 +966,96 @@ const SurveyView = ({
         { header: 'Tipo de Venta', accessor: 'tipo_venta', render: (val: any) => renderTagCell(normalizeSaleType(String(val || ''))) },
         { header: 'Vendedor', accessor: 'vendedor', render: renderTextCell },
         { header: 'CEM Asesoramiento', accessor: 'cem_asesoramiento', render: renderScoreCell },
-        { header: 'CEM Organización', accessor: 'cem_organizacion', render: renderScoreCell },
+        { header: 'CEM Organizaciï¿½n', accessor: 'cem_organizacion', render: renderScoreCell },
         { header: 'CEM Trato', accessor: 'cem_trato', render: renderScoreCell },
-        { header: 'CEM Satisfacción General OS', accessor: 'cem_general', render: renderScoreCell },
-        { header: 'Entrega Estado del Vehículo', accessor: 'estado_vehiculo', render: renderScoreCell },
+        { header: 'CEM Satisfacciï¿½n General OS', accessor: 'cem_general', render: renderScoreCell },
+        { header: 'Entrega Estado del Vehï¿½culo', accessor: 'estado_vehiculo', render: renderScoreCell },
         { header: 'Resumen seguimiento (AV)', accessor: 'comentarios', render: renderSummaryCell },
     ];
 
     return (
         <div className="space-y-8">
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-                <LuxuryKPICard title="Satisfacción General (OS)" value={metrics.general.value} color="bg-slate-950" icon={Icons.Star} featured footerLabel="Muestra" footerDetail={`${metrics.general.sampleCount} notas`} />
+                <LuxuryKPICard title="Satisfacciï¿½n General (OS)" value={metrics.general.value} color="bg-slate-950" icon={Icons.Star} featured footerLabel="Muestra" footerDetail={`${metrics.general.sampleCount} notas`} />
                 <LuxuryKPICard title="CEM - Trato" value={metrics.trato.value} color="bg-blue-600" icon={Icons.Users} featured footerLabel="Muestra" footerDetail={`${metrics.trato.sampleCount} notas`} />
-                <LuxuryKPICard title="CEM - Organización" value={metrics.organizacion.value} color="bg-indigo-600" icon={Icons.Layers} featured footerLabel="Muestra" footerDetail={`${metrics.organizacion.sampleCount} notas`} />
+                <LuxuryKPICard title="CEM - Organizaciï¿½n" value={metrics.organizacion.value} color="bg-indigo-600" icon={Icons.Layers} featured footerLabel="Muestra" footerDetail={`${metrics.organizacion.sampleCount} notas`} />
                 <LuxuryKPICard title="CEM - Asesoramiento" value={metrics.asesoramiento.value} color="bg-emerald-600" icon={Icons.Activity} featured footerLabel="Muestra" footerDetail={`${metrics.asesoramiento.sampleCount} notas`} />
             </div>
             
             <ChartWrapper 
-                title="Resultados de la Encuesta Actual"
-                subtitle="CEM y entrega evaluados hoy en ventas"
+                title="Evolucion mensual de indicadores"
+                subtitle="Los 5 puntajes vigentes de la encuesta. Hace clic en cada grafico para ampliarlo."
             >
-                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4 py-4">
-                    <ScorePieCard title="CEM Asesoramiento" value={metrics.asesoramiento.value} color="#10B981" />
-                    <ScorePieCard title="CEM Organización" value={metrics.organizacion.value} color="#4F46E5" />
-                    <ScorePieCard title="CEM Trato" value={metrics.trato.value} color="#2563EB" />
-                    <ScorePieCard title="CEM Satisfacción General" value={metrics.general.value} color="#0F172A" />
-                    <ScorePieCard title="Estado del Vehículo" value={calculateAverageStats('estado_vehiculo', true).value} color="#F59E0B" />
+                <div className="space-y-5 py-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
+                        {monthlyScoreTrends.map((trend) => (
+                            <MonthlyScoreCard
+                                key={trend.key}
+                                title={trend.title}
+                                color={trend.color}
+                                average={trend.average}
+                                data={trend.data}
+                                expanded={expandedTrend?.key === trend.key}
+                                onClick={() => setExpandedTrendKey(trend.key)}
+                            />
+                        ))}
+                    </div>
+
+                    {expandedTrend && (
+                        <div className="rounded-[2rem] border border-slate-100 bg-white/80 p-6 shadow-sm">
+                            <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
+                                <div>
+                                    <p className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-400">Indicador expandido</p>
+                                    <h4 className="text-xl font-black uppercase tracking-[0.14em] text-slate-950">{expandedTrend.title}</h4>
+                                </div>
+                                <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
+                                    <p className="text-[8px] font-black uppercase tracking-[0.24em] text-slate-400">Promedio anual</p>
+                                    <p className="mt-1 text-2xl font-black tracking-tighter text-slate-950">
+                                        {expandedTrend.average > 0 ? expandedTrend.average.toFixed(2) : '-'}
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="mt-6 h-72">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={expandedTrend.data} margin={{ top: 10, right: 12, left: 0, bottom: 0 }}>
+                                        <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                                        <XAxis
+                                            dataKey="name"
+                                            axisLine={false}
+                                            tickLine={false}
+                                            tick={{ fill: '#475569', fontSize: 11, fontWeight: 800 }}
+                                        />
+                                        <YAxis
+                                            domain={[0, 5]}
+                                            axisLine={false}
+                                            tickLine={false}
+                                            tick={{ fill: '#64748B', fontSize: 11, fontWeight: 800 }}
+                                        />
+                                        <Tooltip
+                                            contentStyle={{
+                                                borderRadius: '18px',
+                                                border: 'none',
+                                                boxShadow: '0 20px 30px rgba(15,23,42,0.10)',
+                                                background: 'rgba(255,255,255,0.96)',
+                                            }}
+                                            formatter={(value: any, _name, props) => {
+                                                const row = props.payload as { sample: number };
+                                                return [`${Number(value).toFixed(2)} puntos`, `${row.sample} notas`];
+                                            }}
+                                            labelFormatter={(label) => `Mes: ${label}`}
+                                        />
+                                        <Bar dataKey="value" radius={[14, 14, 0, 0]} barSize={28}>
+                                            {expandedTrend.data.map((entry) => (
+                                                <Cell key={entry.name} fill={entry.value > 0 ? expandedTrend.color : '#E2E8F0'} />
+                                            ))}
+                                            <LabelList dataKey="value" position="top" formatter={(value: any) => Number(value) > 0 ? Number(value).toFixed(1) : ''} style={{ fill: '#0F172A', fontSize: 11, fontWeight: 900 }} />
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </ChartWrapper>
 
@@ -883,7 +1095,7 @@ const SurveyView = ({
                     icon={Icons.ShieldAlert}
                     breakdown={[
                         {
-                            name: 'Base crítica',
+                            name: 'Base crï¿½tica',
                             value: `${contactCenterMetrics.noContactableRate.toFixed(1)}%`,
                             secondaryValue: `${contactCenterMetrics.total} casos`,
                             percentage: contactCenterMetrics.noContactableRate,
@@ -1002,7 +1214,7 @@ const SurveyView = ({
                                             <th className="px-5 py-3 text-[8px] font-black uppercase tracking-widest text-slate-400">Estado</th>
                                             <th className="px-5 py-3 text-[8px] font-black uppercase tracking-widest text-slate-400">Cant.</th>
                                             <th className="px-5 py-3 text-[8px] font-black uppercase tracking-widest text-slate-400">%</th>
-                                            <th className="px-5 py-3 text-[8px] font-black uppercase tracking-widest text-slate-400">Clasificación</th>
+                                            <th className="px-5 py-3 text-[8px] font-black uppercase tracking-widest text-slate-400">Clasificaciï¿½n</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100">
@@ -1233,7 +1445,7 @@ const ClaimsView = ({
             accessor: 'reclamo',
             render: (_: any, row: any) => (
                 <div className="min-w-[400px] max-w-2xl">
-                    <div className="text-slate-950 font-bold text-[11px] leading-relaxed mb-3">"{row.reclamo || 'Sin descripción'}"</div>
+                    <div className="text-slate-950 font-bold text-[11px] leading-relaxed mb-3">"{row.reclamo || 'Sin descripciï¿½n'}"</div>
                     <div className="flex items-center gap-2">
                         <div className="w-1.5 h-1.5 rounded-full bg-blue-600"></div>
                         <div className="text-blue-600 font-black text-[10px] uppercase tracking-wider">{row.motivo || 'Sin Motivo'}</div>
@@ -1261,7 +1473,7 @@ const ClaimsView = ({
             )
         },
         {
-            header: 'Análisis y Acciones',
+            header: 'Anï¿½lisis y Acciones',
             accessor: 'analisis_causa',
             render: (_: any, row: any) => (
                 <div className="min-w-[350px] max-w-xl space-y-3">
@@ -1269,7 +1481,7 @@ const ClaimsView = ({
                         <div className="flex gap-3">
                             <div className="w-px bg-slate-200 shrink-0"></div>
                             <div>
-                                <div className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Análisis de Causa</div>
+                                <div className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">Anï¿½lisis de Causa</div>
                                 <div className="text-[10px] font-medium text-slate-600 leading-tight italic">"{row.analisis_causa}"</div>
                             </div>
                         </div>
@@ -1277,7 +1489,7 @@ const ClaimsView = ({
                     <div className="grid grid-cols-1 gap-3">
                         {row.accion_contencion && (
                             <div className="bg-orange-50/50 p-2 rounded-xl border border-orange-100/50">
-                                <div className="text-[8px] font-black text-orange-600 uppercase tracking-widest mb-1">Contención</div>
+                                <div className="text-[8px] font-black text-orange-600 uppercase tracking-widest mb-1">Contenciï¿½n</div>
                                 <div className="text-[10px] font-bold text-slate-600 leading-tight">{row.accion_contencion}</div>
                             </div>
                         )}
@@ -1306,7 +1518,7 @@ const ClaimsView = ({
                     isActive={showOnlyPending}
                     footerDetail={showOnlyPending ? 'Filtro activo' : 'Click para filtrar'}
                 />
-                <LuxuryKPICard title="Días Prom. Demora" value={Number(avgDelay)} color="bg-blue-600" icon={Icons.Activity} />
+                <LuxuryKPICard title="Dï¿½as Prom. Demora" value={Number(avgDelay)} color="bg-blue-600" icon={Icons.Activity} />
             </div>
 
             {showOnlyPending && (
@@ -1316,7 +1528,7 @@ const ClaimsView = ({
             )}
 
             <ChartWrapper
-                title="Gestión por Sector Responsable"
+                title="Gestiï¿½n por Sector Responsable"
                 subtitle="Cada sector se gestiona por separado"
             >
                 <div className="space-y-4">
@@ -1370,7 +1582,7 @@ const ClaimsView = ({
 
             <ChartWrapper 
                 title="Motivos Principales de Reclamo"
-                subtitle="Top Categorías"
+                subtitle="Top Categorï¿½as"
             >
                 <div className="h-[500px]">
                     <ResponsiveContainer width="100%" height="100%">
@@ -1407,7 +1619,7 @@ const ClaimsView = ({
             <div className="grid grid-cols-1 gap-6">
                 <ChartWrapper 
                     title="Volumen Anual de Reclamos"
-                    subtitle="Distribución por mes"
+                    subtitle="Distribuciï¿½n por mes"
                 >
                     <div className="h-[350px]">
                         <ResponsiveContainer width="100%" height="100%">
@@ -1445,15 +1657,15 @@ const ClaimsView = ({
                 title="Listado de Reclamos"
                 subtitle={
                     showOnlyPending && selectedSector && selectedMotivo
-                        ? `Pendientes · Sector: ${selectedSector} · Motivo: ${selectedMotivo}`
+                        ? `Pendientes ï¿½ Sector: ${selectedSector} ï¿½ Motivo: ${selectedMotivo}`
                         : showOnlyPending && selectedSector
-                            ? `Pendientes · Sector: ${selectedSector}`
+                            ? `Pendientes ï¿½ Sector: ${selectedSector}`
                             : showOnlyPending && selectedMotivo
-                                ? `Pendientes · Motivo: ${selectedMotivo}`
+                                ? `Pendientes ï¿½ Motivo: ${selectedMotivo}`
                                 : showOnlyPending
                                     ? 'Solo reclamos pendientes'
                     : selectedSector && selectedMotivo
-                        ? `Sector: ${selectedSector} · Motivo: ${selectedMotivo}`
+                        ? `Sector: ${selectedSector} ï¿½ Motivo: ${selectedMotivo}`
                         : selectedSector
                             ? `Sector: ${selectedSector}`
                             : selectedMotivo
@@ -1862,7 +2074,7 @@ const SalesQualityDashboard: React.FC<SalesQualityDashboardProps> = ({ onBack, i
                     value={selectedCodigo || ''}
                     onChange={(e) => setSelectedCodigo(e.target.value || null)}
                 >
-                    <option value="">Código</option>
+                    <option value="">Cï¿½digo</option>
                     {availableCemOsFilters.codigos.map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
                 <select 
@@ -1914,14 +2126,14 @@ const SalesQualityDashboard: React.FC<SalesQualityDashboardProps> = ({ onBack, i
       ? [
           claimsBranches.length === 0 ? 'TODAS LAS SUCURSALES' : claimsBranches.join(' / '),
           selectedClaimsSector ? `SECTOR ${selectedClaimsSector}` : null
-        ].filter(Boolean).join(' · ')
+        ].filter(Boolean).join(' ï¿½ ')
       : [
           selectedCodigo ? `CODIGO ${selectedCodigo}` : null,
           selectedZona ? `ZONA ${selectedZona}` : null,
           selectedCanal ? `CANAL ${selectedCanal}` : null,
           selectedVendedor ? `ASESOR ${selectedVendedor}` : null,
           selectedEstadoUnidad ? `ESTADO ${selectedEstadoUnidad}` : null
-        ].filter(Boolean).join(' · ') || 'SIN FILTRO';
+        ].filter(Boolean).join(' ï¿½ ') || 'SIN FILTRO';
 
   return (
     <DashboardFrame
@@ -1939,7 +2151,7 @@ const SalesQualityDashboard: React.FC<SalesQualityDashboardProps> = ({ onBack, i
             </span>
           </>
         }
-        subtitle={activeTab === 'surveys' ? "Encuestas de Satisfacción" : activeTab === 'claims' ? "Gestión de Reclamos" : "CEM OS"}
+        subtitle={activeTab === 'surveys' ? "Encuestas de Satisfacciï¿½n" : activeTab === 'claims' ? "Gestiï¿½n de Reclamos" : "CEM OS"}
         lastUpdated={new Date().toLocaleTimeString()}
         filters={null}
         isLoading={loadingState === LoadingState.LOADING}

@@ -267,6 +267,7 @@ const MonthlyScoreCard = ({
     title,
     color,
     average,
+    averageLabel,
     data,
     highlightedMonths,
     onClick,
@@ -274,6 +275,7 @@ const MonthlyScoreCard = ({
     title: string;
     color: string;
     average: number;
+    averageLabel: string;
     data: Array<{ name: string; value: number; sample: number }>;
     highlightedMonths: string[];
     onClick: () => void;
@@ -295,7 +297,7 @@ const MonthlyScoreCard = ({
                 <div className="text-right">
                     <div className="text-2xl font-black tracking-tighter">{average > 0 ? average.toFixed(1) : '-'}</div>
                     <div className="text-[8px] font-black uppercase tracking-[0.24em] text-slate-400">
-                        Promedio
+                        {averageLabel}
                     </div>
                 </div>
             </div>
@@ -703,18 +705,19 @@ const SurveyView = ({
                 };
             });
 
-            const validPoints = data.filter((item) => item.sample > 0);
-            const average = validPoints.length > 0
-                ? validPoints.reduce((acc, item) => acc + item.value, 0) / validPoints.length
-                : 0;
+            const scopedRows = selectedMonths.length > 0
+                ? trendData.filter((row: SalesQualityRecord) => selectedMonths.includes(row.mes))
+                : trendData;
+            const averageStats = averageForRows(scopedRows, definition.accessor, definition.allowZero);
 
             return {
                 ...definition,
                 data,
-                average,
+                average: averageStats.value,
+                averageLabel: selectedMonths.length > 0 ? 'Promedio seleccionado' : 'Promedio anual',
             };
         });
-        }, [trendData, scoreTrendDefinitions]);
+        }, [trendData, scoreTrendDefinitions, selectedMonths]);
 
     const expandedTrend = monthlyScoreTrends.find((item) => item.key === expandedTrendKey) || monthlyScoreTrends[0];
 
@@ -996,6 +999,7 @@ const SurveyView = ({
                                 title={trend.title}
                                 color={trend.color}
                                 average={trend.average}
+                                averageLabel={trend.averageLabel}
                                 data={trend.data}
                                 highlightedMonths={selectedMonths}
                                 onClick={() => setExpandedTrendKey(trend.key)}
@@ -1011,7 +1015,7 @@ const SurveyView = ({
                                     <h4 className="text-xl font-black uppercase tracking-[0.14em] text-slate-950">{expandedTrend.title}</h4>
                                 </div>
                                 <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
-                                    <p className="text-[8px] font-black uppercase tracking-[0.24em] text-slate-400">Promedio anual</p>
+                                    <p className="text-[8px] font-black uppercase tracking-[0.24em] text-slate-400">{expandedTrend.averageLabel}</p>
                                     <p className="mt-1 text-2xl font-black tracking-tighter text-slate-950">
                                         {expandedTrend.average > 0 ? expandedTrend.average.toFixed(2) : '-'}
                                     </p>

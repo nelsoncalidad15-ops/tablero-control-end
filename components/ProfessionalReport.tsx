@@ -195,11 +195,28 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
 
     // 2. Encuesta Interna Ventas - Month - 1
     const internalVentasData = data.salesQuality.filter(d => d.mes === reportMonths.mMinus1 && branchFilter(d));
-    const avgInternalOS = internalVentasData.filter(d => d.cem_general !== null).reduce((a, b) => a + (b.cem_general || 0), 0) / (internalVentasData.filter(d => d.cem_general !== null).length || 1);
-    const avgInternalTrato = internalVentasData.filter(d => d.cem_trato !== null).reduce((a, b) => a + (b.cem_trato || 0), 0) / (internalVentasData.filter(d => d.cem_trato !== null).length || 1);
-    const avgInternalOrg = internalVentasData.filter(d => d.cem_organizacion !== null).reduce((a, b) => a + (b.cem_organizacion || 0), 0) / (internalVentasData.filter(d => d.cem_organizacion !== null).length || 1);
-    const avgInternalAses = internalVentasData.filter(d => d.cem_asesoramiento !== null).reduce((a, b) => a + (b.cem_asesoramiento || 0), 0) / (internalVentasData.filter(d => d.cem_asesoramiento !== null).length || 1);
-    const avgInternalVehiculo = internalVentasData.filter(d => d.estado_vehiculo !== null).reduce((a, b) => a + (b.estado_vehiculo || 0), 0) / (internalVentasData.filter(d => d.estado_vehiculo !== null).length || 1);
+    const averageSalesQualityScore = (key: keyof SalesQualityRecord) => {
+        const scores = internalVentasData
+            .map((row) => row[key])
+            .map((value) => {
+                if (typeof value === 'number') return value;
+                if (typeof value === 'string') {
+                    const parsed = Number(value.replace(',', '.').trim());
+                    return Number.isFinite(parsed) ? parsed : NaN;
+                }
+                return NaN;
+            })
+            .filter((value) => Number.isFinite(value) && value > 0);
+
+        return scores.length > 0
+            ? scores.reduce((acc, value) => acc + value, 0) / scores.length
+            : 0;
+    };
+    const avgInternalOS = averageSalesQualityScore('cem_general');
+    const avgInternalTrato = averageSalesQualityScore('cem_trato');
+    const avgInternalOrg = averageSalesQualityScore('cem_organizacion');
+    const avgInternalAses = averageSalesQualityScore('cem_asesoramiento');
+    const avgInternalVehiculo = averageSalesQualityScore('estado_vehiculo');
 
     // Adherencia a Procesos (Internal Ventas)
     const calculateProcessMetric = (data: any[], key: string) => {

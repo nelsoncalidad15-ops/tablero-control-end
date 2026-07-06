@@ -225,6 +225,44 @@ const DeliveryCircles = ({ data }: { data: any[] }) => {
     );
 };
 
+const ScorePieCard = ({ title, value, color }: { title: string; value: number; color: string }) => {
+    const safeValue = Number.isFinite(value) ? value : 0;
+    const data = [
+        { name: 'Puntaje', value: Math.max(safeValue, 0) },
+        { name: 'Restante', value: Math.max(5 - safeValue, 0) },
+    ];
+
+    return (
+        <div className="rounded-3xl border border-slate-100 bg-white/70 p-5 shadow-sm">
+            <div className="h-40 w-full relative">
+                <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                        <Pie
+                            data={data}
+                            cx="50%"
+                            cy="50%"
+                            innerRadius={38}
+                            outerRadius={58}
+                            dataKey="value"
+                            stroke="none"
+                            paddingAngle={2}
+                        >
+                            <Cell fill={color} />
+                            <Cell fill="#E2E8F0" />
+                        </Pie>
+                        <Tooltip formatter={(val: any, name: any) => [Number(val).toFixed(2), name]} />
+                    </PieChart>
+                </ResponsiveContainer>
+                <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                    <span className="text-2xl font-black tracking-tighter text-slate-900">{safeValue > 0 ? safeValue.toFixed(1) : '-'}</span>
+                    <span className="text-[8px] font-black uppercase tracking-[0.22em] text-slate-400">Promedio</span>
+                </div>
+            </div>
+            <p className="mt-2 text-center text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">{title}</p>
+        </div>
+    );
+};
+
 // --- HELPER FUNCTIONS ---
 
 const parseDateString = (dateStr: string): Date | null => {
@@ -766,9 +804,9 @@ const SurveyView = ({
     const renderSummaryCell = (_: any, row: SalesQualityRecord) => {
         const summary = [
             row.comentario_experiencia,
+            row.comentarios,
             row.comentario_estado_vehiculo,
             row.comentario_general,
-            row.comentarios,
         ].find((value) => String(value || '').trim().length > 0) || '';
 
         return renderLongTextCell(summary);
@@ -780,46 +818,34 @@ const SurveyView = ({
         { header: 'Tipo de Venta', accessor: 'tipo_venta', render: (val: any) => renderTagCell(normalizeSaleType(String(val || ''))) },
         { header: 'Vendedor', accessor: 'vendedor', render: renderTextCell },
         { header: 'CEM Asesoramiento', accessor: 'cem_asesoramiento', render: renderScoreCell },
-        { header: 'CEM Organizacion', accessor: 'cem_organizacion', render: renderScoreCell },
+        { header: 'CEM Organización', accessor: 'cem_organizacion', render: renderScoreCell },
         { header: 'CEM Trato', accessor: 'cem_trato', render: renderScoreCell },
-        { header: 'CEM Satisfaccion General OS', accessor: 'cem_general', render: renderScoreCell },
-        { header: 'Entrega Estado del vehiculo', accessor: 'estado_vehiculo', render: renderScoreCell },
-        { header: 'Resumen comentarios seguimiento', accessor: 'comentarios', render: renderSummaryCell },
+        { header: 'CEM Satisfacción General OS', accessor: 'cem_general', render: renderScoreCell },
+        { header: 'Entrega Estado del Vehículo', accessor: 'estado_vehiculo', render: renderScoreCell },
+        { header: 'Resumen seguimiento (AV)', accessor: 'comentarios', render: renderSummaryCell },
     ];
 
     return (
         <div className="space-y-8">
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
                 <LuxuryKPICard title="Satisfacción General (OS)" value={metrics.general.value} color="bg-slate-950" icon={Icons.Star} featured footerLabel="Muestra" footerDetail={`${metrics.general.sampleCount} notas`} />
                 <LuxuryKPICard title="CEM - Trato" value={metrics.trato.value} color="bg-blue-600" icon={Icons.Users} featured footerLabel="Muestra" footerDetail={`${metrics.trato.sampleCount} notas`} />
                 <LuxuryKPICard title="CEM - Organización" value={metrics.organizacion.value} color="bg-indigo-600" icon={Icons.Layers} featured footerLabel="Muestra" footerDetail={`${metrics.organizacion.sampleCount} notas`} />
                 <LuxuryKPICard title="CEM - Asesoramiento" value={metrics.asesoramiento.value} color="bg-emerald-600" icon={Icons.Activity} featured footerLabel="Muestra" footerDetail={`${metrics.asesoramiento.sampleCount} notas`} />
-                <LuxuryKPICard title="Recomendación (NPS)" value={metrics.nps.value} color="bg-amber-600" icon={Icons.ThumbsUp} featured footerLabel="Muestra" footerDetail={`${metrics.nps.sampleCount} notas`} />
             </div>
             
-            <div className="grid grid-cols-1 xl:grid-cols-[1.4fr_0.8fr] gap-6">
-                 <ChartWrapper 
-                    title="Adherencia a Procesos"
-                    subtitle="Preguntas actualmente vigentes en la encuesta"
-                >
-                    <div className="grid grid-cols-1 gap-6 py-4">
-                        <TripleDonut
-                            title="Prueba de Manejo"
-                            subtitle="Pregunta activa"
-                            data={[
-                                { name: 'Si', value: metrics.pruebaManejo.yes, fill: '#10B981' },
-                                { name: 'No', value: metrics.pruebaManejo.no, fill: '#F43F5E' },
-                                { name: 'No, no era necesario', value: metrics.pruebaManejo.notNecessary, fill: '#8B5CF6' },
-                            ]}
-                        />
-                    </div>
-                </ChartWrapper>
-                <ChartWrapper title="Experiencia de Entrega" subtitle="Pregunta actualmente vigente">
-                    <div className="h-full min-h-[280px]">
-                        <DeliveryCircles data={deliveryData.filter((item) => item.subject === 'Estado Vehículo')} />
-                    </div>
-                </ChartWrapper>
-            </div>
+            <ChartWrapper 
+                title="Resultados de la Encuesta Actual"
+                subtitle="CEM y entrega evaluados hoy en ventas"
+            >
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4 py-4">
+                    <ScorePieCard title="CEM Asesoramiento" value={metrics.asesoramiento.value} color="#10B981" />
+                    <ScorePieCard title="CEM Organización" value={metrics.organizacion.value} color="#4F46E5" />
+                    <ScorePieCard title="CEM Trato" value={metrics.trato.value} color="#2563EB" />
+                    <ScorePieCard title="CEM Satisfacción General" value={metrics.general.value} color="#0F172A" />
+                    <ScorePieCard title="Estado del Vehículo" value={calculateAverageStats('estado_vehiculo', true).value} color="#F59E0B" />
+                </div>
+            </ChartWrapper>
 
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
                 <LuxuryKPICard

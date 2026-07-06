@@ -14,7 +14,7 @@ import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
     Cell, LineChart, Line, LabelList, PieChart, Pie 
 } from 'recharts';
-import { MONTHS, YEARS } from '../constants';
+import { MONTHS, YEARS, DETAILED_QUALITY_SHEET_KEY, DETAILED_QUALITY_SALTA_SHEET_KEY } from '../constants';
 import { LoadingState, AppConfig, DetailedQualityRecord, SalesQualityRecord, QualityRecord, SalesClaimsRecord, CemOsRecord, InternalPostventaRecord } from '../types';
 
 interface ProfessionalReportProps {
@@ -49,8 +49,8 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
       setLoading(LoadingState.LOADING);
       try {
         const results = await Promise.allSettled([
-          fetchDetailedQualityData(config.sheetUrls.detailed_quality || ''),
-          fetchDetailedQualityData(config.sheetUrls.detailed_quality_salta || ''),
+          fetchDetailedQualityData(config.sheetUrls.detailed_quality || DETAILED_QUALITY_SHEET_KEY),
+          fetchDetailedQualityData(config.sheetUrls.detailed_quality_salta || DETAILED_QUALITY_SALTA_SHEET_KEY),
           fetchSalesQualityData(config.sheetUrls.sales_quality || ''),
           fetchQualityData(config.sheetUrls.calidad || ''),
           fetchSalesClaimsData(config.sheetUrls.sales_claims || ''),
@@ -795,18 +795,10 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                                 </div>
                             </div>
                         </div>
-                        <div className="grid grid-cols-2 gap-4">
-                            {[
-                                { label: 'Trato', value: filteredMetrics.internalVentas.avgTrato },
-                                { label: 'Organizacion', value: filteredMetrics.internalVentas.avgOrg },
-                                { label: 'Asesoramiento', value: filteredMetrics.internalVentas.avgAses },
-                                { label: 'Estado del Vehiculo', value: filteredMetrics.internalVentas.avgVehiculo }
-                            ].map((m, i) => (
-                                <div key={i} className="p-4 bg-slate-50 rounded-[1.5rem] border border-slate-100 text-center shadow-sm">
-                                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-1">{m.label}</p>
-                                    <p className="text-2xl font-black text-slate-900 italic">{m.value.toFixed(2)}</p>
-                                </div>
-                            ))}
+                        <div className="p-5 bg-slate-50 rounded-[1.5rem] border border-slate-100 text-center shadow-sm">
+                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-[0.24em]">Indicador principal</p>
+                            <p className="mt-2 text-sm font-black uppercase tracking-[0.18em] text-slate-700">Satisfaccion General (OS)</p>
+                            <p className="mt-3 text-3xl font-black italic text-slate-900">{filteredMetrics.internalVentas.avgOS.toFixed(2)}</p>
                         </div>
                     </div>
 

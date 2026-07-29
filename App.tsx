@@ -7,6 +7,7 @@ import { Icons } from './components/Icon';
 import { AppConfig, AreaConfig } from './types';
 import { DEFAULT_CONFIG, SALES_QUALITY_SHEET_KEY, SALES_CLAIMS_SHEET_KEY, CEM_OS_SHEET_KEY, CEM_OS_SALTA_SHEET_KEY, AREAS } from './constants';
 import { primeBackendConnection, primeSalesQualityData } from './services/dataService';
+import { buildApiUrl, clearStoredDashboardPassword, getStoredDashboardPassword, setStoredDashboardPassword } from './services/apiConfig';
 
 const Dashboard = lazy(() => import('./components/Dashboard'));
 const QualityDashboard = lazy(() => import('./components/QualityDashboard'));
@@ -37,11 +38,139 @@ const preloadModule = (loader: () => Promise<any>) => {
   void loader();
 };
 
+type DashboardAccessState = "checking" | "granted" | "required" | "unavailable";
+
+const validateDashboardAccess = async (): Promise<DashboardAccessState> => {
+  const password = getStoredDashboardPassword();
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    "X-Requested-With": "XMLHttpRequest",
+  };
+
+  if (password) {
+    headers["X-Dashboard-Password"] = password;
+  }
+
+  try {
+    const response = await fetch(buildApiUrl("/api/auth/validate"), { headers });
+    if (response.status === 401) {
+      clearStoredDashboardPassword();
+      return "required";
+    }
+    if (!response.ok) {
+      return "unavailable";
+    }
+
+    const payload = await response.json() as { valid?: boolean };
+    return payload.valid ? "granted" : "required";
+  } catch {
+    return "unavailable";
+  }
+};
+
+const DashboardAccess = ({
+  state,
+  onAccessGranted,
+  onRetry,
+}: {
+  state: Exclude<DashboardAccessState, "granted">;
+  onAccessGranted: () => void;
+  onRetry: () => void;
+}) => {
+  const [password, setPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+
+  const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    const value = password.trim();
+    if (!value) {
+      setError("Ingrese la contrasena de acceso.");
+      return;
+    }
+
+    setSubmitting(true);
+    setError("");
+    setStoredDashboardPassword(value);
+    const nextState = await validateDashboardAccess();
+    setSubmitting(false);
+
+    if (nextState === "granted") {
+      onAccessGranted();
+      return;
+    }
+
+    clearStoredDashboardPassword();
+    setError(
+      nextState === "unavailable"
+        ? "No se pudo validar el acceso. Intente nuevamente."
+        : "La contrasena no es valida."
+    );
+  };
+
+  const isChecking = state === "checking";
+  const isUnavailable = state === "unavailable";
+
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-slate-950 px-4 py-8 text-white">
+      <section className="w-full max-w-sm rounded-lg border border-white/10 bg-slate-900 p-6 shadow-2xl">
+        <div className="flex h-11 w-11 items-center justify-center rounded-md bg-emerald-400 text-slate-950">
+          <Icons.ShieldCheck className="h-6 w-6" />
+        </div>
+        <h1 className="mt-5 text-xl font-bold">Centro de Control Operativo</h1>
+        <p className="mt-1 text-sm text-slate-400">
+          {isChecking ? "Verificando acceso..." : "Acceso restringido"}
+        </p>
+
+        {isChecking ? (
+          <div className="mt-8 h-1 w-full overflow-hidden rounded bg-slate-800">
+            <div className="h-full w-1/2 animate-pulse bg-emerald-400" />
+          </div>
+        ) : isUnavailable ? (
+          <div className="mt-7">
+            <p className="text-sm leading-6 text-slate-300">No se pudo validar el acceso al servidor.</p>
+            <button
+              type="button"
+              onClick={onRetry}
+              className="mt-5 inline-flex items-center gap-2 rounded-md bg-emerald-400 px-4 py-2 text-sm font-semibold text-slate-950 hover:bg-emerald-300"
+            >
+              <Icons.RefreshCw className="h-4 w-4" />
+              Reintentar
+            </button>
+          </div>
+        ) : (
+          <form className="mt-7 space-y-4" onSubmit={handleSubmit}>
+            <label className="block text-sm font-medium text-slate-200" htmlFor="dashboard-password">Contrasena</label>
+            <input
+              id="dashboard-password"
+              type="password"
+              autoComplete="current-password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              className="w-full rounded-md border border-slate-700 bg-slate-950 px-3 py-2.5 text-white outline-none ring-emerald-400 transition focus:border-emerald-400 focus:ring-1"
+            />
+            {error && <p className="text-sm text-rose-300">{error}</p>}
+            <button
+              type="submit"
+              disabled={submitting}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-md bg-emerald-400 px-4 py-2.5 text-sm font-semibold text-slate-950 disabled:cursor-wait disabled:opacity-60"
+            >
+              <Icons.ShieldCheck className="h-4 w-4" />
+              {submitting ? "Validando..." : "Ingresar"}
+            </button>
+          </form>
+        )}
+      </section>
+    </main>
+  );
+};
+
 function App() {
   const navigate = useNavigate();
   const location = useLocation();
   
   const [config, setConfig] = useState<AppConfig>(DEFAULT_CONFIG);
+  const [accessState, setAccessState] = useState<DashboardAccessState>("checking");
   const [printReportLocation, setPrintReportLocation] = useState<'JUJUY' | 'SALTA' | null>(null);
   const [reportConfig, setReportConfig] = useState<{ location: 'JUJUY' | 'SALTA', month: string | null, template: any } | null>(null);
 
@@ -87,8 +216,14 @@ function App() {
     }
   };
 
+  const refreshAccess = () => {
+    setAccessState("checking");
+    void validateDashboardAccess().then(setAccessState);
+  };
+
   useEffect(() => {
     primeBackendConnection();
+    refreshAccess();
   }, []);
 
   const handleSaveConfig = (newConfig: AppConfig) => {
@@ -639,6 +774,16 @@ function App() {
       </PageWrapper>
     );
   };
+
+  if (accessState !== "granted") {
+    return (
+      <DashboardAccess
+        state={accessState}
+        onAccessGranted={() => setAccessState("granted")}
+        onRetry={refreshAccess}
+      />
+    );
+  }
 
   return (
     <>

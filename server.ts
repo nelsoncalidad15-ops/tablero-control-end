@@ -4,6 +4,7 @@ import cors from "cors";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
+import { timingSafeEqual } from "crypto";
 import { google } from "googleapis";
 
 type CorsOriginCallback = (err: Error | null, allow?: boolean) => void;
@@ -17,7 +18,7 @@ type CachedSheetEntry = {
   csv: string;
   contentType: string;
   cachedAt: number;
-  source: "google_api" | "csv_export";
+  source: "google_api";
 };
 
 async function startServer() {
@@ -67,7 +68,6 @@ async function startServer() {
   const sheets = google.sheets({ version: "v4", auth });
 
   const resolvedDetailedQualitySaltaUrl =
-    process.env.LINK_REFUERZO_SLA_PUBLIC ||
     process.env.LINK_REFUERZO_SLA ||
     process.env.SHEET_URL_DETAILED_QUALITY_SALTA;
 
@@ -112,8 +112,18 @@ async function startServer() {
     ventas: process.env.SHEET_URL_VENTAS || process.env.VENTAS_URL,
   };
   const allowedSheetNames = new Set(Object.keys(sheetUrls));
-  const passwordProtected = process.env.IS_PASSWORD_PROTECTED === "true" && !!process.env.GLOBAL_PASSWORD;
+  const isProduction = process.env.NODE_ENV === "production";
+  const passwordProtectionEnabled = isProduction || process.env.IS_PASSWORD_PROTECTED === "true";
   const dashboardPassword = (process.env.GLOBAL_PASSWORD || "").trim();
+  const hasGoogleCredentials = Boolean(
+    process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && process.env.GOOGLE_PRIVATE_KEY
+  );
+
+  const passwordsMatch = (providedPassword: string) => {
+    const provided = Buffer.from(providedPassword);
+    const configured = Buffer.from(dashboardPassword);
+    return provided.length === configured.length && timingSafeEqual(provided, configured);
+  };
 
   console.log("[Debug] Current Working Directory:", process.cwd());
 
@@ -126,7 +136,8 @@ async function startServer() {
       return { spreadsheetId: url, gid: '0' };
     }
 
-    const idMatch = url.match(/\/d\/([a-zA-Z0-9-_]+)/);
+    // Published Sheets use `/d/e/<publication-id>/pub`; those public links are rejected.
+    const idMatch = url.match(/\/d\/(?!e\/)([a-zA-Z0-9-_]+)/);
     const gidMatch = url.match(/gid=([0-9]+)/);
     
     return {
@@ -140,7 +151,9 @@ async function startServer() {
   const isAllowedSheetUrl = (value: string) => {
     try {
       const parsed = new URL(value);
-      return parsed.hostname === "docs.google.com" && parsed.pathname.includes("/spreadsheets/");
+      return parsed.hostname === "docs.google.com" &&
+        parsed.pathname.includes("/spreadsheets/") &&
+        !parsed.pathname.includes("/spreadsheets/d/e/");
     } catch {
       return false;
     }
@@ -194,54 +207,39 @@ async function startServer() {
     (req.header("X-Dashboard-Password") || "").trim();
 
   const requireDashboardPassword = (req: express.Request, res: express.Response, next: express.NextFunction) => {
-    if (!passwordProtected) {
+    if (!passwordProtectionEnabled) {
       return next();
     }
 
+    if (!dashboardPassword) {
+      console.error("[Security] GLOBAL_PASSWORD is not configured.");
+      return res.status(503).json({ error: "El acceso seguro todavia no esta configurado." });
+    }
+
     const providedPassword = getProvidedPassword(req);
-    if (providedPassword && providedPassword === dashboardPassword) {
+    if (providedPassword && passwordsMatch(providedPassword)) {
       return next();
     }
 
     return res.status(401).json({
-      error: "Contraseña de acceso requerida.",
+      error: "Contrasena de acceso requerida.",
       passwordProtected: true,
     });
   };
 
-  // Helper to normalize Google Sheets URLs to CSV export links (Legacy method)
-  const normalizeSheetUrl = (url: string): string => {
-    if (!url) return url;
-    if (url.includes('output=csv') || url.includes('/export') || url.includes('format=csv')) return url;
-
-    // If it's only a Spreadsheet ID, convert it to a CSV export URL.
-    if (isSpreadsheetId(url)) {
-      return `https://docs.google.com/spreadsheets/d/${url}/export?format=csv&gid=0`;
-    }
-
-    if (url.includes('docs.google.com/spreadsheets')) {
-      if (url.includes('/pub')) {
-        const baseUrl = url.split('?')[0];
-        const gidMatch = url.match(/gid=([0-9]+)/);
-        const gid = gidMatch ? `&gid=${gidMatch[1]}` : '';
-        return `${baseUrl}?output=csv${gid}`;
-      }
-      const info = extractSheetInfo(url);
-      if (info?.spreadsheetId) {
-        return `https://docs.google.com/spreadsheets/d/${info.spreadsheetId}/export?format=csv&gid=${info.gid}`;
-      }
-    }
-    return url;
-  };
-
   // API Route to proxy Google Sheets
   app.get("/api/auth/validate", (req, res) => {
-    if (!passwordProtected) {
+    if (!passwordProtectionEnabled) {
       return res.json({ passwordProtected: false, valid: true });
     }
 
+    if (!dashboardPassword) {
+      console.error("[Security] GLOBAL_PASSWORD is not configured.");
+      return res.status(503).json({ passwordProtected: true, valid: false });
+    }
+
     const providedPassword = getProvidedPassword(req);
-    if (providedPassword && providedPassword === dashboardPassword) {
+    if (providedPassword && passwordsMatch(providedPassword)) {
       return res.json({ passwordProtected: true, valid: true });
     }
 
@@ -264,10 +262,10 @@ async function startServer() {
 
     // Basic validation to prevent fetching invalid URLs like "Duquesa123"
     if (!isSpreadsheetId(url) && !isAllowedSheetUrl(url)) {
-      console.error(`[Proxy] Invalid URL for ${sheetName}: ${url}`);
-      return res.status(400).json({ 
-        error: `El link configurado para "${sheetName}" no es vÃ¡lido.`,
-        details: `Se recibiÃ³ "${url}" pero se esperaba un link de Google Sheets.`
+      console.error(`[Proxy] Invalid private Sheet configuration for ${sheetName}.`);
+      return res.status(400).json({
+        error: `La fuente privada configurada para "${sheetName}" no es valida.`,
+        details: "Use un ID de Google Sheets o un enlace privado que empiece con /spreadsheets/d/."
       });
     }
 
@@ -278,87 +276,63 @@ async function startServer() {
       return sendCsvResponse(res, freshCacheEntry.csv, "HIT", freshCacheEntry.source);
     }
 
-    // Try Google Sheets API first if credentials are provided
-    if (process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && process.env.GOOGLE_PRIVATE_KEY) {
-      try {
-        const info = extractSheetInfo(url);
-        if (info?.spreadsheetId) {
-          console.log(`[API] Fetching via Google Sheets API: ${info.spreadsheetId}`);
-          
-          // Set a timeout for the Google API call
-          const timeoutPromise = new Promise((_, reject) => 
-            setTimeout(() => reject(new Error(`Timeout al conectar con Google Sheets API (${Math.round(GOOGLE_FETCH_TIMEOUT_MS / 1000)}s)`)), GOOGLE_FETCH_TIMEOUT_MS)
-          );
-
-          // Get spreadsheet metadata to find the sheet name for the GID
-          const spreadsheetPromise = sheets.spreadsheets.get({
-            spreadsheetId: info.spreadsheetId
-          });
-
-          const spreadsheet: any = await Promise.race([spreadsheetPromise, timeoutPromise]);
-
-          const sheet = spreadsheet.data.sheets?.find((s: any) => 
-            String(s.properties?.sheetId) === info.gid || 
-            (info.gid === '0' && s.properties?.index === 0)
-          );
-
-          const sheetNameInSpreadsheet = sheet?.properties?.title || 'Sheet1';
-          
-          const resultPromise = sheets.spreadsheets.values.get({
-            spreadsheetId: info.spreadsheetId,
-            range: `${sheetNameInSpreadsheet}!A1:ZZ5000`, // Increased range to ZZ
-          });
-
-          const result: any = await Promise.race([resultPromise, timeoutPromise]);
-
-          const rows = result.data.values;
-          if (!rows || rows.length === 0) {
-            throw new Error("No se encontraron datos en la hoja especificada.");
-          }
-
-          const csvData = arrayToCsv(rows);
-          storeCacheEntry(cacheKey, csvData, "google_api");
-          return sendCsvResponse(res, csvData, "MISS", "google_api");
-        }
-      } catch (apiError: any) {
-        console.error(`[API] Error using Google Sheets API for ${sheetName}:`, apiError.message || apiError);
-        console.log(`[Proxy] Falling back to CSV export method for ${sheetName}...`);
-      }
+    if (!hasGoogleCredentials) {
+      console.error("[Security] Google service-account credentials are not configured.");
+      return res.status(503).json({ error: "La conexion segura a los datos no esta configurada." });
     }
 
-    // Fallback to legacy CSV export method
-    url = normalizeSheetUrl(url);
+    const info = extractSheetInfo(url);
+    if (!info?.spreadsheetId) {
+      return res.status(400).json({
+        error: `La fuente privada configurada para "${sheetName}" no es valida.`
+      });
+    }
+
     try {
-      console.log(`[Proxy] Fetching via CSV export: ${url.substring(0, 50)}...`);
-      
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), GOOGLE_FETCH_TIMEOUT_MS);
-
-      const response = await fetch(url, { signal: controller.signal });
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        if (response.status === 400) {
-          throw new Error("Google Sheets respondió 400. Verifique publicación CSV o credenciales GOOGLE_* en Render.");
-        }
-        throw new Error(`Google Sheets respondió con error ${response.status}`);
+      console.log(`[API] Fetching private data for ${sheetName}.`);
+      const timeoutPromise = new Promise((_, reject) =>
+        setTimeout(
+          () => reject(new Error(`Timeout al conectar con Google Sheets API (${Math.round(GOOGLE_FETCH_TIMEOUT_MS / 1000)}s)`)),
+          GOOGLE_FETCH_TIMEOUT_MS
+        )
+      );
+      const spreadsheetPromise = sheets.spreadsheets.get({
+        spreadsheetId: info.spreadsheetId
+      });
+      const spreadsheet: any = await Promise.race([spreadsheetPromise, timeoutPromise]);
+      const sheet = spreadsheet.data.sheets?.find((s: any) =>
+        String(s.properties?.sheetId) === info.gid ||
+        (info.gid === "0" && s.properties?.index === 0)
+      );
+      const sheetNameInSpreadsheet = sheet?.properties?.title || "Sheet1";
+      const resultPromise = sheets.spreadsheets.values.get({
+        spreadsheetId: info.spreadsheetId,
+        range: `${sheetNameInSpreadsheet}!A1:ZZ5000`,
+      });
+      const result: any = await Promise.race([resultPromise, timeoutPromise]);
+      const rows = result.data.values;
+      if (!rows || rows.length === 0) {
+        throw new Error("No se encontraron datos en la hoja especificada.");
       }
-      const data = await response.text();
-      storeCacheEntry(cacheKey, data, "csv_export");
-      return sendCsvResponse(res, data, "MISS", "csv_export");
-    } catch (error: any) {
-      console.error(`[Proxy] Error fetching sheet ${sheetName}:`, error.message || error);
+
+      const csvData = arrayToCsv(rows);
+      storeCacheEntry(cacheKey, csvData, "google_api");
+      return sendCsvResponse(res, csvData, "MISS", "google_api");
+    } catch (apiError: any) {
+      console.error(`[API] Error reading private data for ${sheetName}:`, apiError.message || apiError);
       const staleCacheEntry = sheetCache.get(cacheKey);
       if (staleCacheEntry) {
-        console.warn(`[Cache] Serving stale data for ${sheetName} after upstream failure.`);
+        console.warn(`[Cache] Serving stale data for ${sheetName} after Google API failure.`);
         return sendCsvResponse(res, staleCacheEntry.csv, "STALE", staleCacheEntry.source);
       }
-      res.status(500).json({ 
-        error: "Error al obtener datos de la fuente.",
-        details: error.name === 'AbortError' ? "La peticiÃ³n excediÃ³ el tiempo lÃ­mite (15s)" : (error instanceof Error ? error.message : String(error))
+      return res.status(502).json({
+        error: "No se pudo obtener la fuente privada.",
+        details: "Verifique que la cuenta de servicio tenga acceso de lector a la planilla."
       });
     }
   });
+
+
 
   app.get("/api/health", (req, res) => {
     console.log(`[Health] Check received at ${new Date().toISOString()}`);
@@ -366,7 +340,7 @@ async function startServer() {
       status: "ok", 
       environment: process.env.NODE_ENV || "development",
       time: new Date().toISOString(),
-      passwordProtected
+      passwordProtected: passwordProtectionEnabled
     });
   });
 

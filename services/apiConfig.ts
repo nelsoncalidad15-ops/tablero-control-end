@@ -7,7 +7,7 @@ const trimTrailingSlash = (value: string) => value.replace(/\/+$/, '');
 const safeStorage = () => {
   if (typeof window === 'undefined') return null;
   try {
-    return window.localStorage;
+    return window.sessionStorage;
   } catch {
     return null;
   }

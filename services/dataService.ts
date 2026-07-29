@@ -39,7 +39,7 @@ const normalizeMonth = (val: string) => {
     if (!val) return 'Unknown';
     // Extract only the month part if it's "Enero - 2025" or similar
     const firstPart = val.split(/[-/ ]/)[0].trim().toLowerCase();
-    
+
     // Handle short formats like "dic", "ene", "dic.", "ene."
     const map: Record<string, string> = {
         'ene': 'Enero', 'ene.': 'Enero', 'enero': 'Enero',
@@ -57,7 +57,7 @@ const normalizeMonth = (val: string) => {
         'dic': 'Diciembre', 'dic.': 'Diciembre', 'diciembre': 'Diciembre'
     };
     if (map[firstPart]) return map[firstPart];
-    
+
     // If it's a number like "01", "02"...
     const monthNum = parseInt(firstPart);
     if (!isNaN(monthNum) && monthNum >= 1 && monthNum <= 12) {
@@ -141,7 +141,7 @@ const parseNumber = (val: string): number => {
        cleanVal = cleanVal.replace(',', '.');
     }
   }
-  
+
   const num = parseFloat(cleanVal);
   return isNaN(num) ? 0 : num;
 };
@@ -207,7 +207,7 @@ const getRowValue = (row: Record<string, any>, ...possibleKeys: string[]) => {
 const cleanVendedor = (val: string) => {
     if (!val) return '';
     let s = val.trim();
-    
+
     // Special case for CH VIRT
     if (s.includes('CH VIRT - ')) {
         s = s.replace('CH VIRT - ', 'CH VIRT, ');
@@ -215,10 +215,10 @@ const cleanVendedor = (val: string) => {
         // Remove "JJY - " or similar prefixes (2 to 5 uppercase letters + dash)
         s = s.replace(/^[A-Z]{2,5}\s*-\s*/, '');
     }
-    
+
     // Remove numbers at the end
     s = s.replace(/\d+$/, '');
-    
+
     return s.trim();
 };
 
@@ -229,14 +229,14 @@ const parseCSV = (text: string): string[][] => {
   let currentRow: string[] = [];
   let currentVal = '';
   let inQuotes = false;
-  
+
   // Detect delimiter based on first line roughly
   const firstLineEnd = text.indexOf('\n');
   const firstLine = text.substring(0, firstLineEnd > -1 ? firstLineEnd : text.length);
   const commaCount = (firstLine.match(/,/g) || []).length;
   const semicolonCount = (firstLine.match(/;/g) || []).length;
   const tabCount = (firstLine.match(/\t/g) || []).length;
-  
+
   let delimiter = ',';
   if (semicolonCount > commaCount && semicolonCount > tabCount) delimiter = ';';
   else if (tabCount > commaCount && tabCount > semicolonCount) delimiter = '\t';
@@ -262,7 +262,7 @@ const parseCSV = (text: string): string[][] => {
       // End of row
       // Handle \r\n sequence
       if (char === '\r' && nextChar === '\n') i++;
-      
+
       currentRow.push(currentVal.trim());
       if (currentRow.length > 0 && (currentRow.length > 1 || currentRow[0] !== '')) {
          rows.push(currentRow);
@@ -539,30 +539,6 @@ const MOCK_HR_PHASES_DATA: CoursePhase[] = [
     { curso: 'Calidad', fase: 'Final', modalidad: 'Virtual' },
 ];
 
-const isDirectCsvUrl = (value: string) => /^https?:\/\//i.test(value.trim());
-
-const fetchDirectCsv = async (url: string): Promise<string> => {
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), PROXY_REQUEST_TIMEOUT_MS);
-
-    try {
-        const response = await fetch(url, {
-            signal: controller.signal,
-            headers: {
-                'Accept': 'text/csv,application/json,text/plain,*/*',
-            },
-        });
-
-        if (!response.ok) {
-            throw new Error(`No se pudo leer el CSV directo (${response.status} ${response.statusText})`);
-        }
-
-        return await response.text();
-    } finally {
-        clearTimeout(timeoutId);
-    }
-};
-
 const buildRequestHeaders = () => {
     const headers: Record<string, string> = {
         'Accept': 'application/json',
@@ -627,10 +603,6 @@ export const primeSalesQualityData = async (
 };
 
 const fetchFromProxy = async (sheetKey: string): Promise<string> => {
-    if (isDirectCsvUrl(sheetKey)) {
-        console.log(`[DataService] Fetching direct CSV URL: ${sheetKey}`);
-        return fetchDirectCsv(sheetKey);
-    }
 
     const cachedText = rawCsvTextCache.get(sheetKey);
     if (cachedText) {
@@ -645,7 +617,7 @@ const fetchFromProxy = async (sheetKey: string): Promise<string> => {
     await wakeBackendIfNeeded();
 
     const url = buildApiUrl(`/api/data/${encodeURIComponent(sheetKey)}`);
-    
+
     console.log(`[DataService] Fetching from: ${url}`);
 
     const requestPromise = (async () => {
@@ -916,7 +888,7 @@ const parseAutoCSV = (csvText: string): AutoRecord[] => {
     if (currentLine.length < headers.length - 1) continue;
 
     const record: any = { id: `row-${i}` };
-    
+
     headers.forEach((header, index) => {
       const value = currentLine[index] || '';
 
@@ -971,23 +943,23 @@ const parseAutoCSV = (csvText: string): AutoRecord[] => {
 const parseQualityCSV = (csvText: string): QualityRecord[] => {
     const rows = parseCSV(csvText);
     if (rows.length < 2) return [];
-  
+
     const headers = rows[0].map(cleanHeader);
     const companyIdx = headers.indexOf('nombre de la compania');
     const apellidoIdx = headers.indexOf('apellido');
     const nombreIdx = headers.indexOf('nombre');
 
     const records: QualityRecord[] = [];
-  
+
     for (let i = 1; i < rows.length; i++) {
       const currentLine = rows[i];
       if (currentLine.length < headers.length - 1) continue;
-  
+
       const record: any = { id: `q-row-${i}` };
-      
+
       headers.forEach((header, index) => {
         const value = currentLine[index] || '';
-  
+
         // Strict mapping based on user feedback
         if (header.includes('sucursal') || header.includes('taller')) record.sucursal = value;
         else if (header.includes('mes')) record.mes = value;
@@ -1022,16 +994,16 @@ const parseQualityCSV = (csvText: string): QualityRecord[] => {
         else if (header.includes('causa raiz')) record.causa_raiz = value;
         else if (header.includes('accion contencion')) record.accion_contencion = value;
         else if (header.includes('accion correctiva')) record.accion_correctiva = value;
-        
+
         record[header] = value;
       });
-  
+
       // Client name construction
       if (!record.cliente) {
           const company = companyIdx !== -1 ? currentLine[companyIdx] : '';
           const ape = apellidoIdx !== -1 ? currentLine[apellidoIdx] : '';
           const nom = nombreIdx !== -1 ? currentLine[nombreIdx] : '';
-          
+
           if (company && company.trim() !== '') {
               record.cliente = company.trim();
           } else if (ape || nom) {
@@ -1075,7 +1047,7 @@ const parseQualityCSV = (csvText: string): QualityRecord[] => {
       if (!record.anio) record.anio = 2026; 
       if (!record.sector) record.sector = 'Sin Sector';
       if (!record.motivo) record.motivo = 'Sin Motivo';
-      
+
       if (record.orden) record.orden = record.orden.toString().trim();
 
       records.push(record as QualityRecord);
@@ -1086,17 +1058,17 @@ const parseQualityCSV = (csvText: string): QualityRecord[] => {
 const parseSalesQualityCSV = (csvText: string): SalesQualityRecord[] => {
     const rows = parseCSV(csvText);
     if (rows.length < 2) return [];
-  
+
     const headers = rows[0].map(cleanHeader);
     const records: SalesQualityRecord[] = [];
-  
+
     for (let i = 1; i < rows.length; i++) {
       const currentLine = rows[i];
       if (currentLine.length < 3) continue;
 
       const record: any = { id: `sq-row-${i}` };
       let followUpCommentIndex = 0;
-      
+
       headers.forEach((header, index) => {
         const value = currentLine[index] || '';
 
@@ -1115,7 +1087,7 @@ const parseSalesQualityCSV = (csvText: string): SalesQualityRecord[] => {
         else if (header.includes('fecha 3') || header.includes('3º llamado')) record.fecha_3_llamado = value;
         else if (header.includes('contacto efectivo')) record.fecha_contacto_efectivo = value;
         else if (header.includes('recontacto')) record.fecha_recontacto = value;
-        else if ((header.includes('envio') || header.includes('env�o')) && header.includes('mensaje') && (header.includes('wpp') || header.includes('wsp') || header.includes('whatsapp'))) record.fecha_envio_wpp = value;
+        else if ((header.includes('envio') || header.includes('env�o')) && header.includes('mensaje') && (header.includes('wpp') || header.includes('wsp') || header.includes('whatsapp'))) record.fecha_envio_wpp = value;
         else if (header.includes('respuesta mensaje')) record.fecha_respuesta_wpp = value;
 
         else if (header.includes('mes de entrega') || header === 'mes') record.mes = value;
@@ -1141,10 +1113,10 @@ const parseSalesQualityCSV = (csvText: string): SalesQualityRecord[] => {
         else if (header.includes('enviar wpp')) record.enviar_wpp = value;
         else if (header.includes('categorizacion del cliente')) record.categorizacion_cliente = value;
         else if (header.includes('sector responsable enviar')) record.sector_responsable_enviar = value;
-        
+
         else if (header === 'estado') record.estado = value; 
-        
-        else if (header.includes('recomiendes') || header.includes('recomendarias') || header.includes('recomendaras') || header.includes('recomendar�as')) record.nps = parseScore(value);
+
+        else if (header.includes('recomiendes') || header.includes('recomendarias') || header.includes('recomendaras') || header.includes('recomendar�as')) record.nps = parseScore(value);
 
         else if (header.includes('comentarios') || header.includes('seguimiento')) {
              if (!record.comentarios && value) record.comentarios = value;
@@ -1166,12 +1138,12 @@ const parseSalesQualityCSV = (csvText: string): SalesQualityRecord[] => {
         else if (header.includes('organizacion') && header.includes('cem')) record.cem_organizacion = parseScore(value);
         else if (header.includes('trato') && header.includes('cem')) record.cem_trato = parseScore(value);
         else if (header.includes('satisfaccion general') && header.includes('cem')) record.cem_general = parseScore(value);
-        
+
         else if (header.includes('prueba de manejo')) record.prueba_manejo = value;
         else if (header.includes('financiar') || header.includes('financiacion')) record.ofrecimiento_financiacion = value;
         else if (header.includes('usado') && header.includes('parte de pago')) record.toma_usados = value;
         else if (header.includes('contacto') && header.includes('despues de la entrega')) record.contacto_entrega = value;
-        
+
         else if (header.includes('tramites') && header.includes('explicacion')) record.explicacion_tramites = parseScore(value); 
         else if (header.includes('plazo de entrega')) record.plazo_entrega = parseScore(value);
         else if (
@@ -1205,12 +1177,12 @@ const parseSalesQualityCSV = (csvText: string): SalesQualityRecord[] => {
 
       if (!record.mes || record.mes === 'Unknown') record.mes = 'Unknown';
       else record.mes = normalizeMonth(record.mes);
-      
+
       record.sucursal = normalizeBranch(record.sucursal);
       record.anio = 2026; 
-      
+
       if (!record.tipo_venta) record.tipo_venta = 'Otro';
-      
+
       if (record.vin && record.vin.trim() !== "" && record.vin !== "0") {
         records.push(record as SalesQualityRecord);
       }
@@ -1221,17 +1193,17 @@ const parseSalesQualityCSV = (csvText: string): SalesQualityRecord[] => {
 const parseSalesClaimsCSV = (csvText: string): SalesClaimsRecord[] => {
     const rows = parseCSV(csvText);
     if (rows.length < 2) return [];
-  
+
     const headers = rows[0].map(cleanHeader);
     const records: SalesClaimsRecord[] = [];
     let lastKnownMonth = '';
-  
+
     for (let i = 1; i < rows.length; i++) {
       const currentLine = rows[i];
       if (!currentLine || currentLine.every(cell => !String(cell || '').trim())) continue;
-  
+
       const record: any = { id: `sc-row-${i}` };
-      
+
       headers.forEach((header, index) => {
         const value = currentLine[index] || '';
 
@@ -1280,7 +1252,7 @@ const parseSalesClaimsCSV = (csvText: string): SalesClaimsRecord[] => {
         record.mes = normalizeMonth(record.mes);
         lastKnownMonth = record.mes;
       }
-      
+
       record.sucursal = normalizeBranch(record.sucursal);
 
       // Filter by VIN: Only records with a valid VIN are counted as real claims
@@ -1294,7 +1266,7 @@ const parseSalesClaimsCSV = (csvText: string): SalesClaimsRecord[] => {
 const parseDetailedQualityCSV = (csvText: string): DetailedQualityRecord[] => {
     const rows = parseCSV(csvText);
     if (rows.length < 2) return [];
-  
+
     const headers = rows[0].map(cleanHeader);
     const isCompactSaltaFormat = headers.includes('clave f') && headers.includes('concat t ac');
     const isFlatSaltaFormat =
@@ -1304,9 +1276,9 @@ const parseDetailedQualityCSV = (csvText: string): DetailedQualityRecord[] => {
     const companyIdx = headers.indexOf('nombre de la compania');
     const apellidoIdx = headers.indexOf('apellido');
     const nombreIdx = headers.indexOf('nombre');
-    
+
     const records: DetailedQualityRecord[] = [];
-  
+
     const cleanAsesorName = (name: string) => {
         if (!name) return 'Sin Asesor';
         // Remove numbers and extra spaces
@@ -1379,7 +1351,7 @@ const parseDetailedQualityCSV = (csvText: string): DetailedQualityRecord[] => {
 
       const record: any = { id: `dq-row-${i}` };
       record.mes_raw = currentLine[0] || '';
-      
+
       headers.forEach((header, index) => {
         const value = currentLine[index] || '';
         // Store all raw values but don't let them overwrite our mapped fields easily
@@ -1407,24 +1379,24 @@ const parseDetailedQualityCSV = (csvText: string): DetailedQualityRecord[] => {
         else if (header.includes('asesor')) record.asesor = cleanAsesorName(value);
         else if (header.includes('apellido asesor de servicio')) record.asesor_apellido = value.trim();
         else if (header.includes('nombre asesor de servicio')) record.asesor_nombre = value.trim();
-        
+
         // Scores - Matching the user's specific header structure
         else if (header.includes('trato personal') && header.includes('(q1)')) record.q1_score = parseScore(value);
         else if (header === 'comentario 1') record.q1_comment = value;
-        
+
         else if (header.includes('organizacion') && header.includes('(q2)')) record.q2_score = parseScore(value);
         else if (header === 'comentario 2') record.q2_comment = value;
-        
+
         else if (header.includes('calidad de reparacion') && header.includes('(q3)')) record.q3_score = parseScore(value);
         else if (header === 'comentario 3') record.q3_comment = value;
-        
+
         else if (header.includes('lvs') && header.includes('(q4)')) record.q4_score = parseScore(value);
         else if (header === 'comentario 4') record.q4_comment = value;
-        
+
         else if (header === 'q6') record.q6_score = parseScoreInRange(value, 1, 5);
         else if (header === 'q7') record.q7_score = parseScore(value);
         else if (header === 'q8') record.q8_val = value;
-        
+
         else if (header === 'comentario del cliente') record.comentario_cliente = value;
         else if (header === 'estado cliente') record.estado_cliente = value;
         else if (header === 'categorizacion') record.categorizacion = value;
@@ -1436,7 +1408,7 @@ const parseDetailedQualityCSV = (csvText: string): DetailedQualityRecord[] => {
       const company = companyIdx !== -1 ? currentLine[companyIdx] : '';
       const ape = apellidoIdx !== -1 ? currentLine[apellidoIdx] : '';
       const nom = nombreIdx !== -1 ? currentLine[nombreIdx] : '';
-      
+
       if (company && company.trim() !== '') {
           record.cliente = company.trim();
       } else if (ape || nom) {
@@ -1491,7 +1463,7 @@ const parsePostventaKpiCSV = (csvText: string): PostventaKpiRecord[] => {
         if (currentLine.length < 2) continue;
 
         const record: any = { id: `pkpi-row-${i}` };
-        
+
         headers.forEach((header, index) => {
             const value = currentLine[index] || '';
 
@@ -1520,7 +1492,7 @@ const parsePostventaKpiCSV = (csvText: string): PostventaKpiRecord[] => {
             else if (header.includes('plan incentivo posventa')) record.plan_incentivo_posventa = parseNumber(value);
             else if (header.includes('plan incentivo repuestos')) record.plan_incentivo_repuestos = parseNumber(value);
             else if (header.includes('uops total')) record.uops_total = parseNumber(value);
-            
+
             record[header] = value;
         });
 
@@ -1588,7 +1560,7 @@ const parsePostventaBillingCSV = (csvText: string): BillingRecord[] => {
         if (currentLine.length < 2) continue;
 
         const record: any = { id: `billing-row-${i}` };
-        
+
         headers.forEach((header, index) => {
             const value = currentLine[index] || '';
 
@@ -1605,7 +1577,7 @@ const parsePostventaBillingCSV = (csvText: string): BillingRecord[] => {
             else if (header.includes('prom. diario') || header.includes('promedio diario')) record.promedio_diario = parseNumber(value);
             else if (header.includes('desvio a fecha') || header.includes('desvio fecha')) record.desvio_fecha = parseNumber(value);
             else if (header.includes('dif. dias de operación')) record.dif_dias_operacion = parseInt(value) || 0;
-            
+
             record[header] = value;
         });
 
@@ -1741,7 +1713,7 @@ const parsePCGCCSV = (csvText: string): PCGCRecord[] => {
         if (currentLine.length < 3) continue; // Minimum columns to be valid
 
         const record: any = { id: `pcgc-row-${i}` };
-        
+
         headers.forEach((header, index) => {
             const value = currentLine[index] || '';
 
@@ -1753,7 +1725,7 @@ const parsePCGCCSV = (csvText: string): PCGCRecord[] => {
             else if (header.includes('observaciones')) record.observaciones = value;
             else if (header.includes('metodo')) record.metodo = value;
             else if (header.includes('criticidad')) record.criticidad = value;
-            
+
             record[header] = value;
         });
 
@@ -1967,17 +1939,17 @@ const findHeaderIndex = (
 const parseCemOsCSV = (csvText: string): CemOsRecord[] => {
     const rows = parseCSV(csvText);
     if (rows.length < 2) return [];
-  
+
     const rawHeaders = rows[0];
     const headers = rawHeaders.map(cleanHeader);
     const records: CemOsRecord[] = [];
-    
+
     const getIdx = (name: string) => {
         const cleaned = cleanHeader(name);
         // Try exact match first
         let idx = headers.indexOf(cleaned);
         if (idx !== -1) return idx;
-        
+
         // Try partial match
         idx = headers.findIndex(h => h.includes(cleaned) || cleaned.includes(h));
         if (idx !== -1) return idx;
@@ -1986,7 +1958,7 @@ const parseCemOsCSV = (csvText: string): CemOsRecord[] => {
         const noSpaces = cleaned.replace(/\s+/g, '');
         return headers.findIndex(h => h.replace(/\s+/g, '').includes(noSpaces));
     };
-    
+
     const idxMes = getIdx('mes');
     const idxZona = getIdx('Zona');
     const idxCodigo = getIdx('Código');
@@ -2025,7 +1997,7 @@ const parseCemOsCSV = (csvText: string): CemOsRecord[] => {
     for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
         if (row.length < 5) continue;
-        
+
         const record: CemOsRecord = {
             id: `cem-os-${i}`,
             mes: normalizeMonth(idxMes !== -1 ? row[idxMes] : ''),
@@ -2063,7 +2035,7 @@ const parseCemOsCSV = (csvText: string): CemOsRecord[] => {
             comentario_interna: idxComentarioInterna !== -1 ? row[idxComentarioInterna] : '',
             comentario_cem: idxComentarioCem !== -1 ? row[idxComentarioCem] : '',
         };
-        
+
         records.push(record);
     }
     return records;
@@ -2092,7 +2064,7 @@ export const fetchActionPlanData = async (sheetKey: string): Promise<ActionPlanR
 const parseActionPlanCSV = (csvText: string): ActionPlanRecord[] => {
     const rows = parseCSV(csvText);
     if (rows.length === 0) return [];
-  
+
     // Find header row dynamically
     let headerIndex = -1;
     let headers: string[] = [];
@@ -2108,7 +2080,7 @@ const parseActionPlanCSV = (csvText: string): ActionPlanRecord[] => {
     }
 
     const getIdx = (name: string) => headers.findIndex(h => h.includes(name.toLowerCase()));
-    
+
     const idxNro = getIdx('nº');
     const idxMes = getIdx('mes');
     const idxFechaAlta = getIdx('fecha alta') !== -1 ? getIdx('fecha alta') : getIdx('alta');
@@ -2143,21 +2115,21 @@ const parseActionPlanCSV = (csvText: string): ActionPlanRecord[] => {
     // Fallback to index 7 if not found
     const startDataIndex = headerIndex !== -1 ? headerIndex + 1 : 7;
     const records: ActionPlanRecord[] = [];
-    
+
     for (let i = startDataIndex; i < rows.length; i++) {
         const row = rows[i];
         if (!row || row.length < 5) continue;
-        
+
         const nombreKpi = idxNombreKpi !== -1 ? row[idxNombreKpi]?.trim() : (row[9]?.trim() || '');
         // A row is considered a plan if it has a KPI name or at least some basic info
         const isPlan = nombreKpi !== '' || !!(row[0]?.trim() && row[1]?.trim());
-        
+
         if (!isPlan) continue;
 
         const causaRaiz = idxCausaRaiz !== -1 ? row[idxCausaRaiz]?.trim() : (row[16]?.trim() || '');
         const accionInmediata = idxAccionInm !== -1 ? row[idxAccionInm]?.trim() : (row[17]?.trim() || '');
         const accionCorrectiva = idxAccionCorr !== -1 ? row[idxAccionCorr]?.trim() : (row[18]?.trim() || '');
-        
+
         // Incomplete logic: missing root cause or actions
         const isIncomplete = !!(isPlan && (causaRaiz === '' || accionInmediata === '' || accionCorrectiva === ''));
 
@@ -2213,7 +2185,7 @@ const parseActionPlanCSV = (csvText: string): ActionPlanRecord[] => {
             isIncomplete,
             isPlan
         };
-        
+
         records.push(record);
     }
     console.log(`Parsed ${records.length} action plan records. Header found at index ${headerIndex}`);
@@ -2233,19 +2205,19 @@ export const fetchInternalPostventaData = async (sheetKey: string): Promise<Inte
 const parseInternalPostventaCSV = (csvText: string): InternalPostventaRecord[] => {
     const rows = parseCSV(csvText);
     if (rows.length < 2) return [];
-  
+
     const headers = rows[0].map(cleanHeader);
     const records: InternalPostventaRecord[] = [];
-  
+
     for (let i = 1; i < rows.length; i++) {
         const row = rows[i];
         if (row.length < 5) continue;
-        
+
         const record: any = { id: `ip-row-${i}` };
-        
+
         headers.forEach((header, index) => {
             const value = row[index] || '';
-            
+
             if (header === 'or sucur') record.sucursal = normalizeBranch(value);
             else if (header === 'tecnicos') record.tecnicos = value;
             else if (header === 'op nombre') record.asesor = value;
@@ -2267,26 +2239,26 @@ const parseInternalPostventaCSV = (csvText: string): InternalPostventaRecord[] =
                 record.nombre_sucursal = value;
                 record.sucursal = normalizeBranch(value);
             }
-            
+
             // Scores
             else if (header === 'servicio prestado') record.servicio_prestado = parseScore(value);
             else if (header === 'trato personal') record.trato_personal = parseScore(value);
             else if (header === 'organizacion') record.organizacion = parseScore(value);
             else if (header === 'trabajo del taller') record.trabajo_taller = parseScore(value);
             else if (header === 'lavado') record.lavado = parseScore(value);
-            
+
             // Observations
             else if (header === 'observacion servicio prestado') record.obs_servicio_prestado = value;
             else if (header === 'observacion trato personal') record.obs_trato_personal = value;
             else if (header === 'observacion organizacion') record.obs_organizacion = value;
             else if (header === 'observacion trabajo del taller') record.obs_trabajo_taller = value;
             else if (header === 'observacion lavado') record.obs_lavado = value;
-            
+
             else if (header === 'tipo contacto') record.tipo_contacto = value;
             else if (header === 'observacion tipo contacto') record.obs_tipo_contacto = value;
             else if (header === 'observaciones') record.observaciones = value;
             else if (header === 'observacion observaciones') record.obs_observaciones = value;
-            
+
             record[header] = value;
         });
 

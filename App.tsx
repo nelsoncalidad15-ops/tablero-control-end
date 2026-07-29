@@ -226,12 +226,27 @@ function App() {
     refreshAccess();
   }, []);
 
+  useEffect(() => {
+    if (accessState !== "granted") return;
+
+    const prefetchId = window.setTimeout(() => {
+      void primeSalesQualityData(
+        SALES_QUALITY_SHEET_KEY,
+        SALES_CLAIMS_SHEET_KEY,
+        CEM_OS_SHEET_KEY,
+        CEM_OS_SALTA_SHEET_KEY
+      );
+    }, 150);
+
+    return () => window.clearTimeout(prefetchId);
+  }, [accessState]);
   const handleSaveConfig = (newConfig: AppConfig) => {
     setConfig(newConfig);
   };
 
 
   const handleSelectArea = (area: AreaConfig) => {
+    handlePrefetchArea(area.id);
     if (area.id === 'executive' as any) {
         navigate('/executive');
         return;

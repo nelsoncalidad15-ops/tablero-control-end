@@ -592,14 +592,9 @@ export const primeSalesQualityData = async (
     cemOsKey: string,
     cemOsSaltaKey: string
 ) => {
-    const tasks = [
-        fetchSalesQualityData(salesQualityKey),
-        fetchSalesClaimsData(salesClaimsKey),
-        fetchCemOsData(cemOsKey),
-        fetchCemOsData(cemOsSaltaKey)
-    ];
-
-    await Promise.allSettled(tasks);
+    const keys = [salesQualityKey, salesClaimsKey, cemOsKey, cemOsSaltaKey]
+        .filter(Boolean);
+    await Promise.allSettled(keys.map(fetchFromProxy));
 };
 
 const fetchFromProxy = async (sheetKey: string): Promise<string> => {

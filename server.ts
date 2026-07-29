@@ -13,6 +13,12 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const GOOGLE_FETCH_TIMEOUT_MS = 30000;
 const SHEET_CACHE_TTL_MS = 5 * 60 * 1000;
+const SHEET_METADATA_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+
+type CachedSheetMetadata = {
+  title: string;
+  cachedAt: number;
+};
 
 type CachedSheetEntry = {
   csv: string;
@@ -24,6 +30,7 @@ type CachedSheetEntry = {
 async function startServer() {
   const app = express();
   const sheetCache = new Map<string, CachedSheetEntry>();
+  const sheetMetadataCache = new Map<string, CachedSheetMetadata>();
   const defaultAllowedOrigins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
@@ -172,6 +179,47 @@ async function startServer() {
     ).join('\n');
   };
 
+  const withGoogleTimeout = async <T>(operation: Promise<T>): Promise<T> => {
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+    try {
+      return await Promise.race([
+        operation,
+        new Promise<T>((_, reject) => {
+          timeoutId = setTimeout(
+            () => reject(new Error(`Timeout al conectar con Google Sheets API (${Math.round(GOOGLE_FETCH_TIMEOUT_MS / 1000)}s)`)),
+            GOOGLE_FETCH_TIMEOUT_MS
+          );
+        })
+      ]);
+    } finally {
+      if (timeoutId) clearTimeout(timeoutId);
+    }
+  };
+
+  const getSheetTitle = async (spreadsheetId: string, gid: string) => {
+    const metadataKey = `${spreadsheetId}::${gid}`;
+    const cachedMetadata = sheetMetadataCache.get(metadataKey);
+    if (cachedMetadata && Date.now() - cachedMetadata.cachedAt < SHEET_METADATA_CACHE_TTL_MS) {
+      return cachedMetadata.title;
+    }
+
+    const spreadsheet: any = await withGoogleTimeout(
+      sheets.spreadsheets.get({
+        spreadsheetId,
+        fields: "sheets(properties(sheetId,index,title))",
+      })
+    );
+    const sheet = spreadsheet.data.sheets?.find((item: any) =>
+      String(item.properties?.sheetId) === gid ||
+      (gid === "0" && item.properties?.index === 0)
+    );
+    const title = sheet?.properties?.title || "Sheet1";
+
+    sheetMetadataCache.set(metadataKey, { title, cachedAt: Date.now() });
+    return title;
+  };
+
   const getCacheKey = (sheetName: string, resolvedUrl: string) => `${sheetName}::${resolvedUrl}`;
 
   const getFreshCacheEntry = (cacheKey: string) => {
@@ -290,26 +338,13 @@ async function startServer() {
 
     try {
       console.log(`[API] Fetching private data for ${sheetName}.`);
-      const timeoutPromise = new Promise((_, reject) =>
-        setTimeout(
-          () => reject(new Error(`Timeout al conectar con Google Sheets API (${Math.round(GOOGLE_FETCH_TIMEOUT_MS / 1000)}s)`)),
-          GOOGLE_FETCH_TIMEOUT_MS
-        )
+      const sheetNameInSpreadsheet = await getSheetTitle(info.spreadsheetId, info.gid);
+      const result: any = await withGoogleTimeout(
+        sheets.spreadsheets.values.get({
+          spreadsheetId: info.spreadsheetId,
+          range: `${sheetNameInSpreadsheet}!A1:ZZ5000`,
+        })
       );
-      const spreadsheetPromise = sheets.spreadsheets.get({
-        spreadsheetId: info.spreadsheetId
-      });
-      const spreadsheet: any = await Promise.race([spreadsheetPromise, timeoutPromise]);
-      const sheet = spreadsheet.data.sheets?.find((s: any) =>
-        String(s.properties?.sheetId) === info.gid ||
-        (info.gid === "0" && s.properties?.index === 0)
-      );
-      const sheetNameInSpreadsheet = sheet?.properties?.title || "Sheet1";
-      const resultPromise = sheets.spreadsheets.values.get({
-        spreadsheetId: info.spreadsheetId,
-        range: `${sheetNameInSpreadsheet}!A1:ZZ5000`,
-      });
-      const result: any = await Promise.race([resultPromise, timeoutPromise]);
       const rows = result.data.values;
       if (!rows || rows.length === 0) {
         throw new Error("No se encontraron datos en la hoja especificada.");

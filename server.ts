@@ -107,7 +107,7 @@ async function startServer() {
     warranty_q4: process.env.LINK_GARANTIA_Q4 || process.env.SHEET_URL_WARRANTY_Q4,
     
     // Others
-    pcgc: process.env.SHEET_URL_PCGC,
+    pcgc: process.env.LINK_PCGC || process.env.SHEET_URL_PCGC,
     quality_objectives: process.env.LINK_OBJETIVOS_CALIDAD || process.env.SHEET_URL_QUALITY_OBJECTIVES,
     quality_objectives_summary: process.env.LINK_OBJETIVOS_CALIDAD_RESUMEN || process.env.SHEET_URL_QUALITY_OBJECTIVES_SUMMARY,
     quality_objectives_scales: process.env.LINK_OBJETIVOS_CALIDAD_ESCALAS || process.env.SHEET_URL_QUALITY_OBJECTIVES_SCALES,

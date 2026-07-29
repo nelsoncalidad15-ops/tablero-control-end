@@ -43,26 +43,41 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
   });
 
   const reportRef = useRef<HTMLDivElement>(null);
+  const [sourceErrors, setSourceErrors] = useState<string[]>([]);
 
   useEffect(() => {
     const loadAllData = async () => {
       setLoading(LoadingState.LOADING);
+      setSourceErrors([]);
       try {
-        const results = await Promise.allSettled([
-          fetchDetailedQualityData(config.sheetUrls.detailed_quality || DETAILED_QUALITY_SHEET_KEY),
-          fetchDetailedQualityData(config.sheetUrls.detailed_quality_salta || DETAILED_QUALITY_SALTA_SHEET_KEY),
-          fetchSalesQualityData(config.sheetUrls.sales_quality || ''),
-          fetchQualityData(config.sheetUrls.calidad || ''),
-          fetchSalesClaimsData(config.sheetUrls.sales_claims || ''),
-          fetchCemOsData(config.sheetUrls.cem_os || ''),
-          fetchCemOsData(config.sheetUrls.cem_os_salta || ''),
-          fetchInternalPostventaData(config.sheetUrls.internal_postventa || '')
-        ]);
+        const sources = [
+          { label: 'CEM Postventa Jujuy', load: () => fetchDetailedQualityData(config.sheetUrls.detailed_quality || DETAILED_QUALITY_SHEET_KEY) },
+          { label: 'CEM Postventa Salta', load: () => fetchDetailedQualityData(config.sheetUrls.detailed_quality_salta || DETAILED_QUALITY_SALTA_SHEET_KEY) },
+          { label: 'Encuesta Interna Ventas', load: () => fetchSalesQualityData(config.sheetUrls.sales_quality || '') },
+          { label: 'Reclamos Postventa', load: () => fetchQualityData(config.sheetUrls.calidad || '') },
+          { label: 'Reclamos Ventas', load: () => fetchSalesClaimsData(config.sheetUrls.sales_claims || '') },
+          { label: 'CEM Ventas Jujuy', load: () => fetchCemOsData(config.sheetUrls.cem_os || '') },
+          { label: 'CEM Ventas Salta', load: () => fetchCemOsData(config.sheetUrls.cem_os_salta || '') },
+          { label: 'Encuesta Interna Postventa', load: () => fetchInternalPostventaData(config.sheetUrls.internal_postventa || '') }
+        ];
+        const results: PromiseSettledResult<unknown>[] = [];
+
+        // The Free backend and Google Sheets are more reliable with a small request batch.
+        for (let start = 0; start < sources.length; start += 2) {
+          const batch = sources.slice(start, start + 2).map(source => source.load());
+          results.push(...await Promise.allSettled(batch));
+        }
+
+        const failedSources = results.flatMap((result, index) => {
+          if (result.status === 'fulfilled') return [];
+          console.warn('[Report] Fuente no disponible (' + sources[index].label + '):', result.reason);
+          return [sources[index].label];
+        });
+        setSourceErrors(failedSources);
 
         const pick = <T,>(index: number): T[] => {
           const result = results[index];
           if (result.status === 'fulfilled') return result.value as T[];
-          console.warn('[Report] Fuente no disponible:', result.reason);
           return [];
         };
 
@@ -443,6 +458,12 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                 </button>
             </div>
         </div>
+
+        {sourceErrors.length > 0 && (
+          <div className="max-w-5xl mx-auto mb-6 rounded-2xl border border-amber-200 bg-amber-50 px-5 py-4 text-sm font-semibold text-amber-900 print:hidden">
+            El informe se genero de forma parcial. No se pudieron cargar: {sourceErrors.join(', ')}. Recarga la pagina para reintentar.
+          </div>
+        )}
 
         {/* REPORT CONTENT */}
         <div ref={reportRef} className="max-w-[297mm] mx-auto bg-white shadow-2xl print:shadow-none min-h-[210mm] overflow-hidden print:block" style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}>

@@ -60,12 +60,31 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
           { label: 'CEM Ventas Salta', load: () => fetchCemOsData(config.sheetUrls.cem_os_salta || '') },
           { label: 'Encuesta Interna Postventa', load: () => fetchInternalPostventaData(config.sheetUrls.internal_postventa || '') }
         ];
-        const results: PromiseSettledResult<unknown>[] = [];
+        const results: PromiseSettledResult<unknown>[] = new Array(sources.length);
+        const priorityOrder = [0, 7, 1, 2, 3, 4, 5, 6];
 
-        // The Free backend and Google Sheets are more reliable with a small request batch.
-        for (let start = 0; start < sources.length; start += 2) {
-          const batch = sources.slice(start, start + 2).map(source => source.load());
-          results.push(...await Promise.allSettled(batch));
+        const loadSource = async (source: { label: string; load: () => Promise<unknown> }) => {
+          let lastError: unknown;
+          for (let attempt = 1; attempt <= 2; attempt += 1) {
+            try {
+              return await source.load();
+            } catch (error) {
+              lastError = error;
+              if (attempt < 2) await new Promise(resolve => window.setTimeout(resolve, 1_500));
+            }
+          }
+          throw lastError;
+        };
+
+        // Prioritize the report sections requested most often and avoid overloading Render Free.
+        for (let start = 0; start < priorityOrder.length; start += 2) {
+          const sourceIndexes = priorityOrder.slice(start, start + 2);
+          const batchResults = await Promise.allSettled(
+            sourceIndexes.map(index => loadSource(sources[index]))
+          );
+          sourceIndexes.forEach((sourceIndex, batchIndex) => {
+            results[sourceIndex] = batchResults[batchIndex];
+          });
         }
 
         const failedSources = results.flatMap((result, index) => {

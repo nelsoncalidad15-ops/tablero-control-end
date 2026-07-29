@@ -11,6 +11,8 @@ const __dirname = path.dirname(__filename);
 const GOOGLE_FETCH_TIMEOUT_MS = 30000;
 const SHEET_CACHE_TTL_MS = 5 * 60 * 1000;
 const SHEET_METADATA_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
+const DEFAULT_SHEET_MAX_ROWS = 20_000;
+const SHEET_MAX_ROWS = Math.min(Math.max(Number(process.env.SHEET_MAX_ROWS) || DEFAULT_SHEET_MAX_ROWS, 1_000), 50_000);
 async function startServer() {
     const app = express();
     const sheetCache = new Map();
@@ -267,7 +269,7 @@ async function startServer() {
             const sheetNameInSpreadsheet = await getSheetTitle(info.spreadsheetId, info.gid);
             const result = await withGoogleTimeout(sheets.spreadsheets.values.get({
                 spreadsheetId: info.spreadsheetId,
-                range: `${sheetNameInSpreadsheet}!A1:ZZ5000`,
+                range: `${sheetNameInSpreadsheet}!A1:ZZ${SHEET_MAX_ROWS}`,
             }));
             const rows = result.data.values;
             if (!rows || rows.length === 0) {

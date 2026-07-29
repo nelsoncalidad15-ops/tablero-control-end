@@ -39,6 +39,7 @@ const preloadModule = (loader: () => Promise<any>) => {
 };
 
 type DashboardAccessState = "checking" | "granted" | "required" | "unavailable";
+const DASHBOARD_ACCESS_TIMEOUT_MS = 15_000;
 
 const validateDashboardAccess = async (): Promise<DashboardAccessState> => {
   const password = getStoredDashboardPassword();
@@ -51,8 +52,14 @@ const validateDashboardAccess = async (): Promise<DashboardAccessState> => {
     headers["X-Dashboard-Password"] = password;
   }
 
+  const controller = new AbortController();
+  const timeoutId = window.setTimeout(() => controller.abort(), DASHBOARD_ACCESS_TIMEOUT_MS);
+
   try {
-    const response = await fetch(buildApiUrl("/api/auth/validate"), { headers });
+    const response = await fetch(buildApiUrl("/api/auth/validate"), {
+      headers,
+      signal: controller.signal,
+    });
     if (response.status === 401) {
       clearStoredDashboardPassword();
       return "required";
@@ -65,6 +72,8 @@ const validateDashboardAccess = async (): Promise<DashboardAccessState> => {
     return payload.valid ? "granted" : "required";
   } catch {
     return "unavailable";
+  } finally {
+    window.clearTimeout(timeoutId);
   }
 };
 

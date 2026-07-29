@@ -17,6 +17,8 @@ interface DetailedQualityPostventaProps {
 const DetailedQualityPostventa: React.FC<DetailedQualityPostventaProps> = ({ sheetUrls, onBack }) => {
   const [data, setData] = useState<DetailedQualityRecord[]>([]);
   const [loadingState, setLoadingState] = useState<LoadingState>(LoadingState.IDLE);
+  const [sourceErrors, setSourceErrors] = useState<string[]>([]);
+  const [reloadCount, setReloadCount] = useState(0);
   
   // Filters
   const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
@@ -82,30 +84,50 @@ const DetailedQualityPostventa: React.FC<DetailedQualityPostventaProps> = ({ she
   };
 
   useEffect(() => {
+    let cancelled = false;
+
     const loadData = async () => {
       setLoadingState(LoadingState.LOADING);
-      try {
-        const [jujuyData, saltaData] = await Promise.all([
-          fetchDetailedQualityData(sheetUrls.jujuy).then(d => d.map(r => ({ ...r, sucursal: 'JUJUY', mes: normalizeMonthKey(r.mes) }))),
-          fetchDetailedQualityData(sheetUrls.salta).then(d => d.map(r => ({ ...r, sucursal: 'SALTA', mes: normalizeMonthKey(r.mes) })))
-        ]);
-        
-        const mergedData = [...jujuyData, ...saltaData];
-        setData(mergedData);
-        
-        if (mergedData.length > 0) {
-          // Default to all months to ensure data is visible
-          setSelectedMonth(null);
-        }
-        
-        setLoadingState(LoadingState.SUCCESS);
-      } catch (error) {
-        console.error(error);
-        setLoadingState(LoadingState.ERROR);
-      }
+      setSourceErrors([]);
+
+      const requests = [
+        {
+          label: 'Jujuy',
+          load: fetchDetailedQualityData(sheetUrls.jujuy).then(data =>
+            data.map(record => ({ ...record, sucursal: 'JUJUY', mes: normalizeMonthKey(record.mes) }))
+          ),
+        },
+        {
+          label: 'Salta',
+          load: fetchDetailedQualityData(sheetUrls.salta).then(data =>
+            data.map(record => ({ ...record, sucursal: 'SALTA', mes: normalizeMonthKey(record.mes) }))
+          ),
+        },
+      ];
+
+      const results = await Promise.allSettled(requests.map(request => request.load));
+      if (cancelled) return;
+
+      const failedSources = results.flatMap((result, index) => {
+        if (result.status === 'fulfilled') return [];
+        console.error(`Error loading Refuerzo ${requests[index].label}:`, result.reason);
+        return [requests[index].label];
+      });
+      const mergedData = results.flatMap(result =>
+        result.status === 'fulfilled' ? result.value : []
+      );
+
+      setData(mergedData);
+      setSourceErrors(failedSources);
+      setSelectedMonth(null);
+      setLoadingState(mergedData.length > 0 ? LoadingState.SUCCESS : LoadingState.ERROR);
     };
-    loadData();
-  }, [sheetUrls]);
+
+    void loadData();
+    return () => {
+      cancelled = true;
+    };
+  }, [sheetUrls.jujuy, sheetUrls.salta, reloadCount]);
 
   // --- DATA PROCESSING ---
 
@@ -221,6 +243,34 @@ const DetailedQualityPostventa: React.FC<DetailedQualityPostventaProps> = ({ she
 
   if (loadingState === LoadingState.LOADING) return <SkeletonLoader />;
 
+  if (loadingState === LoadingState.ERROR) {
+    const hasSourceErrors = sourceErrors.length > 0;
+    const unavailableSources = sourceErrors.join(' y ');
+    return (
+      <DashboardFrame title="Refuerzo Calidad Postventa" onBack={onBack}>
+        <div className="flex min-h-[60vh] flex-col items-center justify-center px-6 text-center">
+          <Icons.AlertTriangle className="h-12 w-12 text-rose-500" />
+          <h2 className="mt-5 text-xl font-bold text-slate-900">No se pudieron cargar datos de Refuerzo</h2>
+          <p className="mt-2 max-w-md text-sm leading-6 text-slate-500">
+            {hasSourceErrors
+              ? <>Revise el acceso privado de {unavailableSources} para la cuenta de servicio.</>
+              : <>Las fuentes respondieron, pero no contienen registros compatibles para mostrar.</>}
+          </p>
+          <button
+            type="button"
+            onClick={() => setReloadCount(current => current + 1)}
+            className="mt-6 inline-flex items-center gap-2 rounded-md bg-slate-900 px-4 py-2.5 text-sm font-semibold text-white hover:bg-slate-700"
+          >
+            <Icons.RefreshCw className="h-4 w-4" />
+            Reintentar
+          </button>
+        </div>
+      </DashboardFrame>
+    );
+  }
+
+
+
   const filters = (
     <div className="space-y-6">
       <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 p-6">
@@ -317,6 +367,20 @@ const DetailedQualityPostventa: React.FC<DetailedQualityPostventaProps> = ({ she
       onBack={onBack}
     >
       <div className="min-h-screen bg-slate-50/50 -m-6 p-8 space-y-10 pb-32">
+        {sourceErrors.length > 0 && (
+          <div className="flex items-center justify-between gap-4 rounded-md border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+            <span>Datos no disponibles: {sourceErrors.join(", ")}</span>
+            <button
+              type="button"
+              aria-label="Reintentar carga de Refuerzo"
+              title="Reintentar"
+              onClick={() => setReloadCount(current => current + 1)}
+              className="shrink-0 text-amber-900 hover:text-amber-700"
+            >
+              <Icons.RefreshCw className="h-4 w-4" />
+            </button>
+          </div>
+        )}
         {/* Modern Header with Stats */}
         <div className="mt-24 flex flex-col lg:flex-row justify-between items-start lg:items-center bg-white p-8 lg:p-10 rounded-[3rem] border border-slate-100 shadow-sm relative overflow-hidden">
           <div className="relative z-10">

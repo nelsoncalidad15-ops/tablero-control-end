@@ -286,7 +286,8 @@ const parseCSV = (text: string): string[][] => {
 // --- Main Data Fetchers ---
 
 const PROXY_REQUEST_TIMEOUT_MS = 45000;
-const BACKEND_WAKE_TIMEOUT_MS = 12000;
+// Keep the wake-up request alive long enough for a Render Free cold start.
+const BACKEND_WAKE_TIMEOUT_MS = 90_000;
 const RETRYABLE_PROXY_ATTEMPTS = 2;
 
 let backendWakePromise: Promise<void> | null = null;

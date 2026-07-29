@@ -39,7 +39,9 @@ const preloadModule = (loader: () => Promise<any>) => {
 };
 
 type DashboardAccessState = "checking" | "granted" | "required" | "unavailable";
-const DASHBOARD_ACCESS_TIMEOUT_MS = 15_000;
+// Render Free can take about a minute to wake after 15 minutes without traffic.
+// Do not turn a normal cold start into a failed password validation.
+const DASHBOARD_ACCESS_TIMEOUT_MS = 90_000;
 
 const validateDashboardAccess = async (): Promise<DashboardAccessState> => {
   const password = getStoredDashboardPassword();

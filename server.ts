@@ -4,7 +4,6 @@ import cors from "cors";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
-import { timingSafeEqual } from "crypto";
 import { google } from "googleapis";
 
 type CorsOriginCallback = (err: Error | null, allow?: boolean) => void;
@@ -19,6 +18,11 @@ const SHEET_MAX_ROWS = Math.min(
   Math.max(Number(process.env.SHEET_MAX_ROWS) || DEFAULT_SHEET_MAX_ROWS, 1_000),
   50_000
 );
+const DATA_RATE_LIMIT_WINDOW_MS = 60 * 1000;
+const DATA_MAX_REQUESTS_PER_MINUTE = Math.min(
+  Math.max(Number(process.env.DATA_MAX_REQUESTS_PER_MINUTE) || 180, 30),
+  600
+);
 
 type CachedSheetMetadata = {
   title: string;
@@ -32,10 +36,17 @@ type CachedSheetEntry = {
   source: "google_api";
 };
 
+type RateLimitEntry = {
+  count: number;
+  resetAt: number;
+};
+
 async function startServer() {
   const app = express();
   const sheetCache = new Map<string, CachedSheetEntry>();
   const sheetMetadataCache = new Map<string, CachedSheetMetadata>();
+  const dataRequestAttempts = new Map<string, RateLimitEntry>();
+  app.set("trust proxy", 1);
   const defaultAllowedOrigins = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
@@ -55,13 +66,18 @@ async function startServer() {
       return callback(new Error(`Origin not allowed by CORS: ${origin}`));
     },
     methods: ["GET", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "X-Requested-With", "Accept", "X-Dashboard-Password"],
+    allowedHeaders: ["Content-Type", "X-Requested-With", "Accept"],
     credentials: false,
   }));
   app.use((req, res, next) => {
     res.setHeader("Vary", "Origin");
     res.setHeader("X-Content-Type-Options", "nosniff");
+    res.setHeader("X-Frame-Options", "DENY");
     res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+    res.setHeader("Permissions-Policy", "camera=(), geolocation=(), microphone=()");
+    if (process.env.NODE_ENV === "production") {
+      res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+    }
     res.setHeader("Cache-Control", "no-store, max-age=0");
     res.setHeader("Pragma", "no-cache");
     next();
@@ -124,17 +140,46 @@ async function startServer() {
     ventas: process.env.SHEET_URL_VENTAS || process.env.VENTAS_URL,
   };
   const allowedSheetNames = new Set(Object.keys(sheetUrls));
-  const isProduction = process.env.NODE_ENV === "production";
-  const passwordProtectionEnabled = isProduction || process.env.IS_PASSWORD_PROTECTED === "true";
-  const dashboardPassword = (process.env.GLOBAL_PASSWORD || "").trim();
   const hasGoogleCredentials = Boolean(
     process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && process.env.GOOGLE_PRIVATE_KEY
   );
 
-  const passwordsMatch = (providedPassword: string) => {
-    const provided = Buffer.from(providedPassword);
-    const configured = Buffer.from(dashboardPassword);
-    return provided.length === configured.length && timingSafeEqual(provided, configured);
+  const getClientKey = (req: express.Request) => String(req.ip || "unknown").slice(0, 200);
+
+  const getActiveRateLimitEntry = (clientKey: string, now: number) => {
+    const entry = dataRequestAttempts.get(clientKey);
+    if (!entry || entry.resetAt <= now) {
+      dataRequestAttempts.delete(clientKey);
+      return undefined;
+    }
+    return entry;
+  };
+
+  const setRateLimitHeaders = (res: express.Response, entry: RateLimitEntry, now: number) => {
+    res.setHeader("RateLimit-Limit", String(DATA_MAX_REQUESTS_PER_MINUTE));
+    res.setHeader("RateLimit-Remaining", String(Math.max(0, DATA_MAX_REQUESTS_PER_MINUTE - entry.count)));
+    res.setHeader("RateLimit-Reset", String(Math.max(1, Math.ceil((entry.resetAt - now) / 1000))));
+  };
+
+  const limitDataRequests = (req: express.Request, res: express.Response, next: express.NextFunction) => {
+    const now = Date.now();
+    const clientKey = getClientKey(req);
+    const existing = getActiveRateLimitEntry(clientKey, now);
+
+    if (existing && existing.count >= DATA_MAX_REQUESTS_PER_MINUTE) {
+      setRateLimitHeaders(res, { ...existing, count: DATA_MAX_REQUESTS_PER_MINUTE }, now);
+      res.setHeader("Retry-After", String(Math.max(1, Math.ceil((existing.resetAt - now) / 1000))));
+      return res.status(429).json({ error: "Demasiadas consultas de datos. Espere un minuto antes de reintentar." });
+    }
+
+    const entry: RateLimitEntry = existing || {
+      count: 0,
+      resetAt: now + DATA_RATE_LIMIT_WINDOW_MS,
+    };
+    entry.count += 1;
+    dataRequestAttempts.set(clientKey, entry);
+    setRateLimitHeaders(res, entry, now);
+    return next();
   };
 
   console.log("[Debug] Current Working Directory:", process.cwd());
@@ -256,50 +301,7 @@ async function startServer() {
     return res.send(csv);
   };
 
-  const getProvidedPassword = (req: express.Request) =>
-    (req.header("X-Dashboard-Password") || "").trim();
-
-  const requireDashboardPassword = (req: express.Request, res: express.Response, next: express.NextFunction) => {
-    if (!passwordProtectionEnabled) {
-      return next();
-    }
-
-    if (!dashboardPassword) {
-      console.error("[Security] GLOBAL_PASSWORD is not configured.");
-      return res.status(503).json({ error: "El acceso seguro todavia no esta configurado." });
-    }
-
-    const providedPassword = getProvidedPassword(req);
-    if (providedPassword && passwordsMatch(providedPassword)) {
-      return next();
-    }
-
-    return res.status(401).json({
-      error: "Contrasena de acceso requerida.",
-      passwordProtected: true,
-    });
-  };
-
-  // API Route to proxy Google Sheets
-  app.get("/api/auth/validate", (req, res) => {
-    if (!passwordProtectionEnabled) {
-      return res.json({ passwordProtected: false, valid: true });
-    }
-
-    if (!dashboardPassword) {
-      console.error("[Security] GLOBAL_PASSWORD is not configured.");
-      return res.status(503).json({ passwordProtected: true, valid: false });
-    }
-
-    const providedPassword = getProvidedPassword(req);
-    if (providedPassword && passwordsMatch(providedPassword)) {
-      return res.json({ passwordProtected: true, valid: true });
-    }
-
-    return res.status(401).json({ passwordProtected: true, valid: false });
-  });
-
-  app.get("/api/data/:sheetName", requireDashboardPassword, async (req, res) => {
+  app.get("/api/data/:sheetName", limitDataRequests, async (req, res) => {
     const sheetName = String(req.params.sheetName || "");
     let url = sheetUrls[sheetName];
 
@@ -380,7 +382,7 @@ async function startServer() {
       status: "ok", 
       environment: process.env.NODE_ENV || "development",
       time: new Date().toISOString(),
-      passwordProtected: passwordProtectionEnabled
+      passwordProtected: false
     });
   });
 

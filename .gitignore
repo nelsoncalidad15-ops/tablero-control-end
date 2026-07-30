@@ -76,6 +76,9 @@ typings/
 .env.local
 .env.*.local
 
+# Sensitive customer data exports must never be versioned.
+temp_claims_sample.csv
+
 # parcel-bundler cache (https://parceljs.org/)
 .cache
 .parcel-cache

@@ -1,17 +1,7 @@
 const INVALID_PREFIX = 'VITE_API_URL=';
-const DASHBOARD_PASSWORD_STORAGE_KEY = 'autosol_dashboard_password';
 const DEFAULT_API_BASE = 'https://tablero-control-end-api.onrender.com';
 
 const trimTrailingSlash = (value: string) => value.replace(/\/+$/, '');
-
-const safeStorage = () => {
-  if (typeof window === 'undefined') return null;
-  try {
-    return window.sessionStorage;
-  } catch {
-    return null;
-  }
-};
 
 export const resolveApiBase = (): string => {
   const rawValue = import.meta.env.VITE_API_URL;
@@ -45,27 +35,4 @@ export const resolveApiBase = (): string => {
 export const buildApiUrl = (path: string): string => {
   const apiBase = resolveApiBase();
   return apiBase ? `${apiBase}${path}` : path;
-};
-
-export const getStoredDashboardPassword = (): string => {
-  const storage = safeStorage();
-  if (!storage) return '';
-  return storage.getItem(DASHBOARD_PASSWORD_STORAGE_KEY)?.trim() || '';
-};
-
-export const setStoredDashboardPassword = (password: string): void => {
-  const storage = safeStorage();
-  if (!storage) return;
-  const value = password.trim();
-  if (!value) {
-    storage.removeItem(DASHBOARD_PASSWORD_STORAGE_KEY);
-    return;
-  }
-  storage.setItem(DASHBOARD_PASSWORD_STORAGE_KEY, value);
-};
-
-export const clearStoredDashboardPassword = (): void => {
-  const storage = safeStorage();
-  if (!storage) return;
-  storage.removeItem(DASHBOARD_PASSWORD_STORAGE_KEY);
 };

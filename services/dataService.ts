@@ -4,7 +4,6 @@ import Papa from 'papaparse';
 import { AutoRecord, QualityRecord, SalesQualityRecord, SalesClaimsRecord, DetailedQualityRecord, PostventaKpiRecord, BillingRecord, PCGCRecord, CemOsRecord, InternalPostventaRecord, ActionPlanRecord, CourseGrade, RelatorioItem, CollaboratorContact, CoursePhase, WarrantyRecord, QualityObjectiveRecord, QualityObjectiveSummaryRecord, QualityObjectiveScaleRecord, PvtOccupationRecord } from '../types';
 import { MOCK_DATA } from '../constants';
 import { buildApiUrl } from './apiConfig';
-import { getStoredDashboardPassword } from './apiConfig';
 
 // --- Helper Functions ---
 
@@ -540,19 +539,10 @@ const MOCK_HR_PHASES_DATA: CoursePhase[] = [
     { curso: 'Calidad', fase: 'Final', modalidad: 'Virtual' },
 ];
 
-const buildRequestHeaders = () => {
-    const headers: Record<string, string> = {
-        'Accept': 'application/json',
-        'X-Requested-With': 'XMLHttpRequest',
-    };
-
-    const dashboardPassword = getStoredDashboardPassword();
-    if (dashboardPassword) {
-        headers['X-Dashboard-Password'] = dashboardPassword;
-    }
-
-    return headers;
-};
+const buildRequestHeaders = (): Record<string, string> => ({
+    'Accept': 'application/json',
+    'X-Requested-With': 'XMLHttpRequest',
+});
 
 const wakeBackendIfNeeded = async () => {
     const apiBase = buildApiUrl('');
@@ -587,16 +577,17 @@ export const primeBackendConnection = async () => {
     }
 };
 
+export const primeSheetData = async (sheetKeys: Array<string | undefined>) => {
+    const keys = [...new Set(sheetKeys.filter((key): key is string => Boolean(key)))];
+    await Promise.allSettled(keys.map(fetchFromProxy));
+};
+
 export const primeSalesQualityData = async (
     salesQualityKey: string,
     salesClaimsKey: string,
     cemOsKey: string,
     cemOsSaltaKey: string
-) => {
-    const keys = [salesQualityKey, salesClaimsKey, cemOsKey, cemOsSaltaKey]
-        .filter(Boolean);
-    await Promise.allSettled(keys.map(fetchFromProxy));
-};
+) => primeSheetData([salesQualityKey, salesClaimsKey, cemOsKey, cemOsSaltaKey]);
 
 const fetchFromProxy = async (sheetKey: string): Promise<string> => {
 

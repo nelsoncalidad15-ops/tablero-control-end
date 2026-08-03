@@ -17,6 +17,7 @@ const PostventaBillingDashboard = lazy(() => import('./components/PostventaBilli
 const PostventaWarrantyDashboard = lazy(() => import('./components/PostventaWarrantyDashboard'));
 const PostventaPvtOccupationDashboard = lazy(() => import('./components/PostventaPvtOccupationDashboard'));
 const SalesQualityDashboard = lazy(() => import('./components/SalesQualityDashboard'));
+const ScoringDashboard = lazy(() => import('./components/ScoringDashboard'));
 const InternalPostventaDashboard = lazy(() => import('./components/InternalPostventaDashboard'));
 const ActionPlanDashboard = lazy(() => import('./components/ActionPlanDashboard'));
 const PCGCDashboard = lazy(() => import('./components/PCGCDashboard'));
@@ -164,6 +165,8 @@ function App() {
         navigate('/calidad');
     } else if (area.id === 'postventa') {
         navigate('/postventa');
+    } else if (area.id === 'ventas') {
+        navigate('/calidad/ventas');
     } else {
         navigate(`/dashboard/${area.id}`);
     }
@@ -514,7 +517,7 @@ function App() {
               <span className="block text-transparent bg-clip-text bg-gradient-to-r from-orange-300 via-amber-400 to-yellow-400">Ventas</span>
             </h2>
             <p className="mx-auto mt-4 max-w-2xl text-sm leading-7 text-slate-300/85 md:text-[15px]">
-              Encuestas, reclamos y CEM OS con una navegación más compacta, elegante y lista para operar.
+              Encuestas, reclamos, CEM OS y scoring de Planes de Ahorro en una navegación clara y lista para operar.
             </p>
           </motion.div>
 
@@ -524,11 +527,12 @@ function App() {
             transition={{ duration: 0.7, delay: 0.08 }}
             className="rounded-[2.25rem] border border-white/10 bg-white/5 p-4 shadow-[0_30px_90px_rgba(2,6,23,0.45)] backdrop-blur-2xl md:p-5"
           >
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
               {([
                 { id: 'surveys', path: '/calidad/ventas/surveys', name: 'Encuestas Internas', icon: Icons.ClipboardCheck, color: 'blue', desc: 'Satisfacción en salón' },
                 { id: 'claims', path: '/calidad/ventas/claims', name: 'Gestión de Reclamos', icon: Icons.AlertCircle, color: 'orange', desc: 'Seguimiento de quejas' },
-                { id: 'cem_os', path: '/calidad/ventas/cem_os', name: 'CEM OS', icon: Icons.BarChart, color: 'indigo', desc: 'Análisis de satisfacción general' }
+                { id: 'cem_os', path: '/calidad/ventas/cem_os', name: 'CEM OS', icon: Icons.BarChart, color: 'indigo', desc: 'Análisis de satisfacción general' },
+                { id: 'scoring', path: '/calidad/ventas/scoring', name: 'Scoring', icon: Icons.Target, color: 'blue', desc: 'Planes de ahorro y recontactos' }
               ] as const).map((item) => {
                 const colorClasses = {
                   blue: "bg-blue-500/20 text-blue-400 shadow-blue-500/40 border-blue-500/30",
@@ -602,6 +606,8 @@ function App() {
         );
       } else if (subType === 'ventas-surveys') {
         dashboardContent = <SalesQualityDashboard onBack={handleBack} initialTab="surveys" config={config} />;
+      } else if (subType === 'ventas-scoring') {
+        dashboardContent = <ScoringDashboard onBack={handleBack} />;
       } else if (subType === 'ventas-claims') {
         dashboardContent = <SalesQualityDashboard onBack={handleBack} initialTab="claims" config={config} />;
       } else if (subType === 'ventas-cem_os') {
@@ -712,6 +718,7 @@ function App() {
             <Route path="/calidad/ventas" element={<VentasSelection />} />
             <Route path="/calidad/ventas/surveys" element={<DashboardView type="calidad" subType="ventas-surveys" />} />
             <Route path="/calidad/ventas/claims" element={<DashboardView type="calidad" subType="ventas-claims" />} />
+            <Route path="/calidad/ventas/scoring" element={<DashboardView type="calidad" subType="ventas-scoring" />} />
             <Route path="/calidad/ventas/cem_os" element={<DashboardView type="calidad" subType="ventas-cem_os" />} />
             <Route path="/calidad/postventa/claims" element={<DashboardView type="calidad" subType="postventa-claims" />} />
             <Route path="/calidad/postventa/internal_surveys" element={<DashboardView type="calidad" subType="postventa-internal" />} />

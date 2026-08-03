@@ -1,7 +1,7 @@
 
 /// <reference types="vite/client" />
 import Papa from 'papaparse';
-import { AutoRecord, QualityRecord, SalesQualityRecord, SalesClaimsRecord, DetailedQualityRecord, PostventaKpiRecord, BillingRecord, PCGCRecord, CemOsRecord, InternalPostventaRecord, ActionPlanRecord, CourseGrade, RelatorioItem, CollaboratorContact, CoursePhase, WarrantyRecord, QualityObjectiveRecord, QualityObjectiveSummaryRecord, QualityObjectiveScaleRecord, PvtOccupationRecord } from '../types';
+import { AutoRecord, QualityRecord, SalesQualityRecord, SalesClaimsRecord, DetailedQualityRecord, PostventaKpiRecord, BillingRecord, PCGCRecord, CemOsRecord, InternalPostventaRecord, ActionPlanRecord, CourseGrade, RelatorioItem, CollaboratorContact, CoursePhase, WarrantyRecord, QualityObjectiveRecord, QualityObjectiveSummaryRecord, QualityObjectiveScaleRecord, PvtOccupationRecord, ScoringRecord } from '../types';
 import { MOCK_DATA } from '../constants';
 import { buildApiUrl } from './apiConfig';
 
@@ -696,6 +696,16 @@ export const fetchSalesQualityData = async (sheetKey: string): Promise<SalesQual
       return parseSalesQualityCSV(text);
     } catch (error) {
       console.error("Error loading sales quality data", error);
+      throw error;
+    }
+};
+
+export const fetchScoringData = async (): Promise<ScoringRecord[]> => {
+    try {
+      const text = await fetchFromProxy('scoring');
+      return parseScoringCSV(text);
+    } catch (error) {
+      console.error("Error loading scoring data", error);
       throw error;
     }
 };
@@ -2457,4 +2467,64 @@ const parseCoursePhasesCSV = (csvText: string): CoursePhase[] => {
             fase: (row[1] || 'Otros').trim() || 'Otros',
             modalidad: (row[2] || 'Sin Modalidad').trim() || 'Sin Modalidad'
         }));
+};
+
+const parseScoringCSV = (csvText: string): ScoringRecord[] => {
+    const parsed = Papa.parse<Record<string, unknown>>(csvText, {
+      header: true,
+      skipEmptyLines: 'greedy',
+    });
+
+    const normalizeHeader = (value: string) => cleanHeader(value).replace(/\s+/g, '_');
+    const valueFor = (row: Record<string, unknown>, ...keys: string[]) => {
+      const normalizedRow = new Map(
+        Object.entries(row).map(([key, value]) => [normalizeHeader(key), String(value ?? '').trim()])
+      );
+      for (const key of keys) {
+        const value = normalizedRow.get(key);
+        if (value) return value;
+      }
+      return '';
+    };
+
+    return parsed.data
+      .filter((row) => Object.values(row).some((value) => String(value ?? '').trim() !== ''))
+      .map((row, index) => {
+        const customerId = valueFor(row, 'id_cliente');
+        const branchSource = customerId.toUpperCase();
+        const branch: ScoringRecord['branch'] = branchSource.startsWith('JUJUY-')
+          ? 'JUJUY'
+          : branchSource.startsWith('SALTA-')
+            ? 'SALTA'
+            : 'SIN SUCURSAL';
+
+        return {
+          id: valueFor(row, 'id_respuesta') || `scoring-row-${index + 1}`,
+          customerId,
+          dniHash: valueFor(row, 'dni_hash'),
+          responseDate: valueFor(row, 'fecha_respuesta', 'fecha'),
+          customerName: valueFor(row, 'nombre_y_apellido', 'nombre_apellido', 'cliente'),
+          model: valueFor(row, 'modelo_suscripto', 'modelo'),
+          branch,
+          q1: valueFor(row, 'q1_conocia_plan_exclusivo'),
+          q2: valueFor(row, 'q2_informaron_licitacion_cuota_2'),
+          q3: valueFor(row, 'q3_informaron_adjudicacion_asegurada'),
+          q4: valueFor(row, 'q4_informaron_monto_cuota_2'),
+          q4aEstimatedAmount: valueFor(row, 'q4a_monto_estimado_cuota_2'),
+          q5FirstInstallment: valueFor(row, 'q5_monto_primera_cuota'),
+          q5aAutoDebit: valueFor(row, 'q5a_acepto_debito_automatico'),
+          q5bFirstPaymentDate: valueFor(row, 'q5b_fecha_pago_primera_cuota'),
+          advisor: valueFor(row, 'q6_quien_es_vendedor', 'vendedor', 'asesor'),
+          q7OtherPlan: valueFor(row, 'q7_tuvo_otro_plan_reciente'),
+          q7aOtherPlanDetail: valueFor(row, 'q7a_detalle_otro_plan'),
+          q8ProposalOrigin: valueFor(row, 'q8_como_conocio_propuesta'),
+          q9NeedsContact: valueFor(row, 'q9_necesita_recontacto'),
+          q10CustomerObservation: valueFor(row, 'q10_observaciones_cliente', 'observaciones_cliente'),
+          scoringResult: valueFor(row, 'resultado_scoring'),
+          scoringReason: valueFor(row, 'motivo_resultado'),
+          requiresContact: valueFor(row, 'requiere_recontacto'),
+          areaToReview: valueFor(row, 'area_a_revisar'),
+          internalObservation: valueFor(row, 'observacion_interna'),
+        };
+      });
 };

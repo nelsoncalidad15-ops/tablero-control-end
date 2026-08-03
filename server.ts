@@ -105,6 +105,7 @@ async function startServer() {
     sales_claims: process.env.LINK_RECLAMOS_V || process.env.SHEET_URL_SALES_CLAIMS,
     cem_os: process.env.LINK_OS_JUJUY || process.env.SHEET_URL_CEM_OS,
     cem_os_salta: process.env.LINK_OS_SALTA || process.env.SHEET_URL_CEM_OS_SALTA,
+    scoring: process.env.LINK_SCORING || process.env.SHEET_URL_SCORING,
     
     // Detailed Quality (Refuerzo)
     detailed_quality: process.env.LINK_REFUERZO_JJY || process.env.SHEET_URL_DETAILED_QUALITY,

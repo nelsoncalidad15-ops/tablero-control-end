@@ -123,6 +123,35 @@ export interface SalesQualityRecord {
   [key: string]: any;
 }
 
+export interface ScoringRecord {
+  id: string;
+  customerId: string;
+  dniHash: string;
+  responseDate: string;
+  customerName: string;
+  model: string;
+  branch: 'JUJUY' | 'SALTA' | 'SIN SUCURSAL';
+  q1: string;
+  q2: string;
+  q3: string;
+  q4: string;
+  q4aEstimatedAmount: string;
+  q5FirstInstallment: string;
+  q5aAutoDebit: string;
+  q5bFirstPaymentDate: string;
+  advisor: string;
+  q7OtherPlan: string;
+  q7aOtherPlanDetail: string;
+  q8ProposalOrigin: string;
+  q9NeedsContact: string;
+  q10CustomerObservation: string;
+  scoringResult: string;
+  scoringReason: string;
+  requiresContact: string;
+  areaToReview: string;
+  internalObservation: string;
+}
+
 export interface DetailedQualityRecord {
   id: string;
   sucursal?: string;

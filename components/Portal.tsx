@@ -11,20 +11,25 @@ interface PortalProps {
   }
 
 const Portal: React.FC<PortalProps> = ({ onSelectArea, onPrefetchArea }) => {
-  const portalAreas = [
-    { id: 'executive', name: 'Sala de Situación', icon: 'Activity', description: 'Resumen ejecutivo central.' } as any,
-    ...AREAS.map((area) => ({
-      ...area,
-      description:
-        area.id === 'postventa'
-          ? 'Taller, PPT y servicios.'
-          : area.id === 'rrhh'
-          ? 'Talento y desempeño.'
-          : area.id === 'calidad'
-          ? 'Auditorías y satisfacción.'
-          : 'Ventas y leads.',
-    })),
-  ].filter((area) => area.id !== 'ventas');
+  const executiveArea = {
+    id: 'executive',
+    name: 'Sala de Situación',
+    icon: 'Activity',
+    color: 'blue',
+    description: 'Resumen ejecutivo central.',
+  } as any;
+
+  const portalAreas = AREAS.map((area) => ({
+    ...area,
+    description:
+      area.id === 'postventa'
+        ? 'Taller, PPT y servicios.'
+        : area.id === 'rrhh'
+        ? 'Talento y desempeño.'
+        : area.id === 'calidad'
+        ? 'Auditorías y satisfacción.'
+        : 'Ventas y leads.',
+  }));
 
   return (
     <div className="relative min-h-screen overflow-x-hidden overflow-y-auto bg-slate-950 font-sans text-white">
@@ -73,6 +78,28 @@ const Portal: React.FC<PortalProps> = ({ onSelectArea, onPrefetchArea }) => {
                                     Calidad, postventa, RRHH y seguimiento ejecutivo en una sola vista.
                                     La idea es leer rápido, detectar desvíos y actuar.
                                 </p>
+                                <motion.button
+                                  type="button"
+                                  whileHover={{ y: -2, scale: 1.01 }}
+                                  whileTap={{ scale: 0.99 }}
+                                  onMouseEnter={() => onPrefetchArea?.(executiveArea.id)}
+                                  onFocus={() => onPrefetchArea?.(executiveArea.id)}
+                                  onTouchStart={() => onPrefetchArea?.(executiveArea.id)}
+                                  onClick={() => onSelectArea(executiveArea)}
+                                  className="group mt-5 flex w-full max-w-md items-center justify-between gap-4 rounded-2xl border border-cyan-400/20 bg-cyan-400/[0.07] px-4 py-3 text-left shadow-[0_14px_32px_rgba(8,47,73,0.20)] transition-colors hover:border-cyan-300/40 hover:bg-cyan-400/[0.12]"
+                                  aria-label="Abrir Sala de Situación"
+                                >
+                                  <div className="flex min-w-0 items-center gap-3">
+                                    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-cyan-400/25 bg-cyan-400/10 text-cyan-200">
+                                      <Icons.Activity className="h-5 w-5" />
+                                    </div>
+                                    <div className="min-w-0">
+                                      <p className="text-[9px] font-black uppercase tracking-[0.28em] text-cyan-200/75">Acceso ejecutivo</p>
+                                      <p className="mt-1 truncate text-sm font-black uppercase tracking-tight text-white">Sala de Situación</p>
+                                    </div>
+                                  </div>
+                                  <Icons.ArrowRight className="h-4 w-4 shrink-0 text-cyan-200/70 transition-transform group-hover:translate-x-1" />
+                                </motion.button>
                             </div>
                         </div>
 
@@ -117,10 +144,7 @@ const Portal: React.FC<PortalProps> = ({ onSelectArea, onPrefetchArea }) => {
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4 2xl:grid-cols-4">
                         {portalAreas.map((area, idx) => {
                             const IconComponent = Icons[area.icon as keyof typeof Icons] || Icons.Home;
-                            const isExecutive = area.id === 'executive';
-                            const palette = isExecutive
-                              ? 'bg-blue-500/15 text-blue-300 border-blue-400/20'
-                              : area.id === 'postventa'
+                            const palette = area.id === 'postventa'
                               ? 'bg-blue-500/15 text-blue-300 border-blue-400/20'
                               : area.id === 'rrhh'
                               ? 'bg-amber-500/15 text-amber-300 border-amber-400/20'
@@ -139,7 +163,7 @@ const Portal: React.FC<PortalProps> = ({ onSelectArea, onPrefetchArea }) => {
                                 onMouseEnter={() => onPrefetchArea?.(area.id)}
                                 onFocus={() => onPrefetchArea?.(area.id)}
                                 onTouchStart={() => onPrefetchArea?.(area.id)}
-                                onClick={() => onSelectArea(isExecutive ? { id: 'executive' as any, name: 'Sala de Situación', icon: 'Activity', color: 'blue', description: 'Resumen Ejecutivo Unificado' } : area)}
+                                onClick={() => onSelectArea(area)}
                                 className="group relative min-h-[160px] rounded-[1.45rem] border border-white/10 bg-[linear-gradient(180deg,rgba(11,16,32,0.90),rgba(15,23,42,0.80))] p-4 text-left transition-all hover:border-white/20 hover:bg-[linear-gradient(180deg,rgba(17,24,39,0.98),rgba(15,23,42,0.92))] hover:shadow-[0_18px_50px_rgba(15,23,42,0.34)] md:min-h-[166px] md:p-5"
                               >
                                   <div className="flex h-full flex-col justify-between">
@@ -160,7 +184,7 @@ const Portal: React.FC<PortalProps> = ({ onSelectArea, onPrefetchArea }) => {
                                       <Icons.ChevronRight className="h-4 w-4 text-slate-500 transition-transform group-hover:translate-x-1" />
                                     </div>
                                     <div className="mt-4 h-1 w-full overflow-hidden rounded-full bg-white/5">
-                                      <div className={`h-full w-1/2 rounded-full ${isExecutive ? 'bg-cyan-400' : 'bg-blue-400'} opacity-70 transition-all group-hover:w-full`} />
+                                      <div className={`h-full w-1/2 rounded-full ${area.id === 'ventas' ? 'bg-orange-400' : area.id === 'rrhh' ? 'bg-amber-400' : area.id === 'calidad' ? 'bg-emerald-400' : 'bg-blue-400'} opacity-70 transition-all group-hover:w-full`} />
                                     </div>
                                   </div>
                               </motion.button>

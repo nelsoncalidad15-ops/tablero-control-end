@@ -19,7 +19,7 @@ const Portal: React.FC<PortalProps> = ({ onSelectArea, onPrefetchArea }) => {
     description: 'Resumen ejecutivo central.',
   } as any;
 
-  const portalAreas = AREAS.map((area) => ({
+  const portalAreas = AREAS.filter((area) => area.id !== 'ventas').map((area) => ({
     ...area,
     description:
       area.id === 'postventa'

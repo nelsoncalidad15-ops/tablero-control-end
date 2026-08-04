@@ -70,3 +70,5 @@ services:
         sync: false
       - key: LINK_RRHH_FASES
         sync: false
+      - key: LINK_CONSUMOS_AMBIENTE
+        sync: false

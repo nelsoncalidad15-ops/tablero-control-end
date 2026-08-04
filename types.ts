@@ -265,7 +265,7 @@ export interface DashboardMetrics {
   }[];
 }
 
-export type AreaType = 'postventa' | 'rrhh' | 'calidad' | 'ventas';
+export type AreaType = 'postventa' | 'rrhh' | 'calidad' | 'ventas' | 'ambiente';
 
 export interface AreaConfig {
   id: AreaType;
@@ -273,6 +273,25 @@ export interface AreaConfig {
   icon: string;
   color: string;
   description: string;
+}
+
+export interface EnvironmentalConsumptionRecord {
+  id: string;
+  empresa: string;
+  periodo: string;
+  mes: string;
+  mesNumero: number;
+  anio: number;
+  totalUnidadesServicio: number;
+  entregas0Km: number;
+  unidades: number;
+  panos: number;
+  total: number;
+  consumoEnergiaKwh: number;
+  consumoAguaM3: number;
+  indicadorEnergia: number;
+  indicadorAgua: number;
+  [key: string]: any;
 }
 
 export interface ReportModuleConfig {

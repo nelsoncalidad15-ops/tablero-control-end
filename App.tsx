@@ -16,6 +16,8 @@ const PostventaKpiDashboard = lazy(() => import('./components/PostventaKpiDashbo
 const PostventaBillingDashboard = lazy(() => import('./components/PostventaBillingDashboard'));
 const PostventaWarrantyDashboard = lazy(() => import('./components/PostventaWarrantyDashboard'));
 const PostventaPvtOccupationDashboard = lazy(() => import('./components/PostventaPvtOccupationDashboard'));
+const AmbienteSelection = lazy(() => import('./components/AmbienteSelection'));
+const EnvironmentalConsumptionDashboard = lazy(() => import('./components/EnvironmentalConsumptionDashboard'));
 const SalesQualityDashboard = lazy(() => import('./components/SalesQualityDashboard'));
 const ScoringDashboard = lazy(() => import('./components/ScoringDashboard'));
 const InternalPostventaDashboard = lazy(() => import('./components/InternalPostventaDashboard'));
@@ -89,6 +91,11 @@ function App() {
       return;
     }
 
+    if (areaId === 'ambiente') {
+      void primeSheetData([sheets.ambiente]);
+      return;
+    }
+
     if (areaId === 'rrhh') {
       void primeSheetData([
         sheets.rrhh,
@@ -129,6 +136,11 @@ function App() {
       return;
     }
 
+    if (areaId === 'ambiente') {
+      preloadModule(() => import('./components/EnvironmentalConsumptionDashboard'));
+      return;
+    }
+
     if (areaId === 'rrhh') {
       preloadModule(() => import('./components/RRHHDashboard'));
       preloadModule(() => import('./components/RRHHCalendarView'));
@@ -165,6 +177,8 @@ function App() {
         navigate('/calidad');
     } else if (area.id === 'postventa') {
         navigate('/postventa');
+    } else if (area.id === 'ambiente') {
+        navigate('/ambiente');
     } else if (area.id === 'ventas') {
         navigate('/calidad/ventas');
     } else {
@@ -585,6 +599,7 @@ function App() {
         else navigate('/calidad');
       }
       else if (effectiveType === 'postventa') navigate('/postventa');
+      else if (effectiveType === 'ambiente') navigate('/ambiente');
       else if (effectiveType === 'executive') navigate('/');
       else handleBackToPortal();
     };
@@ -672,6 +687,10 @@ function App() {
           />
         );
       }
+    } else if (effectiveType === 'ambiente') {
+      if (subType === 'consumos') {
+        dashboardContent = <EnvironmentalConsumptionDashboard sheetUrl={config.sheetUrls.ambiente || ''} onBack={handleBack} />;
+      }
     } else if (area) {
       const areaId = area.id as keyof typeof config.sheetUrls;
       dashboardContent = (
@@ -730,6 +749,9 @@ function App() {
 
             <Route path="/executive" element={<DashboardView type="executive" />} />
             <Route path="/report" element={<ProfessionalReport config={config} onBack={() => navigate('/executive')} />} />
+
+            <Route path="/ambiente" element={<AmbienteSelection />} />
+            <Route path="/ambiente/consumos" element={<DashboardView type="ambiente" subType="consumos" />} />
 
             <Route path="/postventa" element={<PostventaSelection />} />
             <Route path="/postventa/operativo" element={<DashboardView type="postventa" subType="operativo" />} />

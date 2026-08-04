@@ -2,6 +2,7 @@
 /// <reference types="vite/client" />
 import Papa from 'papaparse';
 import { AutoRecord, QualityRecord, SalesQualityRecord, SalesClaimsRecord, DetailedQualityRecord, PostventaKpiRecord, BillingRecord, PCGCRecord, CemOsRecord, InternalPostventaRecord, ActionPlanRecord, CourseGrade, RelatorioItem, CollaboratorContact, CoursePhase, WarrantyRecord, QualityObjectiveRecord, QualityObjectiveSummaryRecord, QualityObjectiveScaleRecord, PvtOccupationRecord, ScoringRecord } from '../types';
+import type { EnvironmentalConsumptionRecord } from '../types';
 import { MOCK_DATA } from '../constants';
 import { buildApiUrl } from './apiConfig';
 
@@ -749,6 +750,16 @@ export const fetchPvtOccupationData = async (sheetKey: string): Promise<PvtOccup
       throw error;
     }
 };
+export const fetchEnvironmentalConsumptionData = async (sheetKey: string): Promise<EnvironmentalConsumptionRecord[]> => {
+    try {
+      const text = await fetchFromProxy(sheetKey);
+      return parseEnvironmentalConsumptionCSV(text);
+    } catch (error) {
+      console.error("Error loading environmental consumption data", error);
+      throw error;
+    }
+};
+
 
 export const fetchPostventaBillingData = async (sheetKey: string): Promise<BillingRecord[]> => {
     try {
@@ -2527,4 +2538,130 @@ const parseScoringCSV = (csvText: string): ScoringRecord[] => {
           internalObservation: valueFor(row, 'observacion_interna'),
         };
       });
+};
+
+const parseEnvironmentalPeriod = (
+  rawPeriod: string,
+  rawMonth: string,
+  rawYear: string
+) => {
+  const monthAliases: Record<string, number> = {
+    ene: 1, enero: 1,
+    feb: 2, febrero: 2,
+    mar: 3, marzo: 3,
+    abr: 4, abril: 4,
+    may: 5, mayo: 5,
+    jun: 6, junio: 6,
+    jul: 7, julio: 7,
+    ago: 8, agosto: 8,
+    sep: 9, sept: 9, septiembre: 9, set: 9,
+    oct: 10, octubre: 10,
+    nov: 11, noviembre: 11,
+    dic: 12, diciembre: 12,
+  };
+
+  const periodValue = String(rawPeriod || '').trim();
+  const monthValue = String(rawMonth || '').trim();
+  const yearValue = String(rawYear || '').trim();
+  const monthTokens = [monthValue, periodValue]
+    .flatMap(value => cleanHeader(value).split(/[^a-z]+/))
+    .filter(Boolean);
+
+  let mesNumero = monthTokens
+    .map(token => monthAliases[token])
+    .find((value): value is number => Boolean(value)) || 0;
+
+  if (!mesNumero) {
+    const isoMatch = periodValue.match(/\b20\d{2}[-/](0?[1-9]|1[0-2])\b/);
+    const alternateMatch = periodValue.match(/\b(0?[1-9]|1[0-2])[-/]20\d{2}\b/);
+    mesNumero = Number(isoMatch?.[1] || alternateMatch?.[1] || 0);
+  }
+
+  let anio = 0;
+  for (const candidate of [yearValue, periodValue]) {
+    const fullYear = candidate.match(/\b(20\d{2})\b/);
+    if (fullYear) {
+      anio = Number(fullYear[1]);
+      break;
+    }
+
+    const shortYear = candidate.match(/(?:^|[^0-9])([0-9]{2})(?:$|[^0-9])/);
+    if (shortYear) {
+      anio = 2000 + Number(shortYear[1]);
+      break;
+    }
+  }
+
+  return {
+    mes: mesNumero ? SPANISH_MONTHS[mesNumero - 1] : 'Unknown',
+    mesNumero,
+    anio,
+  };
+};
+
+const parseEnvironmentalConsumptionCSV = (csvText: string): EnvironmentalConsumptionRecord[] => {
+  const rows = parseCSV(csvText);
+  if (rows.length < 2) return [];
+
+  const headers = rows[0].map(cleanHeader);
+  const records: EnvironmentalConsumptionRecord[] = [];
+
+  const matches = (header: string, value: string) => header.includes(value);
+
+  for (let index = 1; index < rows.length; index++) {
+    const currentLine = rows[index];
+    if (!currentLine || currentLine.every(cell => !String(cell || '').trim())) continue;
+
+    const getCell = (matcher: (header: string) => boolean) => {
+      const columnIndex = headers.findIndex(matcher);
+      return columnIndex === -1 ? '' : String(currentLine[columnIndex] || '').trim();
+    };
+    const getNumber = (matcher: (header: string) => boolean) => parseNumber(getCell(matcher));
+
+    const empresa = getCell(header => header === 'empresa' || matches(header, 'empresa'));
+    if (!empresa || normalizeKey(empresa) === 'total') continue;
+
+    const rawMonth = getCell(header => header === 'mes');
+    const rawYear = getCell(header => header === 'ano' || header === 'anio');
+    const rawPeriod = getCell(header => matches(header, 'periodo')) || rawYear;
+    const parsedPeriod = parseEnvironmentalPeriod(rawPeriod, rawMonth, rawYear);
+
+    if (!parsedPeriod.anio || !parsedPeriod.mesNumero) continue;
+
+    const total = getNumber(header => header === 'total' || header === 'total general');
+    const consumoEnergiaKwh = getNumber(header =>
+      matches(header, 'consumo de energia') && !matches(header, 'indicador')
+    );
+    const consumoAguaM3 = getNumber(header =>
+      matches(header, 'consumo de agua') && !matches(header, 'indicador')
+    );
+    const indicadorEnergiaRaw = getCell(header =>
+      matches(header, 'indicador') && matches(header, 'energia')
+    );
+    const indicadorAguaRaw = getCell(header =>
+      matches(header, 'indicador') && matches(header, 'agua')
+    );
+
+    records.push({
+      id: 'environment-row-' + index,
+      empresa: empresa.replace(/\s+/g, ' ').trim(),
+      periodo: rawPeriod || (parsedPeriod.mes + '-' + parsedPeriod.anio),
+      mes: parsedPeriod.mes,
+      mesNumero: parsedPeriod.mesNumero,
+      anio: parsedPeriod.anio,
+      totalUnidadesServicio: getNumber(header =>
+        matches(header, 'unidades de servicio') || header === 'tus'
+      ),
+      entregas0Km: getNumber(header => matches(header, 'entregas') && matches(header, '0km')),
+      unidades: getNumber(header => header === 'unidades'),
+      panos: getNumber(header => header === 'panos'),
+      total,
+      consumoEnergiaKwh,
+      consumoAguaM3,
+      indicadorEnergia: indicadorEnergiaRaw ? parseNumber(indicadorEnergiaRaw) : (total > 0 ? consumoEnergiaKwh / total : 0),
+      indicadorAgua: indicadorAguaRaw ? parseNumber(indicadorAguaRaw) : (total > 0 ? consumoAguaM3 / total : 0),
+    });
+  }
+
+  return records;
 };

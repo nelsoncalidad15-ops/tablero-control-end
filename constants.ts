@@ -40,6 +40,7 @@ export const HR_GRADES_SHEET_KEY = "hr_grades";
 export const HR_RELATORIO_SHEET_KEY = "hr_relatorio";
 export const HR_CONTACTS_SHEET_KEY = "hr_contacts";
 export const HR_PHASES_SHEET_KEY = "hr_phases";
+export const AMBIENTE_CONSUMPTION_SHEET_KEY = "ambiente";
 
 export const GEMINI_MODEL = "gemini-3-flash-preview";
 
@@ -118,6 +119,13 @@ export const AREAS: AreaConfig[] = [
     icon: 'BarChart', 
     color: 'bg-orange-500', 
     description: 'Objetivos de ventas, patentamientos y leads.' 
+  },
+  {
+    id: 'ambiente',
+    name: 'Ambiente',
+    icon: 'Leaf',
+    color: 'bg-teal-600',
+    description: 'Consumo responsable de energia y agua.'
   }
 ];
 
@@ -148,6 +156,7 @@ export const DEFAULT_CONFIG = {
     rrhh: HR_GRADES_SHEET_KEY,
     calidad: QUALITY_SHEET_KEY,
     ventas: '',
+    ambiente: AMBIENTE_CONSUMPTION_SHEET_KEY,
     detailed_quality: DETAILED_QUALITY_SHEET_KEY,
     detailed_quality_salta: DETAILED_QUALITY_SALTA_SHEET_KEY,
     postventa_kpis: POSTVENTA_KPI_SHEET_KEY,

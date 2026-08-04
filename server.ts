@@ -139,6 +139,7 @@ async function startServer() {
     hr_phases: process.env.LINK_RRHH_FASES || process.env.SHEET_URL_HR_PHASES,
     rrhh: process.env.SHEET_URL_RRHH || process.env.RRHH_URL,
     ventas: process.env.SHEET_URL_VENTAS || process.env.VENTAS_URL,
+    ambiente: process.env.LINK_CONSUMOS_AMBIENTE || process.env.SHEET_URL_AMBIENTE_CONSUMOS,
   };
   const allowedSheetNames = new Set(Object.keys(sheetUrls));
   const hasGoogleCredentials = Boolean(

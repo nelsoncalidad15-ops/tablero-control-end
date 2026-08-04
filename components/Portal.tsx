@@ -28,6 +28,8 @@ const Portal: React.FC<PortalProps> = ({ onSelectArea, onPrefetchArea }) => {
         ? 'Talento y desempeño.'
         : area.id === 'calidad'
         ? 'Auditorías y satisfacción.'
+        : area.id === 'ambiente'
+        ? 'Agua y energia.'
         : 'Ventas y leads.',
   }));
 
@@ -150,6 +152,8 @@ const Portal: React.FC<PortalProps> = ({ onSelectArea, onPrefetchArea }) => {
                               ? 'bg-amber-500/15 text-amber-300 border-amber-400/20'
                               : area.id === 'calidad'
                               ? 'bg-emerald-500/15 text-emerald-300 border-emerald-400/20'
+                              : area.id === 'ambiente'
+                              ? 'bg-teal-500/15 text-teal-200 border-teal-300/25'
                               : 'bg-orange-500/15 text-orange-300 border-orange-400/20';
 
                               return (
@@ -184,7 +188,7 @@ const Portal: React.FC<PortalProps> = ({ onSelectArea, onPrefetchArea }) => {
                                       <Icons.ChevronRight className="h-4 w-4 text-slate-500 transition-transform group-hover:translate-x-1" />
                                     </div>
                                     <div className="mt-4 h-1 w-full overflow-hidden rounded-full bg-white/5">
-                                      <div className={`h-full w-1/2 rounded-full ${area.id === 'ventas' ? 'bg-orange-400' : area.id === 'rrhh' ? 'bg-amber-400' : area.id === 'calidad' ? 'bg-emerald-400' : 'bg-blue-400'} opacity-70 transition-all group-hover:w-full`} />
+                                      <div className={`h-full w-1/2 rounded-full ${area.id === 'ventas' ? 'bg-orange-400' : area.id === 'rrhh' ? 'bg-amber-400' : area.id === 'calidad' ? 'bg-emerald-400' : area.id === 'ambiente' ? 'bg-teal-400' : 'bg-blue-400'} opacity-70 transition-all group-hover:w-full`} />
                                     </div>
                                   </div>
                               </motion.button>

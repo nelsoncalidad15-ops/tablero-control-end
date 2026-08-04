@@ -5,6 +5,7 @@ import {
   ComposedChart,
   Legend,
   Line,
+  LineChart,
   ResponsiveContainer,
   Tooltip,
   XAxis,
@@ -163,7 +164,7 @@ const TrendChart = ({ data, mode }: { data: MonthlyRow[]; mode: 'energy' | 'wate
   );
 };
 
-const EnvironmentalConsumptionDashboard: React.FC<EnvironmentalConsumptionDashboardProps> = ({
+const EnvironmentalConsumptionDashboardLegacy: React.FC<EnvironmentalConsumptionDashboardProps> = ({
   sheetUrl = AMBIENTE_CONSUMPTION_SHEET_KEY,
   onBack,
 }) => {
@@ -537,6 +538,278 @@ const EnvironmentalConsumptionDashboard: React.FC<EnvironmentalConsumptionDashbo
               { header: 'Periodo', accessor: 'periodo', render: (_value, row) => (row as EnvironmentalConsumptionRecord).mes.substring(0, 3).toUpperCase() + ' ' + (row as EnvironmentalConsumptionRecord).anio },
               { header: 'TUS', accessor: 'totalUnidadesServicio', render: value => formatNumber(Number(value || 0)) },
               { header: 'Entregas 0 Km', accessor: 'entregas0Km', render: value => formatNumber(Number(value || 0)) },
+              { header: 'Total', accessor: 'total', render: value => formatNumber(Number(value || 0)) },
+              { header: 'Energia', accessor: 'consumoEnergiaKwh', render: value => formatKwh(Number(value || 0)) },
+              { header: 'Agua', accessor: 'consumoAguaM3', render: value => formatWater(Number(value || 0)) },
+              { header: 'Ind. energia', accessor: 'indicadorEnergia', render: (_value, row) => { const record = row as EnvironmentalConsumptionRecord; return formatEnergyIntensity(record.total ? record.consumoEnergiaKwh / record.total : 0); } },
+              { header: 'Ind. agua', accessor: 'indicadorAgua', render: (_value, row) => { const record = row as EnvironmentalConsumptionRecord; return formatWaterIntensity(record.total ? record.consumoAguaM3 / record.total : 0); } },
+            ]}
+          />
+        </>
+      )}
+    </DashboardFrame>
+  );
+};
+
+type ComparisonPoint = {
+  mes: string;
+  mesCorto: string;
+  [key: string]: string | number | undefined;
+};
+
+const comparisonColors = {
+  energy: ['#92400e', '#f59e0b'],
+  water: ['#0369a1', '#38bdf8'],
+};
+
+const CompactMetric = ({ label, value, icon: Icon, color }: {
+  label: string;
+  value: string;
+  icon: React.ComponentType<React.SVGProps<SVGSVGElement>>;
+  color: string;
+}) => (
+  <div className="relative overflow-hidden rounded-[1.45rem] border border-white/80 bg-white/85 p-4 shadow-[0_10px_30px_rgba(15,23,42,0.05)] backdrop-blur-xl">
+    <div className="absolute -right-7 -top-7 h-24 w-24 rounded-full opacity-10" style={{ backgroundColor: color }} />
+    <div className="relative flex items-start justify-between gap-3">
+      <div>
+        <p className="text-[8px] font-black uppercase tracking-[0.18em] text-slate-400">{label}</p>
+        <p className="mt-2 text-[1.7rem] font-black leading-none tracking-tight text-slate-950">{value}</p>
+      </div>
+      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl" style={{ color, backgroundColor: color + '18' }}>
+        <Icon className="h-4.5 w-4.5" />
+      </span>
+    </div>
+  </div>
+);
+
+const CompanyComparisonChart = ({ company, years, records, mode }: {
+  company: string;
+  years: number[];
+  records: EnvironmentalConsumptionRecord[];
+  mode: 'energy' | 'water';
+}) => {
+  const isEnergy = mode === 'energy';
+  const valueFormatter = isEnergy ? formatEnergyIntensity : formatWaterIntensity;
+  const series = MONTHS.map((month, index) => {
+    const point: ComparisonPoint = { mes: month, mesCorto: month.substring(0, 3) };
+
+    years.forEach(year => {
+      const record = records.find(
+        row => row.empresa === company && row.anio === year && row.mesNumero === index + 1
+      );
+      if (record) {
+        point['year-' + year] = isEnergy
+          ? record.consumoEnergiaKwh / Math.max(record.total, 1)
+          : record.consumoAguaM3 / Math.max(record.total, 1);
+      }
+    });
+
+    return point;
+  }).filter(point => years.some(year => typeof point['year-' + year] === 'number'));
+
+  return (
+    <ChartWrapper
+      title={(isEnergy ? 'Indicador de energia' : 'Indicador de agua') + ' ? ' + company.replace(/^Autosol\s+/i, '')}
+      subtitle={isEnergy ? 'kWh por unidad' : 'm\u00b3 por unidad'}
+      className="h-[355px]"
+    >
+      <ResponsiveContainer width="100%" height="100%">
+        <LineChart data={series} margin={{ top: 14, right: 28, left: 4, bottom: 6 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+          <XAxis dataKey="mesCorto" tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} />
+          <YAxis tickFormatter={(value: number) => formatNumber(value, isEnergy ? 0 : 2)} tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} width={52} />
+          <Tooltip labelFormatter={label => String(label).toUpperCase()} formatter={(value: number) => [valueFormatter(Number(value)), 'Indicador']} contentStyle={{ borderRadius: 14, borderColor: '#e2e8f0', fontSize: 12, fontWeight: 700 }} />
+          <Legend formatter={value => <span className="text-[10px] font-black text-slate-600">{String(value)}</span>} />
+          {years.map((year, index) => (
+            <Line key={year} type="monotone" dataKey={'year-' + year} name={String(year)} stroke={comparisonColors[mode][index] || comparisonColors[mode][1]} strokeWidth={3} dot={{ r: 3.5, strokeWidth: 2, fill: 'white' }} activeDot={{ r: 5 }} connectNulls />
+          ))}
+        </LineChart>
+      </ResponsiveContainer>
+    </ChartWrapper>
+  );
+};
+
+const EnvironmentalConsumptionDashboard: React.FC<EnvironmentalConsumptionDashboardProps> = ({
+  sheetUrl = AMBIENTE_CONSUMPTION_SHEET_KEY,
+  onBack,
+}) => {
+  const [data, setData] = useState<EnvironmentalConsumptionRecord[]>([]);
+  const [loading, setLoading] = useState<LoadingStatus>({ isLoading: true, error: null });
+  const [selectedYears, setSelectedYears] = useState<number[]>([]);
+  const [selectedCompanies, setSelectedCompanies] = useState<string[]>([]);
+  const [selectedMonths, setSelectedMonths] = useState<number[]>([]);
+
+  useEffect(() => {
+    let active = true;
+    const load = async () => {
+      setLoading({ isLoading: true, error: null });
+      try {
+        const records = await fetchEnvironmentalConsumptionData(sheetUrl);
+        if (active) {
+          setData(records);
+          setLoading({ isLoading: false, error: null });
+        }
+      } catch {
+        if (active) setLoading({ isLoading: false, error: 'No se pudo cargar la hoja de consumos.' });
+      }
+    };
+    void load();
+    return () => { active = false; };
+  }, [sheetUrl]);
+
+  const normalizedRecords = useMemo(() => dedupeByCompanyPeriod(data).records, [data]);
+  const years = useMemo(() => Array.from(new Set(normalizedRecords.map(record => record.anio))).sort((a, b) => a - b), [normalizedRecords]);
+  const companies = useMemo(() => Array.from(new Set(normalizedRecords.map(record => record.empresa))).sort((a, b) => a.localeCompare(b, 'es')), [normalizedRecords]);
+
+  useEffect(() => {
+    const latest = years[years.length - 1];
+    if (latest && (selectedYears.length === 0 || selectedYears.some(year => !years.includes(year)))) {
+      setSelectedYears([latest]);
+    }
+  }, [selectedYears, years]);
+
+  const filteredRecords = useMemo(
+    () => normalizedRecords.filter(record =>
+      selectedYears.includes(record.anio)
+      && (selectedCompanies.length === 0 || selectedCompanies.includes(record.empresa))
+      && (selectedMonths.length === 0 || selectedMonths.includes(record.mesNumero))
+    ),
+    [normalizedRecords, selectedCompanies, selectedMonths, selectedYears]
+  );
+
+  const summary = useMemo(() => aggregate(filteredRecords), [filteredRecords]);
+  const visibleCompanies = useMemo(
+    () => (selectedCompanies.length ? selectedCompanies : companies).filter(company =>
+      filteredRecords.some(record => record.empresa === company)
+    ),
+    [companies, filteredRecords, selectedCompanies]
+  );
+  const latestRecord = useMemo(
+    () => normalizedRecords.reduce<EnvironmentalConsumptionRecord | null>((latest, record) => {
+      if (!latest) return record;
+      return record.anio * 100 + record.mesNumero > latest.anio * 100 + latest.mesNumero ? record : latest;
+    }, null),
+    [normalizedRecords]
+  );
+
+  const toggleYear = (year: number) => {
+    setSelectedYears(current => {
+      if (current.includes(year)) return current.length > 1 ? current.filter(value => value !== year) : current;
+      return [...current.slice(-1), year].sort((a, b) => a - b);
+    });
+  };
+
+  const toggleCompany = (company: string) => {
+    setSelectedCompanies(current => {
+      if (current.length === 0) return [company];
+      if (current.includes(company)) return current.filter(value => value !== company);
+      return current.length < 2 ? [...current, company] : [current[1], company];
+    });
+  };
+
+  const resetFilters = () => {
+    const latest = years[years.length - 1];
+    setSelectedYears(latest ? [latest] : []);
+    setSelectedCompanies([]);
+    setSelectedMonths([]);
+  };
+
+  return (
+    <DashboardFrame title="Ambiente / Consumos" subtitle="Agua y energia" onBack={onBack} isLoading={loading.isLoading}>
+      <motion.section
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="relative overflow-hidden rounded-[1.8rem] border border-teal-200/60 bg-[radial-gradient(circle_at_92%_15%,rgba(34,211,238,0.28),transparent_24%),linear-gradient(135deg,#063b38_0%,#0f172a_100%)] px-5 py-5 text-white shadow-[0_18px_45px_rgba(15,118,110,0.2)] md:px-7"
+      >
+        <div className="relative flex flex-wrap items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <span className="flex h-10 w-10 items-center justify-center rounded-xl border border-teal-100/15 bg-white/10 text-emerald-200"><Icons.Leaf className="h-5 w-5" /></span>
+            <div>
+              <p className="text-[8px] font-black uppercase tracking-[0.28em] text-teal-100/70">Gestion ambiental</p>
+              <h2 className="mt-1 text-2xl font-black tracking-tight">Consumos</h2>
+            </div>
+          </div>
+          <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.08] px-4 py-3">
+            <Icons.Calendar className="h-4 w-4 text-teal-100/80" />
+            <div>
+              <p className="text-[7px] font-black uppercase tracking-[0.18em] text-teal-100/65">Ultimo dato</p>
+              <p className="mt-1 text-sm font-black uppercase">{latestRecord ? latestRecord.mes.substring(0, 3) + ' ' + latestRecord.anio : 'Sin datos'}</p>
+            </div>
+          </div>
+        </div>
+      </motion.section>
+
+      <section className="rounded-[1.6rem] border border-white/80 bg-white/80 px-4 py-4 shadow-[0_10px_32px_rgba(15,23,42,0.04)] backdrop-blur-xl md:px-5">
+        <div className="flex flex-wrap items-center gap-x-7 gap-y-4">
+          <div>
+            <p className="mb-2 flex items-center gap-2 text-[8px] font-black uppercase tracking-[0.2em] text-slate-400"><Icons.Calendar className="h-3.5 w-3.5" /> Anos</p>
+            <div className="flex flex-wrap gap-1.5">
+              {years.map(year => (
+                <button key={year} onClick={() => toggleYear(year)} className={'rounded-xl border px-3.5 py-2 text-[10px] font-black uppercase tracking-[0.16em] transition-all ' + (selectedYears.includes(year) ? 'border-slate-950 bg-slate-950 text-white shadow-md shadow-slate-900/15' : 'border-slate-200 bg-white text-slate-500 hover:border-teal-300')}>
+                  {year}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div>
+            <p className="mb-2 flex items-center gap-2 text-[8px] font-black uppercase tracking-[0.2em] text-slate-400"><Icons.Leaf className="h-3.5 w-3.5" /> Sucursales</p>
+            <div className="flex flex-wrap gap-1.5">
+              <button onClick={() => setSelectedCompanies([])} className={'rounded-xl border px-3.5 py-2 text-[10px] font-black uppercase tracking-[0.14em] transition-all ' + (selectedCompanies.length === 0 ? 'border-teal-600 bg-teal-600 text-white' : 'border-slate-200 bg-white text-slate-500 hover:border-teal-300')}>Todas</button>
+              {companies.map(company => (
+                <button key={company} onClick={() => toggleCompany(company)} className={'rounded-xl border px-3.5 py-2 text-[10px] font-black transition-all ' + (selectedCompanies.includes(company) ? 'border-teal-600 bg-teal-50 text-teal-800' : 'border-slate-200 bg-white text-slate-500 hover:border-teal-300')}>
+                  {company.replace(/^Autosol\s+/i, '')}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="min-w-[260px] flex-1">
+            <div className="mb-2 flex items-center justify-between gap-4">
+              <p className="flex items-center gap-2 text-[8px] font-black uppercase tracking-[0.2em] text-slate-400"><Icons.Filter className="h-3.5 w-3.5" /> Meses</p>
+              <button onClick={resetFilters} className="text-[8px] font-black uppercase tracking-[0.16em] text-teal-700 hover:text-teal-950">Restablecer</button>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              <button onClick={() => setSelectedMonths([])} className={'rounded-xl border px-3 py-2 text-[9px] font-black uppercase transition-all ' + (selectedMonths.length === 0 ? 'border-slate-950 bg-slate-950 text-white' : 'border-slate-200 bg-white text-slate-500')}>Todo</button>
+              {MONTHS.map((month, index) => (
+                <button key={month} onClick={() => setSelectedMonths(current => current.includes(index + 1) ? current.filter(value => value !== index + 1) : [...current, index + 1])} className={'rounded-xl border px-2.5 py-2 text-[9px] font-black uppercase transition-all ' + (selectedMonths.includes(index + 1) ? 'border-cyan-500 bg-cyan-500 text-white' : 'border-slate-200 bg-white text-slate-500 hover:border-cyan-300')}>
+                  {month.substring(0, 3)}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {loading.error ? (
+        <EmptyStatePanel icon={Icons.AlertTriangle} title="Fuente no disponible" subtitle={loading.error} />
+      ) : filteredRecords.length === 0 ? (
+        <EmptyStatePanel icon={Icons.Leaf} title="Sin datos" subtitle="No hay consumos para el filtro elegido." />
+      ) : (
+        <>
+          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            <CompactMetric label="Energia" value={formatKwh(summary.energia)} icon={Icons.Zap} color={ENERGY_COLOR} />
+            <CompactMetric label="Agua" value={formatWater(summary.agua)} icon={Icons.Droplet} color={WATER_COLOR} />
+            <CompactMetric label="Intensidad energia" value={formatEnergyIntensity(summary.indicadorEnergia)} icon={Icons.Zap} color="#b45309" />
+            <CompactMetric label="Intensidad agua" value={formatWaterIntensity(summary.indicadorAgua)} icon={Icons.Droplet} color="#0284c7" />
+          </div>
+
+          <section className="space-y-5">
+            <div className="flex items-center gap-2 px-1"><span className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-100 text-amber-700"><Icons.Zap className="h-4 w-4" /></span><h3 className="text-base font-black text-slate-950">Energia</h3></div>
+            {visibleCompanies.map(company => <CompanyComparisonChart key={'energy-' + company} company={company} years={selectedYears} records={filteredRecords} mode="energy" />)}
+          </section>
+
+          <section className="space-y-5">
+            <div className="flex items-center gap-2 px-1"><span className="flex h-8 w-8 items-center justify-center rounded-xl bg-sky-100 text-sky-700"><Icons.Droplet className="h-4 w-4" /></span><h3 className="text-base font-black text-slate-950">Agua</h3></div>
+            {visibleCompanies.map(company => <CompanyComparisonChart key={'water-' + company} company={company} years={selectedYears} records={filteredRecords} mode="water" />)}
+          </section>
+
+          <DataTable
+            title="Detalle"
+            data={[...filteredRecords].sort((a, b) => b.anio - a.anio || b.mesNumero - a.mesNumero || a.empresa.localeCompare(b.empresa, 'es'))}
+            pageSize={12}
+            columns={[
+              { header: 'Empresa', accessor: 'empresa' },
+              { header: 'Periodo', accessor: 'periodo', render: (_value, row) => (row as EnvironmentalConsumptionRecord).mes.substring(0, 3).toUpperCase() + ' ' + (row as EnvironmentalConsumptionRecord).anio },
+              { header: 'TUS', accessor: 'totalUnidadesServicio', render: value => formatNumber(Number(value || 0)) },
               { header: 'Total', accessor: 'total', render: value => formatNumber(Number(value || 0)) },
               { header: 'Energia', accessor: 'consumoEnergiaKwh', render: value => formatKwh(Number(value || 0)) },
               { header: 'Agua', accessor: 'consumoAguaM3', render: value => formatWater(Number(value || 0)) },

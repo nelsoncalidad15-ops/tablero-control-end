@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import {
   Bar,
+  BarChart,
   CartesianGrid,
   ComposedChart,
   Legend,
@@ -582,6 +583,50 @@ const CompactMetric = ({ label, value, icon: Icon, color }: {
   </div>
 );
 
+const CompanyConsumptionChart = ({ company, years, records, mode }: {
+  company: string;
+  years: number[];
+  records: EnvironmentalConsumptionRecord[];
+  mode: 'energy' | 'water';
+}) => {
+  const isEnergy = mode === 'energy';
+  const valueFormatter = isEnergy ? formatKwh : formatWater;
+  const series = MONTHS.map((month, index) => {
+    const point: ComparisonPoint = { mes: month, mesCorto: month.substring(0, 3) };
+
+    years.forEach(year => {
+      const record = records.find(
+        row => row.empresa === company && row.anio === year && row.mesNumero === index + 1
+      );
+      if (record) point['year-' + year] = isEnergy ? record.consumoEnergiaKwh : record.consumoAguaM3;
+    });
+
+    return point;
+  }).filter(point => years.some(year => typeof point['year-' + year] === 'number'));
+
+  return (
+    <ChartWrapper
+      title={(isEnergy ? 'Consumo de energia' : 'Consumo de agua') + ' - ' + company.replace(/^Autosol\s+/i, '')}
+      subtitle={isEnergy ? 'kWh' : 'm\u00b3'}
+      className="h-[355px]"
+    >
+      <ResponsiveContainer width="100%" height="100%">
+        <BarChart data={series} margin={{ top: 14, right: 28, left: 4, bottom: 6 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+          <XAxis dataKey="mesCorto" tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} />
+          <YAxis tickFormatter={(value: number) => formatNumber(value)} tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} width={52} />
+          <Tooltip labelFormatter={label => String(label).toUpperCase()} formatter={(value: number) => [valueFormatter(Number(value)), 'Consumo']} contentStyle={{ borderRadius: 14, borderColor: '#e2e8f0', fontSize: 12, fontWeight: 700 }} />
+          <Legend formatter={value => <span className="text-[10px] font-black text-slate-600">{String(value)}</span>} />
+          {years.map((year, index) => (
+            <Bar key={year} dataKey={'year-' + year} name={String(year)} fill={comparisonColors[mode][index] || comparisonColors[mode][1]} radius={[7, 7, 0, 0]} maxBarSize={42} />
+          ))}
+        </BarChart>
+      </ResponsiveContainer>
+    </ChartWrapper>
+  );
+};
+
+
 const CompanyComparisonChart = ({ company, years, records, mode }: {
   company: string;
   years: number[];
@@ -791,6 +836,17 @@ const EnvironmentalConsumptionDashboard: React.FC<EnvironmentalConsumptionDashbo
             <CompactMetric label="Intensidad energia" value={formatEnergyIntensity(summary.indicadorEnergia)} icon={Icons.Zap} color="#b45309" />
             <CompactMetric label="Intensidad agua" value={formatWaterIntensity(summary.indicadorAgua)} icon={Icons.Droplet} color="#0284c7" />
           </div>
+
+          <section className="space-y-5">
+            <div className="flex items-center gap-2 px-1"><span className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-100 text-amber-700"><Icons.Zap className="h-4 w-4" /></span><h3 className="text-base font-black text-slate-950">Consumo de energia</h3></div>
+            {visibleCompanies.map(company => <CompanyConsumptionChart key={'energy-consumption-' + company} company={company} years={selectedYears} records={filteredRecords} mode="energy" />)}
+          </section>
+
+          <section className="space-y-5">
+            <div className="flex items-center gap-2 px-1"><span className="flex h-8 w-8 items-center justify-center rounded-xl bg-sky-100 text-sky-700"><Icons.Droplet className="h-4 w-4" /></span><h3 className="text-base font-black text-slate-950">Consumo de agua</h3></div>
+            {visibleCompanies.map(company => <CompanyConsumptionChart key={'water-consumption-' + company} company={company} years={selectedYears} records={filteredRecords} mode="water" />)}
+          </section>
+
 
           <section className="space-y-5">
             <div className="flex items-center gap-2 px-1"><span className="flex h-8 w-8 items-center justify-center rounded-xl bg-amber-100 text-amber-700"><Icons.Zap className="h-4 w-4" /></span><h3 className="text-base font-black text-slate-950">Energia</h3></div>

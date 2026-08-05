@@ -5,6 +5,7 @@ import {
   CartesianGrid,
   ComposedChart,
   Legend,
+  LabelList,
   Line,
   LineChart,
   ResponsiveContainer,
@@ -591,6 +592,8 @@ const CompanyConsumptionChart = ({ company, years, records, mode }: {
 }) => {
   const isEnergy = mode === 'energy';
   const valueFormatter = isEnergy ? formatKwh : formatWater;
+  const labelFormatter = (value: number | undefined) =>
+    value == null ? '' : formatNumber(value, isEnergy ? 0 : 1);
   const series = MONTHS.map((month, index) => {
     const point: ComparisonPoint = { mes: month, mesCorto: month.substring(0, 3) };
 
@@ -611,15 +614,27 @@ const CompanyConsumptionChart = ({ company, years, records, mode }: {
       className="h-[355px]"
     >
       <ResponsiveContainer width="100%" height="100%">
-        <BarChart data={series} margin={{ top: 14, right: 28, left: 4, bottom: 6 }}>
+        <BarChart data={series} margin={{ top: 32, right: 28, left: 4, bottom: 6 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
           <XAxis dataKey="mesCorto" tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} />
           <YAxis tickFormatter={(value: number) => formatNumber(value)} tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} width={52} />
           <Tooltip labelFormatter={label => String(label).toUpperCase()} formatter={(value: number) => [valueFormatter(Number(value)), 'Consumo']} contentStyle={{ borderRadius: 14, borderColor: '#e2e8f0', fontSize: 12, fontWeight: 700 }} />
           <Legend formatter={value => <span className="text-[10px] font-black text-slate-600">{String(value)}</span>} />
-          {years.map((year, index) => (
-            <Bar key={year} dataKey={'year-' + year} name={String(year)} fill={comparisonColors[mode][index] || comparisonColors[mode][1]} radius={[7, 7, 0, 0]} maxBarSize={42} />
-          ))}
+          {years.map((year, index) => {
+            const color = comparisonColors[mode][index] || comparisonColors[mode][1];
+            const dataKey = 'year-' + year;
+            return (
+              <Bar key={year} dataKey={dataKey} name={String(year)} fill={color} radius={[7, 7, 0, 0]} maxBarSize={42}>
+                <LabelList
+                  dataKey={dataKey}
+                  position="top"
+                  offset={8}
+                  formatter={labelFormatter}
+                  style={{ fill: color, fontSize: 10, fontWeight: 800 }}
+                />
+              </Bar>
+            );
+          })}
         </BarChart>
       </ResponsiveContainer>
     </ChartWrapper>
@@ -635,6 +650,8 @@ const CompanyComparisonChart = ({ company, years, records, mode }: {
 }) => {
   const isEnergy = mode === 'energy';
   const valueFormatter = isEnergy ? formatEnergyIntensity : formatWaterIntensity;
+  const labelFormatter = (value: number | undefined) =>
+    value == null ? '' : formatNumber(value, 2);
   const series = MONTHS.map((month, index) => {
     const point: ComparisonPoint = { mes: month, mesCorto: month.substring(0, 3) };
 
@@ -654,21 +671,33 @@ const CompanyComparisonChart = ({ company, years, records, mode }: {
 
   return (
     <ChartWrapper
-      title={(isEnergy ? 'Indicador de energia' : 'Indicador de agua') + ' ? ' + company.replace(/^Autosol\s+/i, '')}
+      title={(isEnergy ? 'Indicador de energ\u00eda' : 'Indicador de agua') + ' - ' + company.replace(/^Autosol\s+/i, '')}
       subtitle={isEnergy ? 'kWh por unidad' : 'm\u00b3 por unidad'}
       className="h-[355px]"
     >
       <ResponsiveContainer width="100%" height="100%">
-        <LineChart data={series} margin={{ top: 14, right: 28, left: 4, bottom: 6 }}>
+        <BarChart data={series} margin={{ top: 32, right: 28, left: 4, bottom: 6 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
           <XAxis dataKey="mesCorto" tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} />
           <YAxis tickFormatter={(value: number) => formatNumber(value, isEnergy ? 0 : 2)} tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} width={52} />
           <Tooltip labelFormatter={label => String(label).toUpperCase()} formatter={(value: number) => [valueFormatter(Number(value)), 'Indicador']} contentStyle={{ borderRadius: 14, borderColor: '#e2e8f0', fontSize: 12, fontWeight: 700 }} />
           <Legend formatter={value => <span className="text-[10px] font-black text-slate-600">{String(value)}</span>} />
-          {years.map((year, index) => (
-            <Line key={year} type="monotone" dataKey={'year-' + year} name={String(year)} stroke={comparisonColors[mode][index] || comparisonColors[mode][1]} strokeWidth={3} dot={{ r: 3.5, strokeWidth: 2, fill: 'white' }} activeDot={{ r: 5 }} connectNulls />
-          ))}
-        </LineChart>
+          {years.map((year, index) => {
+            const color = comparisonColors[mode][index] || comparisonColors[mode][1];
+            const dataKey = 'year-' + year;
+            return (
+              <Bar key={year} dataKey={dataKey} name={String(year)} fill={color} radius={[7, 7, 0, 0]} maxBarSize={42}>
+                <LabelList
+                  dataKey={dataKey}
+                  position="top"
+                  offset={8}
+                  formatter={labelFormatter}
+                  style={{ fill: color, fontSize: 10, fontWeight: 800 }}
+                />
+              </Bar>
+            );
+          })}
+        </BarChart>
       </ResponsiveContainer>
     </ChartWrapper>
   );

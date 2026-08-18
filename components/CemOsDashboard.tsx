@@ -223,7 +223,12 @@ const CemOsDashboard: React.FC<CemOsDashboardProps> = ({
     });
 
     return Object.entries(advisors)
-      .map(([, stats]) => ({ name: stats.displayName, active: stats.active, responded: stats.responded }))
+      .map(([, stats]) => ({
+        name: stats.displayName,
+        active: stats.active,
+        responded: stats.responded,
+        effectiveness: stats.active > 0 ? Number(((stats.responded / stats.active) * 100).toFixed(1)) : 0
+      }))
       .filter(s => s.active > 0) // Only those with surveys sent
       .sort((a, b) => b.active - a.active);
   }, [filteredData]);
@@ -472,7 +477,7 @@ const CemOsDashboard: React.FC<CemOsDashboardProps> = ({
       <div className="grid grid-cols-1 gap-8">
         <ChartWrapper 
             title="Encuestas por Asesor"
-            subtitle="Comparativa Activas vs Respondidas"
+            subtitle="Comparativa Activas vs Respondidas y efectividad"
         >
           <div className="flex items-center justify-end gap-6 mb-6">
             <div className="flex items-center gap-2">
@@ -503,12 +508,37 @@ const CemOsDashboard: React.FC<CemOsDashboardProps> = ({
                 <Tooltip 
                   cursor={{fill: '#f8fafc'}}
                   contentStyle={{ borderRadius: '20px', border: 'none', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)', padding: '12px 16px' }}
+                  formatter={(value: number, name: string, item: any) => [
+                    name === 'Respondidas'
+                      ? `${value} (${item?.payload?.effectiveness ?? 0}% efectividad)`
+                      : `${value}`,
+                    name
+                  ]}
                 />
                 <Bar dataKey="active" name="Activas" fill="#001E50" radius={[0, 6, 6, 0]} barSize={16}>
                    <LabelList dataKey="active" position="right" style={{ fontSize: 10, fontWeight: 900, fill: '#1e293b' }} />
                 </Bar>
                 <Bar dataKey="responded" name="Respondidas" fill="#10b981" radius={[0, 6, 6, 0]} barSize={16}>
-                   <LabelList dataKey="responded" position="right" style={{ fontSize: 10, fontWeight: 900, fill: '#10b981' }} />
+                   <LabelList
+                      dataKey="responded"
+                      position="right"
+                      content={({ x, y, width, height, index }: any) => {
+                        const advisor = advisorStats[index];
+                        if (!advisor) return null;
+
+                        return (
+                          <text
+                            x={x + width + 6}
+                            y={y + height / 2 + 4}
+                            fill="#059669"
+                            fontSize={10}
+                            fontWeight={900}
+                          >
+                            {`${advisor.responded} (${advisor.effectiveness}%)`}
+                          </text>
+                        );
+                      }}
+                   />
                 </Bar>
               </BarChart>
             </ResponsiveContainer>

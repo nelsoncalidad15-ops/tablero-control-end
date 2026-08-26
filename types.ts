@@ -123,6 +123,29 @@ export interface SalesQualityRecord {
   [key: string]: any;
 }
 
+export interface SatisfactionSurveyRecord {
+  id: string;
+  anio: number;
+  provincia: string;
+  semestre: string;
+  ce: string;
+  cod_id: string;
+  ola: string;
+  satisfaccion_general: number | null;
+  recomendacion: number | null;
+  motivo_calificacion: string;
+  vin: string;
+  nombre: string;
+  modelo: string;
+  fecha_venta: string;
+  canal_venta: string;
+  categorizacion: string;
+  causa_raiz: string;
+  accion_correctiva: string;
+  accion_preventiva: string;
+  [key: string]: any;
+}
+
 export interface ScoringRecord {
   id: string;
   customerId: string;

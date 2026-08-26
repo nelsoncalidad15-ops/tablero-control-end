@@ -103,6 +103,8 @@ async function startServer() {
     // Quality & Sales Quality
     sales_quality: process.env.LINK_ENCUESTAS_V || process.env.SHEET_URL_SALES_QUALITY,
     sales_claims: process.env.LINK_RECLAMOS_V || process.env.SHEET_URL_SALES_CLAIMS,
+    ssi_surveys: process.env.LINK_ENCUESTAS_SSI || process.env.SHEET_URL_SSI_SURVEYS,
+    csi_surveys: process.env.LINK_ENCUESTAS_CSI || process.env.SHEET_URL_CSI_SURVEYS,
     cem_os: process.env.LINK_OS_JUJUY || process.env.SHEET_URL_CEM_OS,
     cem_os_salta: process.env.LINK_OS_SALTA || process.env.SHEET_URL_CEM_OS_SALTA,
     scoring: process.env.LINK_SCORING || process.env.SHEET_URL_SCORING,

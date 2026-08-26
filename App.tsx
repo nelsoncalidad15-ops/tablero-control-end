@@ -19,6 +19,7 @@ const PostventaPvtOccupationDashboard = lazy(() => import('./components/Postvent
 const AmbienteSelection = lazy(() => import('./components/AmbienteSelection'));
 const EnvironmentalConsumptionDashboard = lazy(() => import('./components/EnvironmentalConsumptionDashboard'));
 const SalesQualityDashboard = lazy(() => import('./components/SalesQualityDashboard'));
+const SsiCsiDashboard = lazy(() => import('./components/SsiCsiDashboard'));
 const ScoringDashboard = lazy(() => import('./components/ScoringDashboard'));
 const InternalPostventaDashboard = lazy(() => import('./components/InternalPostventaDashboard'));
 const ActionPlanDashboard = lazy(() => import('./components/ActionPlanDashboard'));
@@ -73,6 +74,8 @@ function App() {
         sheets.detailed_quality,
         sheets.detailed_quality_salta,
         sheets.internal_postventa,
+        sheets.ssi_surveys,
+        sheets.csi_surveys,
       ]);
       return;
     }
@@ -124,6 +127,7 @@ function App() {
       preloadModule(() => import('./components/QualityObjectivesDashboard'));
       preloadModule(() => import('./components/ActionPlanDashboard'));
       preloadModule(() => import('./components/InternalPostventaDashboard'));
+      preloadModule(() => import('./components/SsiCsiDashboard'));
       return;
     }
 
@@ -326,6 +330,7 @@ function App() {
                 { id: 'pcgc', path: '/calidad/pcgc', name: 'PCGC', icon: Icons.ClipboardList, color: 'indigo', desc: 'Programa de Calidad de Gestión y Auditoría' },
                 { id: 'objetivos', path: '/calidad/objetivos', name: 'Objetivos', icon: Icons.Target, color: 'emerald', desc: 'Ventas y postventa desde Google Sheets' },
                 { id: 'plan_accion', path: '/calidad/plan_accion', name: 'Plan de Acción', icon: Icons.ClipboardCheck, color: 'emerald', desc: 'Control y verificación de desvíos' },
+                { id: 'ssi_csi', path: '/calidad/ssi-csi', name: 'SSI / CSI', icon: Icons.Heart, color: 'indigo', desc: 'Encuestas de ventas y postventa' },
               ].map((item) => (
                 <motion.button 
                   key={item.id}
@@ -627,6 +632,8 @@ function App() {
         dashboardContent = <SalesQualityDashboard onBack={handleBack} initialTab="claims" config={config} />;
       } else if (subType === 'ventas-cem_os') {
         dashboardContent = <SalesQualityDashboard onBack={handleBack} initialTab="cem_os" config={config} />;
+      } else if (subType === 'ssi-csi') {
+        dashboardContent = <SsiCsiDashboard onBack={handleBack} />;
       } else if (subType === 'pcgc') {
         dashboardContent = <PCGCDashboard sheetUrl={config.sheetUrls.pcgc || ''} onBack={handleBack} />;
       } else if (subType === 'objetivos') {
@@ -739,6 +746,7 @@ function App() {
             <Route path="/calidad/ventas/claims" element={<DashboardView type="calidad" subType="ventas-claims" />} />
             <Route path="/calidad/ventas/scoring" element={<DashboardView type="calidad" subType="ventas-scoring" />} />
             <Route path="/calidad/ventas/cem_os" element={<DashboardView type="calidad" subType="ventas-cem_os" />} />
+            <Route path="/calidad/ssi-csi" element={<DashboardView type="calidad" subType="ssi-csi" />} />
             <Route path="/calidad/postventa/claims" element={<DashboardView type="calidad" subType="postventa-claims" />} />
             <Route path="/calidad/postventa/internal_surveys" element={<DashboardView type="calidad" subType="postventa-internal" />} />
             <Route path="/calidad/postventa" element={<Navigate to="/calidad/postventa_selection" />} />

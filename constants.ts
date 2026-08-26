@@ -41,6 +41,8 @@ export const HR_RELATORIO_SHEET_KEY = "hr_relatorio";
 export const HR_CONTACTS_SHEET_KEY = "hr_contacts";
 export const HR_PHASES_SHEET_KEY = "hr_phases";
 export const AMBIENTE_CONSUMPTION_SHEET_KEY = "ambiente";
+export const SSI_SURVEYS_SHEET_KEY = "ssi_surveys";
+export const CSI_SURVEYS_SHEET_KEY = "csi_surveys";
 
 export const GEMINI_MODEL = "gemini-3-flash-preview";
 
@@ -179,7 +181,9 @@ export const DEFAULT_CONFIG = {
     warranty_q4: WARRANTY_Q4_SHEET_KEY,
     hr_relatorio: HR_RELATORIO_SHEET_KEY,
     hr_contacts: HR_CONTACTS_SHEET_KEY,
-    hr_phases: HR_PHASES_SHEET_KEY
+    hr_phases: HR_PHASES_SHEET_KEY,
+    ssi_surveys: SSI_SURVEYS_SHEET_KEY,
+    csi_surveys: CSI_SURVEYS_SHEET_KEY,
   } as Record<AreaType, string> & { 
     detailed_quality: string; 
     detailed_quality_salta: string; 
@@ -204,6 +208,8 @@ export const DEFAULT_CONFIG = {
     hr_relatorio: string;
     hr_contacts: string;
     hr_phases: string;
+    ssi_surveys: string;
+    csi_surveys: string;
   },
   geminiApiKey: '',
   reportTemplate: DEFAULT_REPORT_TEMPLATE

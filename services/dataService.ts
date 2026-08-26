@@ -1,7 +1,7 @@
 
 /// <reference types="vite/client" />
 import Papa from 'papaparse';
-import { AutoRecord, QualityRecord, SalesQualityRecord, SalesClaimsRecord, DetailedQualityRecord, PostventaKpiRecord, BillingRecord, PCGCRecord, CemOsRecord, InternalPostventaRecord, ActionPlanRecord, CourseGrade, RelatorioItem, CollaboratorContact, CoursePhase, WarrantyRecord, QualityObjectiveRecord, QualityObjectiveSummaryRecord, QualityObjectiveScaleRecord, PvtOccupationRecord, ScoringRecord } from '../types';
+import { AutoRecord, QualityRecord, SalesQualityRecord, SalesClaimsRecord, DetailedQualityRecord, PostventaKpiRecord, BillingRecord, PCGCRecord, CemOsRecord, InternalPostventaRecord, ActionPlanRecord, CourseGrade, RelatorioItem, CollaboratorContact, CoursePhase, WarrantyRecord, QualityObjectiveRecord, QualityObjectiveSummaryRecord, QualityObjectiveScaleRecord, PvtOccupationRecord, ScoringRecord, SatisfactionSurveyRecord } from '../types';
 import type { EnvironmentalConsumptionRecord } from '../types';
 import { MOCK_DATA } from '../constants';
 import { buildApiUrl } from './apiConfig';
@@ -701,6 +701,16 @@ export const fetchSalesQualityData = async (sheetKey: string): Promise<SalesQual
     }
 };
 
+export const fetchSatisfactionSurveyData = async (sheetKey: string): Promise<SatisfactionSurveyRecord[]> => {
+    try {
+      const text = await fetchFromProxy(sheetKey);
+      return parseSatisfactionSurveyCSV(text);
+    } catch (error) {
+      console.error("Error loading SSI/CSI survey data", error);
+      throw error;
+    }
+};
+
 export const fetchScoringData = async (): Promise<ScoringRecord[]> => {
     try {
       const text = await fetchFromProxy('scoring');
@@ -1062,6 +1072,55 @@ const parseQualityCSV = (csvText: string): QualityRecord[] => {
     }
     return records;
   };
+
+const parseSatisfactionSurveyCSV = (csvText: string): SatisfactionSurveyRecord[] => {
+    const rows = parseCSV(csvText);
+    if (rows.length < 2) return [];
+
+    const headers = rows[0].map(cleanHeader);
+    const records: SatisfactionSurveyRecord[] = [];
+
+    for (let index = 1; index < rows.length; index++) {
+      const row = rows[index];
+      if (row.every(value => !String(value || '').trim())) continue;
+
+      const record: any = { id: `satisfaction-row-${index}` };
+      headers.forEach((header, columnIndex) => {
+        const value = String(row[columnIndex] || '').trim();
+        record[header] = value;
+
+        if (header === 'ano' || header === 'anio') record.anio = parseInt(value, 10) || 0;
+        else if (header.includes('provincia')) record.provincia = value;
+        else if (header.includes('semestre')) record.semestre = value;
+        else if (header === 'codid' || header === 'cod id' || header.includes('codigo id')) record.cod_id = value;
+        else if (header === 'ce' || header.includes('codigo conces')) record.ce = value;
+        else if (header === 'ola') record.ola = value;
+        else if (header.includes('satis') && header.includes('general')) record.satisfaccion_general = parseScore(value);
+        else if (header.startsWith('recom') || header.includes('recomendacion')) record.recomendacion = parseScore(value);
+        else if (header.includes('principales motivos') || header.includes('motivo') && header.includes('calificacion')) record.motivo_calificacion = value;
+        else if (header === 'vin' || header.includes('chasis')) record.vin = value;
+        else if (header === 'nombre' || header.includes('cliente')) record.nombre = value;
+        else if (header.includes('modelo')) record.modelo = value;
+        else if (header.includes('fecha venta') || header.includes('fecha de venta')) record.fecha_venta = value;
+        else if (header.includes('canal') && header.includes('venta')) record.canal_venta = value;
+        else if (header.includes('categorizacion')) record.categorizacion = value;
+        else if (header.includes('causa raiz')) record.causa_raiz = value;
+        else if (header.includes('accion correctiva')) record.accion_correctiva = value;
+        else if (header.includes('accion preventiva')) record.accion_preventiva = value;
+      });
+
+      if (!record.anio) record.anio = 0;
+      if (!record.provincia) record.provincia = 'Sin provincia';
+      if (!record.semestre) record.semestre = 'Sin semestre';
+      if (!record.ola) record.ola = 'Sin ola';
+      if (!record.modelo) record.modelo = 'Sin modelo';
+      if (!record.canal_venta) record.canal_venta = 'Sin canal';
+      if (!record.categorizacion) record.categorizacion = 'Sin categorizar';
+      records.push(record as SatisfactionSurveyRecord);
+    }
+
+    return records;
+};
 
 const parseSalesQualityCSV = (csvText: string): SalesQualityRecord[] => {
     const rows = parseCSV(csvText);

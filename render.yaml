@@ -24,6 +24,10 @@ services:
         sync: false
       - key: LINK_ENCUESTAS_V
         sync: false
+      - key: LINK_ENCUESTAS_SSI
+        sync: false
+      - key: LINK_ENCUESTAS_CSI
+        sync: false
       - key: LINK_SCORING
         sync: false
       - key: LINK_RECLAMOS_V

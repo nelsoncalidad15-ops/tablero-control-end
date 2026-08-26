@@ -31,6 +31,10 @@
   .filter-control {
     @apply min-h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-medium text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100;
   }
+
+  .filter-select {
+    @apply min-h-11 w-full rounded-xl border border-slate-200 bg-slate-50 px-3 text-xs font-bold text-slate-700 outline-none transition focus:border-blue-400 focus:bg-white focus:ring-4 focus:ring-blue-100;
+  }
   .glass-card {
     @apply bg-white/70 backdrop-blur-3xl border border-white/40 shadow-2xl shadow-slate-200/50;
   }

@@ -1110,6 +1110,8 @@ const parseSatisfactionSurveyCSV = (csvText: string): SatisfactionSurveyRecord[]
       });
 
       if (!record.anio) record.anio = 0;
+      record.satisfaccion_general = record.satisfaccion_general ?? parseScore(record['satis. general'] || record['satisfaccion general'] || '');
+      record.recomendacion = record.recomendacion ?? parseScore(record['recom.'] || record['recom'] || '');
       if (!record.provincia) record.provincia = 'Sin provincia';
       if (!record.semestre) record.semestre = 'Sin semestre';
       if (!record.ola) record.ola = 'Sin ola';

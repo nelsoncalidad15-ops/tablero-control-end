@@ -13,6 +13,15 @@ const average = (values: Array<number | null>) => {
   return valid.length ? valid.reduce((sum, value) => sum + value, 0) / valid.length : null;
 };
 const scoreLabel = (score: number | null) => score === null ? '—' : score.toLocaleString('es-AR', { maximumFractionDigits: 1, minimumFractionDigits: 1 });
+const readScore = (value: unknown): number | null => {
+  if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+  const normalized = String(value ?? '').trim().replace(',', '.');
+  if (!normalized) return null;
+  const score = Number(normalized.match(/-?\d+(?:\.\d+)?/)?.[0]);
+  return Number.isFinite(score) ? score : null;
+};
+const satisfactionScore = (record: SatisfactionSurveyRecord) => readScore(record.satisfaccion_general ?? record['satis. general'] ?? record['satisfaccion general']);
+const recommendationScore = (record: SatisfactionSurveyRecord) => readScore(record.recomendacion ?? record['recom.'] ?? record['recom']);
 
 const inferredCategory = (record: SatisfactionSurveyRecord) => {
   if (record.categorizacion && record.categorizacion !== 'Sin categorizar') return record.categorizacion;
@@ -108,7 +117,7 @@ const SsiCsiDashboard: React.FC<SsiCsiDashboardProps> = ({ onBack }) => {
   }), [data]);
 
   const filteredData = useMemo(() => data.filter(record => {
-    const score = record.satisfaccion_general;
+    const score = satisfactionScore(record);
     const matchesScore = !scoreRange || (score !== null && (
       scoreRange === 'claim' ? score <= 8 : score >= 9
     ));
@@ -124,13 +133,19 @@ const SsiCsiDashboard: React.FC<SsiCsiDashboardProps> = ({ onBack }) => {
   }), [data, year, semester, wave, province, channel, model, scoreRange, search, program]);
 
   const metrics = useMemo(() => {
-    const general = average(filteredData.map(record => record.satisfaccion_general));
-    const recommendation = average(filteredData.map(record => record.recomendacion));
-    const detractors = filteredData.filter(record => record.satisfaccion_general !== null && record.satisfaccion_general <= 8).length;
+    const general = average(filteredData.map(satisfactionScore));
+    const recommendation = average(filteredData.map(recommendationScore));
+    const detractors = filteredData.filter(record => {
+      const score = satisfactionScore(record);
+      return score !== null && score <= 8;
+    }).length;
     return { general, recommendation, detractors, detractorRate: filteredData.length ? detractors / filteredData.length * 100 : 0 };
   }, [filteredData]);
 
-  const deviations = useMemo(() => filteredData.filter(record => record.satisfaccion_general !== null && record.satisfaccion_general <= 8), [filteredData]);
+  const deviations = useMemo(() => filteredData.filter(record => {
+    const score = satisfactionScore(record);
+    return score !== null && score <= 8;
+  }), [filteredData]);
 
   const categories = useMemo(() => {
     const groups = new Map<string, number>();
@@ -192,22 +207,21 @@ const SsiCsiDashboard: React.FC<SsiCsiDashboardProps> = ({ onBack }) => {
           <div className="rounded-[1.5rem] border border-rose-200 bg-rose-50 p-6 text-rose-800"><p className="font-black">No se pudieron cargar las encuestas {program}.</p><p className="mt-1 text-sm">{error}</p></div>
         ) : (
           <>
-            <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <section className="grid gap-4 md:grid-cols-3">
               <MetricCard label="Encuestas" value={String(filteredData.length)} detail="registros seleccionados" icon={Icons.ClipboardCheck} tone="bg-blue-50 text-blue-600" />
               <MetricCard label="Satisfacción general" value={scoreLabel(metrics.general)} detail="promedio sobre 10" icon={Icons.Star} tone="bg-amber-50 text-amber-600" />
               <MetricCard label="Recomendación" value={scoreLabel(metrics.recommendation)} detail="promedio sobre 10" icon={Icons.Heart} tone="bg-fuchsia-50 text-fuchsia-600" />
-              <MetricCard label="Reclamos" value={String(metrics.detractors)} detail={`${metrics.detractorRate.toFixed(0)}% con satisfacción de 1 a 8`} icon={Icons.AlertTriangle} tone="bg-rose-50 text-rose-600" />
             </section>
 
             <div className="flex flex-wrap items-center gap-2 px-1">
-              {[['', 'Todos'], ['claim', 'Reclamos · 1 a 8'], ['compliant', 'Conformes · 9 a 10']].map(([value, label]) => <button key={value || 'all'} onClick={() => setScoreRange(value)} className={`rounded-full px-4 py-2 text-[10px] font-black uppercase tracking-[0.13em] transition ${scoreRange === value ? value === 'claim' ? 'bg-rose-600 text-white shadow-lg shadow-rose-200' : value === 'compliant' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' : 'bg-slate-950 text-white shadow-lg shadow-slate-200' : 'border border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-800'}`}>{label}</button>)}
-              <span className="ml-1 text-[10px] font-semibold text-slate-400">Los reclamos se incluyen aunque VIN esté vacío.</span>
+              {[['', 'Todas las notas'], ['claim', 'Notas 1 a 8'], ['compliant', 'Notas 9 a 10']].map(([value, label]) => <button key={value || 'all'} onClick={() => setScoreRange(value)} className={`rounded-full px-4 py-2 text-[10px] font-black uppercase tracking-[0.13em] transition ${scoreRange === value ? value === 'claim' ? 'bg-rose-600 text-white shadow-lg shadow-rose-200' : value === 'compliant' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' : 'bg-slate-950 text-white shadow-lg shadow-slate-200' : 'border border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-800'}`}>{label}</button>)}
+              <span className="ml-1 text-[10px] font-semibold text-slate-400">Las notas 1 a 8 se incluyen aunque VIN esté vacío.</span>
             </div>
 
             <section className="rounded-[1.7rem] border border-slate-200 bg-white p-6 shadow-sm">
               <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-                <div className="flex items-center gap-3"><div className="rounded-xl bg-indigo-50 p-2.5 text-indigo-600"><Icons.BarChart3 className="h-5 w-5" /></div><div><h3 className="font-black text-slate-950">Desvíos por categorización</h3><p className="text-xs text-slate-400">Reclamos con satisfacción general de 1 a 8 · una encuesta puede sumar más de una categoría</p></div></div>
-                <span className="rounded-full bg-rose-50 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-rose-700">{deviations.length} reclamos</span>
+                <div className="flex items-center gap-3"><div className="rounded-xl bg-indigo-50 p-2.5 text-indigo-600"><Icons.BarChart3 className="h-5 w-5" /></div><div><h3 className="font-black text-slate-950">Categorización de notas 1 a 8</h3><p className="text-xs text-slate-400">Frecuencia de la columna CATEGORIZACION, de mayor a menor</p></div></div>
+                <span className="rounded-full bg-indigo-50 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-indigo-700">{deviations.length} casos</span>
               </div>
               {categories.length ? (
                 <div className="mt-6 h-[300px] min-w-0">
@@ -215,12 +229,12 @@ const SsiCsiDashboard: React.FC<SsiCsiDashboardProps> = ({ onBack }) => {
                     <BarChart data={categories} layout="vertical" margin={{ top: 4, right: 38, bottom: 4, left: 16 }} barCategoryGap="24%">
                       <XAxis type="number" allowDecimals={false} axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 700 }} />
                       <YAxis type="category" dataKey="name" width={190} axisLine={false} tickLine={false} tick={{ fill: '#475569', fontSize: 11, fontWeight: 700 }} />
-                      <Tooltip cursor={{ fill: '#f8fafc' }} formatter={(value: number) => [value, 'Reclamos']} contentStyle={{ borderRadius: 14, border: '1px solid #e2e8f0', boxShadow: '0 12px 28px rgba(15,23,42,.10)' }} />
+                      <Tooltip cursor={{ fill: '#f8fafc' }} formatter={(value: number) => [value, 'Casos']} contentStyle={{ borderRadius: 14, border: '1px solid #e2e8f0', boxShadow: '0 12px 28px rgba(15,23,42,.10)' }} />
                       <Bar dataKey="cantidad" radius={[0, 8, 8, 0]} barSize={24}>{categories.map(item => <Cell key={item.name} fill={item.bar} />)}</Bar>
                     </BarChart>
                   </ResponsiveContainer>
                 </div>
-              ) : <div className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-5 py-10 text-center text-sm font-medium text-slate-400">No hay reclamos (notas de 1 a 8) dentro de los filtros elegidos.</div>}
+              ) : <div className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-5 py-10 text-center text-sm font-medium text-slate-400">No hay notas de 1 a 8 dentro de los filtros elegidos.</div>}
             </section>
 
             <section className="overflow-hidden rounded-[1.7rem] border border-slate-200 bg-white shadow-sm">
@@ -241,7 +255,7 @@ const SsiCsiDashboard: React.FC<SsiCsiDashboardProps> = ({ onBack }) => {
                   <tbody className="divide-y divide-slate-100">
                     {filteredData.map(record => (
                       <tr key={record.id} className="align-top text-sm transition-colors hover:bg-slate-50/70">
-                        <td className="px-5 py-4"><ScorePill score={record.satisfaccion_general} /><span className="ml-2 text-[10px] font-bold text-slate-400">Rec. {scoreLabel(record.recomendacion)}</span></td>
+                        <td className="px-5 py-4"><ScorePill score={satisfactionScore(record)} /><span className="ml-2 text-[10px] font-bold text-slate-400">Rec. {scoreLabel(recommendationScore(record))}</span></td>
                         <td className="px-5 py-4 text-xs font-semibold text-slate-600">{record.anio || '—'}<br /><span className="font-normal text-slate-400">{record.semestre} · Ola {record.ola}</span></td>
                         <td className="px-5 py-4 text-xs font-bold text-slate-700">{record.modelo}<br /><span className="font-mono text-[10px] font-normal text-slate-400">{record.vin || 'Sin VIN'}{record.cod_id ? ` · ${record.cod_id}` : ''}</span></td>
                         <td className="px-5 py-4 text-xs text-slate-600">{program === 'SSI' ? record.canal_venta : record.provincia}<br />{program === 'CSI' && <span className="font-mono text-[10px] text-slate-400">CE {record.ce || '—'}</span>}</td>

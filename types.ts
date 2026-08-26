@@ -613,6 +613,8 @@ export interface AppConfig {
     hr_relatorio?: string;
     hr_contacts?: string;
     hr_phases?: string;
+    ssi_surveys?: string;
+    csi_surveys?: string;
   };
   geminiApiKey: string;
   reportTemplate?: ReportTemplate;

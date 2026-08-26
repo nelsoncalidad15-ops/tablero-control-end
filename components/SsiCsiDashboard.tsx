@@ -39,12 +39,12 @@ const categoryColor = (category: string) => {
   return CATEGORY_COLORS[index];
 };
 
-const splitCategories = (record: SatisfactionSurveyRecord) => {
+const splitCategories = (record: SatisfactionSurveyRecord, fallbackToComment = true) => {
   const manualCategory = String(record.categorizacion || '').trim();
   if (manualCategory && manualCategory !== 'Sin categorizar') {
     return manualCategory.split(/[,;]+/).map(category => category.trim()).filter(Boolean);
   }
-  return [inferredCategory(record)];
+  return fallbackToComment ? [inferredCategory(record)] : ['Sin categorizar'];
 };
 
 const ScorePill = ({ score }: { score: number | null }) => {
@@ -110,7 +110,7 @@ const SsiCsiDashboard: React.FC<SsiCsiDashboardProps> = ({ onBack }) => {
   const filteredData = useMemo(() => data.filter(record => {
     const score = record.satisfaccion_general;
     const matchesScore = !scoreRange || (score !== null && (
-      scoreRange === 'critical' ? score <= 6 : scoreRange === 'attention' ? score >= 7 && score <= 8 : score >= 9
+      scoreRange === 'claim' ? score <= 8 : score >= 9
     ));
     const haystack = [record.vin, record.nombre, record.modelo, record.motivo_calificacion, record.categorizacion].join(' ').toLocaleLowerCase('es');
     return (!year || String(record.anio) === year)
@@ -135,13 +135,13 @@ const SsiCsiDashboard: React.FC<SsiCsiDashboardProps> = ({ onBack }) => {
   const categories = useMemo(() => {
     const groups = new Map<string, number>();
     deviations.forEach(record => {
-      splitCategories(record).forEach(category => groups.set(category, (groups.get(category) || 0) + 1));
+      splitCategories(record, program === 'CSI').forEach(category => groups.set(category, (groups.get(category) || 0) + 1));
     });
     return [...groups.entries()]
       .sort((a, b) => b[1] - a[1])
       .slice(0, 8)
       .map(([name, cantidad]) => ({ name, cantidad, ...categoryColor(name) }));
-  }, [deviations]);
+  }, [deviations, program]);
 
   const showActionColumns = program === 'SSI' && filteredData.some(record => record.accion_correctiva || record.accion_preventiva);
   const showCauseColumn = program === 'SSI' && filteredData.some(record => record.causa_raiz);
@@ -183,7 +183,7 @@ const SsiCsiDashboard: React.FC<SsiCsiDashboardProps> = ({ onBack }) => {
             <select value={province} onChange={event => setProvince(event.target.value)} className="filter-select"><option value="">Provincia</option>{filters.provinces.map(value => <option key={value}>{value}</option>)}</select>
             {program === 'SSI' && <select value={channel} onChange={event => setChannel(event.target.value)} className="filter-select"><option value="">Canal de venta</option>{filters.channels.map(value => <option key={value}>{value}</option>)}</select>}
             <select value={model} onChange={event => setModel(event.target.value)} className="filter-select"><option value="">Modelo</option>{filters.models.map(value => <option key={value}>{value}</option>)}</select>
-            <select value={scoreRange} onChange={event => setScoreRange(event.target.value)} className="filter-select"><option value="">Calificación</option><option value="excellent">9 - 10</option><option value="attention">7 - 8</option><option value="critical">1 - 6</option></select>
+            <select value={scoreRange} onChange={event => setScoreRange(event.target.value)} className="filter-select"><option value="">Estado de satisfacción</option><option value="compliant">Conforme · 9 a 10</option><option value="claim">Reclamo · 1 a 8</option></select>
             <div className="flex gap-2"><input value={search} onChange={event => setSearch(event.target.value)} placeholder="Buscar VIN o motivo" className="filter-select min-w-0 flex-1" /><button onClick={resetFilters} title="Limpiar filtros" className="rounded-xl border border-slate-200 px-3 text-slate-400 transition hover:bg-slate-50 hover:text-slate-900"><Icons.X className="h-4 w-4" /></button></div>
           </div>
         </section>
@@ -198,6 +198,11 @@ const SsiCsiDashboard: React.FC<SsiCsiDashboardProps> = ({ onBack }) => {
               <MetricCard label="Recomendación" value={scoreLabel(metrics.recommendation)} detail="promedio sobre 10" icon={Icons.Heart} tone="bg-fuchsia-50 text-fuchsia-600" />
               <MetricCard label="Reclamos" value={String(metrics.detractors)} detail={`${metrics.detractorRate.toFixed(0)}% con satisfacción de 1 a 8`} icon={Icons.AlertTriangle} tone="bg-rose-50 text-rose-600" />
             </section>
+
+            <div className="flex flex-wrap items-center gap-2 px-1">
+              {[['', 'Todos'], ['claim', 'Reclamos · 1 a 8'], ['compliant', 'Conformes · 9 a 10']].map(([value, label]) => <button key={value || 'all'} onClick={() => setScoreRange(value)} className={`rounded-full px-4 py-2 text-[10px] font-black uppercase tracking-[0.13em] transition ${scoreRange === value ? value === 'claim' ? 'bg-rose-600 text-white shadow-lg shadow-rose-200' : value === 'compliant' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' : 'bg-slate-950 text-white shadow-lg shadow-slate-200' : 'border border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-800'}`}>{label}</button>)}
+              <span className="ml-1 text-[10px] font-semibold text-slate-400">Los reclamos se incluyen aunque VIN esté vacío.</span>
+            </div>
 
             <section className="rounded-[1.7rem] border border-slate-200 bg-white p-6 shadow-sm">
               <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
@@ -241,7 +246,7 @@ const SsiCsiDashboard: React.FC<SsiCsiDashboardProps> = ({ onBack }) => {
                         <td className="px-5 py-4 text-xs font-bold text-slate-700">{record.modelo}<br /><span className="font-mono text-[10px] font-normal text-slate-400">{record.vin || 'Sin VIN'}{record.cod_id ? ` · ${record.cod_id}` : ''}</span></td>
                         <td className="px-5 py-4 text-xs text-slate-600">{program === 'SSI' ? record.canal_venta : record.provincia}<br />{program === 'CSI' && <span className="font-mono text-[10px] text-slate-400">CE {record.ce || '—'}</span>}</td>
                         <td className="max-w-xs px-5 py-4 text-xs leading-5 text-slate-600">
-                          {program === 'SSI' ? <div className="flex flex-wrap gap-1.5">{splitCategories(record).map(category => <span key={category} className={`rounded-md px-2 py-1 text-[9px] font-black ${categoryColor(category).pill}`}>{category}</span>)}</div> : record.motivo_calificacion || '—'}
+                          {program === 'SSI' ? <div className="flex flex-wrap gap-1.5">{splitCategories(record, false).map(category => <span key={category} className={`rounded-md px-2 py-1 text-[9px] font-black ${categoryColor(category).pill}`}>{category}</span>)}</div> : record.motivo_calificacion || '—'}
                         </td>
                         {showCauseColumn && <td className="max-w-sm px-5 py-4 text-xs leading-5 text-slate-600">{record.causa_raiz || '—'}</td>}
                         {showActionColumns && <><td className="max-w-xs px-5 py-4 text-xs leading-5 text-slate-600">{record.accion_correctiva || '—'}</td><td className="max-w-xs px-5 py-4 text-xs leading-5 text-slate-600">{record.accion_preventiva || '—'}</td></>}

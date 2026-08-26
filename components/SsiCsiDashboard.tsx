@@ -1,4 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
+import { Bar, BarChart, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts';
 import { DashboardFrame } from './DashboardUI';
 import { Icons } from './Icon';
 import { fetchSatisfactionSurveyData } from '../services/dataService';
@@ -22,6 +23,28 @@ const inferredCategory = (record: SatisfactionSurveyRecord) => {
   if (/(atencion|trato|personal|amable|respeto)/.test(comment)) return 'Atención y trato';
   if (/(respuesta|comunic|inform|seguimiento|contact)/.test(comment)) return 'Comunicación y seguimiento';
   return 'Otros comentarios';
+};
+
+const CATEGORY_COLORS = [
+  { bar: '#4f46e5', pill: 'bg-indigo-100 text-indigo-700' },
+  { bar: '#0891b2', pill: 'bg-cyan-100 text-cyan-700' },
+  { bar: '#7c3aed', pill: 'bg-violet-100 text-violet-700' },
+  { bar: '#ea580c', pill: 'bg-orange-100 text-orange-700' },
+  { bar: '#e11d48', pill: 'bg-rose-100 text-rose-700' },
+  { bar: '#059669', pill: 'bg-emerald-100 text-emerald-700' },
+];
+
+const categoryColor = (category: string) => {
+  const index = Array.from(category).reduce((total, character) => total + character.charCodeAt(0), 0) % CATEGORY_COLORS.length;
+  return CATEGORY_COLORS[index];
+};
+
+const splitCategories = (record: SatisfactionSurveyRecord) => {
+  const manualCategory = String(record.categorizacion || '').trim();
+  if (manualCategory && manualCategory !== 'Sin categorizar') {
+    return manualCategory.split(/[,;]+/).map(category => category.trim()).filter(Boolean);
+  }
+  return [inferredCategory(record)];
 };
 
 const ScorePill = ({ score }: { score: number | null }) => {
@@ -112,13 +135,16 @@ const SsiCsiDashboard: React.FC<SsiCsiDashboardProps> = ({ onBack }) => {
   const categories = useMemo(() => {
     const groups = new Map<string, number>();
     deviations.forEach(record => {
-      const category = inferredCategory(record);
-      groups.set(category, (groups.get(category) || 0) + 1);
+      splitCategories(record).forEach(category => groups.set(category, (groups.get(category) || 0) + 1));
     });
-    return [...groups.entries()].sort((a, b) => b[1] - a[1]).slice(0, 5);
+    return [...groups.entries()]
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 8)
+      .map(([name, cantidad]) => ({ name, cantidad, ...categoryColor(name) }));
   }, [deviations]);
 
   const showActionColumns = program === 'SSI' && filteredData.some(record => record.accion_correctiva || record.accion_preventiva);
+  const showCauseColumn = program === 'SSI' && filteredData.some(record => record.causa_raiz);
   const resetFilters = () => { setYear(''); setSemester(''); setWave(''); setProvince(''); setChannel(''); setModel(''); setScoreRange(''); setSearch(''); };
   const scope = program === 'SSI' ? 'Ventas' : 'Postventa';
 
@@ -170,23 +196,61 @@ const SsiCsiDashboard: React.FC<SsiCsiDashboardProps> = ({ onBack }) => {
               <MetricCard label="Encuestas" value={String(filteredData.length)} detail="registros seleccionados" icon={Icons.ClipboardCheck} tone="bg-blue-50 text-blue-600" />
               <MetricCard label="Satisfacción general" value={scoreLabel(metrics.general)} detail="promedio sobre 10" icon={Icons.Star} tone="bg-amber-50 text-amber-600" />
               <MetricCard label="Recomendación" value={scoreLabel(metrics.recommendation)} detail="promedio sobre 10" icon={Icons.Heart} tone="bg-fuchsia-50 text-fuchsia-600" />
-              <MetricCard label="Casos a revisar" value={String(metrics.detractors)} detail={`${metrics.detractorRate.toFixed(0)}% con nota hasta 8`} icon={Icons.AlertTriangle} tone="bg-rose-50 text-rose-600" />
+              <MetricCard label="Reclamos" value={String(metrics.detractors)} detail={`${metrics.detractorRate.toFixed(0)}% con satisfacción de 1 a 8`} icon={Icons.AlertTriangle} tone="bg-rose-50 text-rose-600" />
             </section>
 
-            <section className="grid gap-6 xl:grid-cols-[0.8fr_1.2fr]">
-              <div className="rounded-[1.7rem] border border-slate-200 bg-white p-6 shadow-sm">
-                <div className="flex items-center gap-3"><div className="rounded-xl bg-indigo-50 p-2 text-indigo-600"><Icons.BarChart3 className="h-5 w-5" /></div><div><h3 className="font-black text-slate-950">Desvíos por categorización</h3><p className="text-xs text-slate-400">Motivos recurrentes con nota hasta 8</p></div></div>
-                <div className="mt-6 space-y-4">{categories.length ? categories.map(([name, count]) => <div key={name}><div className="mb-1.5 flex justify-between gap-3 text-xs font-bold text-slate-600"><span className="truncate">{name}</span><span>{count}</span></div><div className="h-2 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-indigo-500" style={{ width: `${(count / deviations.length) * 100}%` }} /></div></div>) : <p className="text-sm text-slate-400">No hay desvíos para los filtros elegidos.</p>}</div>
+            <section className="rounded-[1.7rem] border border-slate-200 bg-white p-6 shadow-sm">
+              <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
+                <div className="flex items-center gap-3"><div className="rounded-xl bg-indigo-50 p-2.5 text-indigo-600"><Icons.BarChart3 className="h-5 w-5" /></div><div><h3 className="font-black text-slate-950">Desvíos por categorización</h3><p className="text-xs text-slate-400">Reclamos con satisfacción general de 1 a 8 · una encuesta puede sumar más de una categoría</p></div></div>
+                <span className="rounded-full bg-rose-50 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-rose-700">{deviations.length} reclamos</span>
               </div>
-              <div className="rounded-[1.7rem] border border-slate-200 bg-white p-6 shadow-sm">
-                <div className="flex items-center gap-3"><div className="rounded-xl bg-sky-50 p-2 text-sky-600"><Icons.MessageSquare className="h-5 w-5" /></div><div><h3 className="font-black text-slate-950">Hallazgos relevantes</h3><p className="text-xs text-slate-400">Comentarios a priorizar en la reunión de calidad</p></div></div>
-                <div className="mt-5 space-y-3">{(deviations.length ? deviations : filteredData).slice(0, 3).map(record => <div key={record.id} className="rounded-xl border border-slate-100 bg-slate-50 p-3"><div className="flex items-start justify-between gap-3"><p className="text-sm font-bold text-slate-800">{inferredCategory(record)}</p><ScorePill score={record.satisfaccion_general} /></div><p className="mt-1 line-clamp-2 text-xs leading-5 text-slate-500">{record.motivo_calificacion || 'Sin comentario registrado.'}</p></div>)}{!filteredData.length && <p className="text-sm text-slate-400">No hay comentarios para los filtros elegidos.</p>}</div>
-              </div>
+              {categories.length ? (
+                <div className="mt-6 h-[300px] min-w-0">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={categories} layout="vertical" margin={{ top: 4, right: 38, bottom: 4, left: 16 }} barCategoryGap="24%">
+                      <XAxis type="number" allowDecimals={false} axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 700 }} />
+                      <YAxis type="category" dataKey="name" width={190} axisLine={false} tickLine={false} tick={{ fill: '#475569', fontSize: 11, fontWeight: 700 }} />
+                      <Tooltip cursor={{ fill: '#f8fafc' }} formatter={(value: number) => [value, 'Reclamos']} contentStyle={{ borderRadius: 14, border: '1px solid #e2e8f0', boxShadow: '0 12px 28px rgba(15,23,42,.10)' }} />
+                      <Bar dataKey="cantidad" radius={[0, 8, 8, 0]} barSize={24}>{categories.map(item => <Cell key={item.name} fill={item.bar} />)}</Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              ) : <div className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-5 py-10 text-center text-sm font-medium text-slate-400">No hay reclamos (notas de 1 a 8) dentro de los filtros elegidos.</div>}
             </section>
 
             <section className="overflow-hidden rounded-[1.7rem] border border-slate-200 bg-white shadow-sm">
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-6 py-5"><div><h3 className="font-black text-slate-950">Detalle de encuestas {program}</h3><p className="text-xs text-slate-400">{showActionColumns ? 'Comentarios, causa raíz y acciones asociadas' : 'Comentarios y datos de la experiencia postventa'}</p></div><span className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-slate-500">{filteredData.length} registros</span></div>
-              <div className="overflow-x-auto"><table className={`w-full text-left ${showActionColumns ? 'min-w-[1100px]' : 'min-w-[850px]'}`}><thead className="bg-slate-50 text-[9px] font-black uppercase tracking-[0.16em] text-slate-400"><tr><th className="px-5 py-4">Nota</th><th className="px-5 py-4">Período</th><th className="px-5 py-4">Vehículo</th><th className="px-5 py-4">{program === 'SSI' ? 'Canal' : 'Sucursal'}</th><th className="px-5 py-4">Motivo</th>{showActionColumns && <><th className="px-5 py-4">Acción correctiva</th><th className="px-5 py-4">Prevención</th></>}</tr></thead><tbody className="divide-y divide-slate-100">{filteredData.map(record => <tr key={record.id} className="align-top text-sm hover:bg-slate-50/70"><td className="px-5 py-4"><ScorePill score={record.satisfaccion_general} /><span className="ml-2 text-[10px] font-bold text-slate-400">Rec. {scoreLabel(record.recomendacion)}</span></td><td className="px-5 py-4 text-xs font-semibold text-slate-600">{record.anio || '—'}<br /><span className="font-normal text-slate-400">{record.semestre} · Ola {record.ola}</span></td><td className="px-5 py-4 text-xs font-bold text-slate-700">{record.modelo}<br /><span className="font-mono text-[10px] font-normal text-slate-400">{record.vin || 'Sin VIN'}{record.cod_id ? ` · ${record.cod_id}` : ''}</span></td><td className="px-5 py-4 text-xs text-slate-600">{program === 'SSI' ? record.canal_venta : record.provincia}<br />{program === 'CSI' && <span className="font-mono text-[10px] text-slate-400">CE {record.ce || '—'}</span>}</td><td className="max-w-xs px-5 py-4 text-xs leading-5 text-slate-600"><span className="mb-1 inline-block rounded-md bg-indigo-50 px-1.5 py-0.5 text-[9px] font-black text-indigo-600">{inferredCategory(record)}</span><br />{record.motivo_calificacion || '—'}</td>{showActionColumns && <><td className="max-w-xs px-5 py-4 text-xs leading-5 text-slate-600">{record.accion_correctiva || '—'}</td><td className="max-w-xs px-5 py-4 text-xs leading-5 text-slate-600">{record.accion_preventiva || '—'}</td></>}</tr>)}{filteredData.length === 0 && <tr><td colSpan={showActionColumns ? 7 : 5} className="px-5 py-12 text-center text-sm text-slate-400">No se encontraron encuestas con los filtros seleccionados.</td></tr>}</tbody></table></div>
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-6 py-5"><div><h3 className="font-black text-slate-950">Detalle de encuestas {program}</h3><p className="text-xs text-slate-400">{program === 'SSI' ? 'Categorización, causa raíz y acciones asociadas' : 'Comentarios y datos de la experiencia postventa'}</p></div><span className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-slate-500">{filteredData.length} registros</span></div>
+              <div className="overflow-x-auto">
+                <table className={`w-full text-left ${program === 'SSI' ? 'min-w-[1320px]' : 'min-w-[850px]'}`}>
+                  <thead className="bg-slate-50 text-[9px] font-black uppercase tracking-[0.16em] text-slate-400">
+                    <tr>
+                      <th className="px-5 py-4">Nota</th>
+                      <th className="px-5 py-4">Período</th>
+                      <th className="px-5 py-4">Vehículo</th>
+                      <th className="px-5 py-4">{program === 'SSI' ? 'Canal' : 'Sucursal'}</th>
+                      <th className="px-5 py-4">{program === 'SSI' ? 'Categorización' : 'Motivo'}</th>
+                      {showCauseColumn && <th className="px-5 py-4">Causa raíz</th>}
+                      {showActionColumns && <><th className="px-5 py-4">Acción correctiva</th><th className="px-5 py-4">Prevención</th></>}
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100">
+                    {filteredData.map(record => (
+                      <tr key={record.id} className="align-top text-sm transition-colors hover:bg-slate-50/70">
+                        <td className="px-5 py-4"><ScorePill score={record.satisfaccion_general} /><span className="ml-2 text-[10px] font-bold text-slate-400">Rec. {scoreLabel(record.recomendacion)}</span></td>
+                        <td className="px-5 py-4 text-xs font-semibold text-slate-600">{record.anio || '—'}<br /><span className="font-normal text-slate-400">{record.semestre} · Ola {record.ola}</span></td>
+                        <td className="px-5 py-4 text-xs font-bold text-slate-700">{record.modelo}<br /><span className="font-mono text-[10px] font-normal text-slate-400">{record.vin || 'Sin VIN'}{record.cod_id ? ` · ${record.cod_id}` : ''}</span></td>
+                        <td className="px-5 py-4 text-xs text-slate-600">{program === 'SSI' ? record.canal_venta : record.provincia}<br />{program === 'CSI' && <span className="font-mono text-[10px] text-slate-400">CE {record.ce || '—'}</span>}</td>
+                        <td className="max-w-xs px-5 py-4 text-xs leading-5 text-slate-600">
+                          {program === 'SSI' ? <div className="flex flex-wrap gap-1.5">{splitCategories(record).map(category => <span key={category} className={`rounded-md px-2 py-1 text-[9px] font-black ${categoryColor(category).pill}`}>{category}</span>)}</div> : record.motivo_calificacion || '—'}
+                        </td>
+                        {showCauseColumn && <td className="max-w-sm px-5 py-4 text-xs leading-5 text-slate-600">{record.causa_raiz || '—'}</td>}
+                        {showActionColumns && <><td className="max-w-xs px-5 py-4 text-xs leading-5 text-slate-600">{record.accion_correctiva || '—'}</td><td className="max-w-xs px-5 py-4 text-xs leading-5 text-slate-600">{record.accion_preventiva || '—'}</td></>}
+                      </tr>
+                    ))}
+                    {filteredData.length === 0 && <tr><td colSpan={5 + Number(showCauseColumn) + (showActionColumns ? 2 : 0)} className="px-5 py-12 text-center text-sm text-slate-400">No se encontraron encuestas con los filtros seleccionados.</td></tr>}
+                  </tbody>
+                </table>
+              </div>
             </section>
           </>
         )}

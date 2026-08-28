@@ -65,6 +65,9 @@ const splitCategories = (record: SatisfactionSurveyRecord) => {
   return [inferredCategory(record)];
 };
 
+const clientCategories = (record: SatisfactionSurveyRecord) =>
+  splitCategories(record).filter(category => category !== 'Otros');
+
 const ScorePill = ({ score }: { score: number | null }) => {
   const tone = score === null ? 'bg-slate-100 text-slate-400' : score >= 9 ? 'bg-emerald-100/80 text-emerald-700' : score >= 7 ? 'bg-amber-100/80 text-amber-700' : 'bg-rose-100/80 text-rose-700';
   return <span className={`inline-flex min-w-9 justify-center rounded-lg px-2 py-1 text-xs font-black ${tone}`}>{scoreLabel(score)}</span>;
@@ -155,13 +158,15 @@ const SsiCsiDashboard: React.FC<SsiCsiDashboardProps> = ({ onBack }) => {
   const categories = useMemo(() => {
     const groups = new Map<string, number>();
     deviations.forEach(record => {
-      splitCategories(record).forEach(category => groups.set(category, (groups.get(category) || 0) + 1));
+      clientCategories(record).forEach(category => groups.set(category, (groups.get(category) || 0) + 1));
     });
     return [...groups.entries()]
       .sort((a, b) => b[1] - a[1])
       .slice(0, 8)
       .map(([name, cantidad]) => ({ name, cantidad, ...categoryColor(name) }));
   }, [deviations, program]);
+
+  const categorizedDeviationCount = useMemo(() => deviations.filter(record => clientCategories(record).length > 0).length, [deviations]);
 
   const resetFilters = () => { setYear(''); setSemester(''); setWave(''); setProvince(''); setChannel(''); setModel(''); setScoreRange(''); setSearch(''); };
   const scope = program === 'SSI' ? 'Ventas' : 'Postventa';
@@ -219,7 +224,7 @@ const SsiCsiDashboard: React.FC<SsiCsiDashboardProps> = ({ onBack }) => {
             <section className="rounded-[1.7rem] border border-white/80 bg-white/75 p-6 shadow-[0_12px_30px_rgba(148,163,184,0.08)] backdrop-blur-sm">
               <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
                 <div className="flex items-center gap-3"><div className="rounded-xl bg-violet-100 p-2.5 text-violet-600"><Icons.BarChart3 className="h-5 w-5" /></div><div><h3 className="font-black text-slate-950">Desvíos por categoría</h3><p className="text-xs text-slate-400">Distribución de calificaciones de 1 a 8</p></div></div>
-                <span className="rounded-full bg-violet-100 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-violet-700">{deviations.length} casos</span>
+                <span className="rounded-full bg-violet-100 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-violet-700">{categorizedDeviationCount} casos</span>
               </div>
               {categories.length ? (
                 <div className="mt-6 h-[300px] min-w-0">
@@ -255,7 +260,7 @@ const SsiCsiDashboard: React.FC<SsiCsiDashboardProps> = ({ onBack }) => {
                         <td className="px-5 py-4 text-xs font-semibold text-slate-600">{record.anio || '—'}<br /><span className="font-normal text-slate-400">{record.semestre} · Ola {record.ola}</span></td>
                         <td className="px-5 py-4 text-xs font-bold text-slate-700">{record.modelo}<br /><span className="font-mono text-[10px] font-normal text-slate-400">{record.vin || 'Sin VIN'}</span></td>
                         <td className="px-5 py-4 text-xs text-slate-600">{program === 'SSI' ? record.canal_venta : record.provincia}</td>
-                        <td className="max-w-xs px-5 py-4"><div className="flex flex-wrap gap-1.5">{splitCategories(record).map(category => <span key={category} className={`rounded-md px-2 py-1 text-[9px] font-black ${categoryColor(category).pill}`}>{category}</span>)}</div></td>
+                        <td className="max-w-xs px-5 py-4">{clientCategories(record).length ? <div className="flex flex-wrap gap-1.5">{clientCategories(record).map(category => <span key={category} className={`rounded-md px-2 py-1 text-[9px] font-black ${categoryColor(category).pill}`}>{category}</span>)}</div> : <span className="text-xs text-slate-300">—</span>}</td>
                       </tr>
                     ))}
                     {filteredData.length === 0 && <tr><td colSpan={5} className="px-5 py-12 text-center text-sm text-slate-400">No se encontraron encuestas con los filtros seleccionados.</td></tr>}

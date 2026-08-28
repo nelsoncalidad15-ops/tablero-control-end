@@ -40,16 +40,16 @@ const inferredCategory = (record: SatisfactionSurveyRecord) => {
   if (/(filtro|repar|trabajo|servicio|calidad)/.test(comment)) return 'Calidad del trabajo';
   if (/(atencion|trato|personal|amable|respeto)/.test(comment)) return 'Atención y trato';
   if (/(respuesta|comunic|inform|seguimiento|contact)/.test(comment)) return 'Comunicación y seguimiento';
-  return 'Otros comentarios';
+  return 'Otros';
 };
 
 const CATEGORY_COLORS = [
-  { bar: '#4f46e5', pill: 'bg-indigo-100 text-indigo-700' },
-  { bar: '#0891b2', pill: 'bg-cyan-100 text-cyan-700' },
-  { bar: '#7c3aed', pill: 'bg-violet-100 text-violet-700' },
-  { bar: '#ea580c', pill: 'bg-orange-100 text-orange-700' },
-  { bar: '#e11d48', pill: 'bg-rose-100 text-rose-700' },
-  { bar: '#059669', pill: 'bg-emerald-100 text-emerald-700' },
+  { bar: '#a5b4fc', pill: 'bg-indigo-100/80 text-indigo-700' },
+  { bar: '#67e8f9', pill: 'bg-cyan-100/80 text-cyan-700' },
+  { bar: '#c4b5fd', pill: 'bg-violet-100/80 text-violet-700' },
+  { bar: '#fdba74', pill: 'bg-orange-100/80 text-orange-700' },
+  { bar: '#fda4af', pill: 'bg-rose-100/80 text-rose-700' },
+  { bar: '#6ee7b7', pill: 'bg-emerald-100/80 text-emerald-700' },
 ];
 
 const categoryColor = (category: string) => {
@@ -66,12 +66,12 @@ const splitCategories = (record: SatisfactionSurveyRecord) => {
 };
 
 const ScorePill = ({ score }: { score: number | null }) => {
-  const tone = score === null ? 'bg-slate-100 text-slate-400' : score >= 9 ? 'bg-emerald-100 text-emerald-700' : score >= 7 ? 'bg-amber-100 text-amber-700' : 'bg-rose-100 text-rose-700';
+  const tone = score === null ? 'bg-slate-100 text-slate-400' : score >= 9 ? 'bg-emerald-100/80 text-emerald-700' : score >= 7 ? 'bg-amber-100/80 text-amber-700' : 'bg-rose-100/80 text-rose-700';
   return <span className={`inline-flex min-w-9 justify-center rounded-lg px-2 py-1 text-xs font-black ${tone}`}>{scoreLabel(score)}</span>;
 };
 
 const MetricCard = ({ label, value, detail, icon: Icon, tone }: { label: string; value: string; detail: string; icon: React.ComponentType<React.SVGProps<SVGSVGElement>>; tone: string }) => (
-  <div className="rounded-[1.6rem] border border-white bg-white p-5 shadow-[0_12px_30px_rgba(15,23,42,0.05)]">
+  <div className="rounded-[1.6rem] border border-white/80 bg-white/75 p-5 shadow-[0_12px_30px_rgba(100,116,139,0.08)] backdrop-blur-sm">
     <div className="flex items-start justify-between gap-3">
       <div>
         <p className="text-[9px] font-black uppercase tracking-[0.22em] text-slate-400">{label}</p>
@@ -130,7 +130,7 @@ const SsiCsiDashboard: React.FC<SsiCsiDashboardProps> = ({ onBack }) => {
     const matchesScore = !scoreRange || (score !== null && (
       scoreRange === 'claim' ? score <= 8 : score >= 9
     ));
-    const haystack = [record.vin, record.nombre, record.modelo, record.motivo_calificacion, record.categorizacion].join(' ').toLocaleLowerCase('es');
+    const haystack = [record.vin, record.modelo, record.categorizacion].join(' ').toLocaleLowerCase('es');
     return (!year || String(record.anio) === year)
       && (!semester || record.semestre === semester)
       && (!wave || record.ola === wave)
@@ -163,31 +163,29 @@ const SsiCsiDashboard: React.FC<SsiCsiDashboardProps> = ({ onBack }) => {
       .map(([name, cantidad]) => ({ name, cantidad, ...categoryColor(name) }));
   }, [deviations, program]);
 
-  const showActionColumns = program === 'SSI' && filteredData.some(record => record.accion_correctiva || record.accion_preventiva);
-  const showCauseColumn = program === 'SSI' && filteredData.some(record => record.causa_raiz);
   const resetFilters = () => { setYear(''); setSemester(''); setWave(''); setProvince(''); setChannel(''); setModel(''); setScoreRange(''); setSearch(''); };
   const scope = program === 'SSI' ? 'Ventas' : 'Postventa';
 
   return (
     <DashboardFrame
       title={`Encuestas ${program}`}
-      subtitle={`${scope} · seguimiento de satisfacción`}
+      subtitle={`${scope} · experiencia del cliente`}
       onBack={onBack}
       isLoading={loading}
       lastUpdated={new Date().toLocaleTimeString('es-AR')}
-      context={<span className="rounded-full bg-slate-950 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.2em] text-white">{scope}</span>}
+      context={<span className="rounded-full bg-indigo-100 px-3 py-1.5 text-[9px] font-black uppercase tracking-[0.2em] text-indigo-700">{scope}</span>}
     >
-      <div className="space-y-6 pb-10">
-        <section className="overflow-hidden rounded-[2rem] bg-[linear-gradient(130deg,#0f172a,#172554_62%,#0c4a6e)] p-5 text-white shadow-[0_25px_65px_rgba(15,23,42,0.18)] md:p-7">
+      <div className="space-y-6 bg-[radial-gradient(circle_at_top_right,#fce7f3_0,transparent_28%),radial-gradient(circle_at_top_left,#e0f2fe_0,transparent_32%)] pb-10">
+        <section className="overflow-hidden rounded-[2rem] border border-white/80 bg-[linear-gradient(120deg,#eef2ff,#fdf2f8_52%,#ecfeff)] p-5 text-slate-900 shadow-[0_20px_50px_rgba(148,163,184,0.13)] md:p-7">
           <div className="flex flex-col justify-between gap-6 lg:flex-row lg:items-center">
             <div>
-              <p className="text-[10px] font-black uppercase tracking-[0.42em] text-sky-300">Experiencia del cliente</p>
+              <p className="text-[10px] font-black uppercase tracking-[0.42em] text-indigo-500">Experiencia del cliente</p>
               <h2 className="mt-2 text-3xl font-black tracking-tight md:text-4xl">SSI / CSI</h2>
-              <p className="mt-2 max-w-xl text-sm text-slate-300">Lectura de encuestas, motivos de calificación y acciones de mejora por cada programa.</p>
+              <p className="mt-2 max-w-xl text-sm text-slate-500">Resumen claro de satisfacción y oportunidades de mejora.</p>
             </div>
-            <div className="flex rounded-2xl border border-white/15 bg-white/10 p-1.5 backdrop-blur">
+            <div className="flex rounded-2xl border border-white/80 bg-white/70 p-1.5 shadow-sm backdrop-blur">
               {(['SSI', 'CSI'] as SurveyProgram[]).map(item => (
-                <button key={item} onClick={() => setProgram(item)} className={`rounded-xl px-5 py-3 text-xs font-black uppercase tracking-[0.18em] transition ${program === item ? 'bg-white text-slate-950 shadow-lg' : 'text-slate-300 hover:bg-white/10 hover:text-white'}`}>
+                <button key={item} onClick={() => setProgram(item)} className={`rounded-xl px-5 py-3 text-xs font-black uppercase tracking-[0.18em] transition ${program === item ? 'bg-indigo-500 text-white shadow-md shadow-indigo-200' : 'text-slate-500 hover:bg-white hover:text-indigo-600'}`}>
                   {item} <span className="ml-1 text-[9px] opacity-70">{item === 'SSI' ? 'Ventas' : 'Postventa'}</span>
                 </button>
               ))}
@@ -195,7 +193,7 @@ const SsiCsiDashboard: React.FC<SsiCsiDashboardProps> = ({ onBack }) => {
           </div>
         </section>
 
-        <section className="rounded-[1.7rem] border border-slate-200 bg-white p-4 shadow-sm">
+        <section className="rounded-[1.7rem] border border-white/80 bg-white/75 p-4 shadow-[0_12px_30px_rgba(148,163,184,0.08)] backdrop-blur-sm">
           <div className={`grid gap-3 sm:grid-cols-2 lg:grid-cols-4 ${program === 'SSI' ? 'xl:grid-cols-8' : 'xl:grid-cols-7'}`}>
             <select value={year} onChange={event => setYear(event.target.value)} className="filter-select"><option value="">Año</option>{filters.years.map(value => <option key={value}>{value}</option>)}</select>
             <select value={semester} onChange={event => setSemester(event.target.value)} className="filter-select"><option value="">Semestre</option>{filters.semesters.map(value => <option key={value}>{value}</option>)}</select>
@@ -204,7 +202,7 @@ const SsiCsiDashboard: React.FC<SsiCsiDashboardProps> = ({ onBack }) => {
             {program === 'SSI' && <select value={channel} onChange={event => setChannel(event.target.value)} className="filter-select"><option value="">Canal de venta</option>{filters.channels.map(value => <option key={value}>{value}</option>)}</select>}
             <select value={model} onChange={event => setModel(event.target.value)} className="filter-select"><option value="">Modelo</option>{filters.models.map(value => <option key={value}>{value}</option>)}</select>
             <select value={scoreRange} onChange={event => setScoreRange(event.target.value)} className="filter-select"><option value="">Estado de satisfacción</option><option value="compliant">Conforme · 9 a 10</option><option value="claim">Desvío · 1 a 8</option></select>
-            <div className="flex gap-2"><input value={search} onChange={event => setSearch(event.target.value)} placeholder="Buscar VIN o motivo" className="filter-select min-w-0 flex-1" /><button onClick={resetFilters} title="Limpiar filtros" className="rounded-xl border border-slate-200 px-3 text-slate-400 transition hover:bg-slate-50 hover:text-slate-900"><Icons.X className="h-4 w-4" /></button></div>
+            <div className="flex gap-2"><input value={search} onChange={event => setSearch(event.target.value)} placeholder="Buscar VIN o modelo" className="filter-select min-w-0 flex-1" /><button onClick={resetFilters} title="Limpiar filtros" className="rounded-xl border border-indigo-100 bg-indigo-50 px-3 text-indigo-400 transition hover:bg-indigo-100 hover:text-indigo-700"><Icons.X className="h-4 w-4" /></button></div>
           </div>
         </section>
 
@@ -213,20 +211,15 @@ const SsiCsiDashboard: React.FC<SsiCsiDashboardProps> = ({ onBack }) => {
         ) : (
           <>
             <section className="grid gap-4 md:grid-cols-3">
-              <MetricCard label="Encuestas" value={String(filteredData.length)} detail="registros seleccionados" icon={Icons.ClipboardCheck} tone="bg-blue-50 text-blue-600" />
-              <MetricCard label="Satisfacción general" value={scoreLabel(metrics.general)} detail="promedio sobre 10" icon={Icons.Star} tone="bg-amber-50 text-amber-600" />
-              <MetricCard label="Recomendación" value={scoreLabel(metrics.recommendation)} detail="promedio sobre 10" icon={Icons.Heart} tone="bg-fuchsia-50 text-fuchsia-600" />
+              <MetricCard label="Encuestas" value={String(filteredData.length)} detail="registros seleccionados" icon={Icons.ClipboardCheck} tone="bg-sky-100 text-sky-600" />
+              <MetricCard label="Satisfacción general" value={scoreLabel(metrics.general)} detail="promedio sobre 10" icon={Icons.Star} tone="bg-amber-100 text-amber-600" />
+              <MetricCard label="Recomendación" value={scoreLabel(metrics.recommendation)} detail="promedio sobre 10" icon={Icons.Heart} tone="bg-pink-100 text-pink-600" />
             </section>
 
-            <div className="flex flex-wrap items-center gap-2 px-1">
-              {[['', 'Todas las notas'], ['claim', 'Desvíos · 1 a 8'], ['compliant', 'Notas 9 a 10']].map(([value, label]) => <button key={value || 'all'} onClick={() => setScoreRange(value)} className={`rounded-full px-4 py-2 text-[10px] font-black uppercase tracking-[0.13em] transition ${scoreRange === value ? value === 'claim' ? 'bg-rose-600 text-white shadow-lg shadow-rose-200' : value === 'compliant' ? 'bg-emerald-600 text-white shadow-lg shadow-emerald-200' : 'bg-slate-950 text-white shadow-lg shadow-slate-200' : 'border border-slate-200 bg-white text-slate-500 hover:border-slate-300 hover:text-slate-800'}`}>{label}</button>)}
-              <span className="ml-1 text-[10px] font-semibold text-slate-400">Las notas 1 a 8 se incluyen aunque VIN esté vacío.</span>
-            </div>
-
-            <section className="rounded-[1.7rem] border border-slate-200 bg-white p-6 shadow-sm">
+            <section className="rounded-[1.7rem] border border-white/80 bg-white/75 p-6 shadow-[0_12px_30px_rgba(148,163,184,0.08)] backdrop-blur-sm">
               <div className="flex flex-col justify-between gap-4 sm:flex-row sm:items-center">
-                <div className="flex items-center gap-3"><div className="rounded-xl bg-indigo-50 p-2.5 text-indigo-600"><Icons.BarChart3 className="h-5 w-5" /></div><div><h3 className="font-black text-slate-950">Desvíos por categorización</h3><p className="text-xs text-slate-400">Notas de 1 a 8; si falta la categoría, se obtiene a partir del motivo informado</p></div></div>
-                <span className="rounded-full bg-indigo-50 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-indigo-700">{deviations.length} casos</span>
+                <div className="flex items-center gap-3"><div className="rounded-xl bg-violet-100 p-2.5 text-violet-600"><Icons.BarChart3 className="h-5 w-5" /></div><div><h3 className="font-black text-slate-950">Desvíos por categoría</h3><p className="text-xs text-slate-400">Distribución de calificaciones de 1 a 8</p></div></div>
+                <span className="rounded-full bg-violet-100 px-3 py-1.5 text-[10px] font-black uppercase tracking-wider text-violet-700">{deviations.length} casos</span>
               </div>
               {categories.length ? (
                 <div className="mt-6 h-[300px] min-w-0">
@@ -234,7 +227,7 @@ const SsiCsiDashboard: React.FC<SsiCsiDashboardProps> = ({ onBack }) => {
                     <BarChart data={categories} layout="vertical" margin={{ top: 4, right: 38, bottom: 4, left: 16 }} barCategoryGap="24%">
                       <XAxis type="number" allowDecimals={false} axisLine={false} tickLine={false} tick={{ fill: '#94a3b8', fontSize: 11, fontWeight: 700 }} />
                       <YAxis type="category" dataKey="name" width={190} axisLine={false} tickLine={false} tick={{ fill: '#475569', fontSize: 11, fontWeight: 700 }} />
-                      <Tooltip cursor={{ fill: '#f8fafc' }} formatter={(value: number) => [value, 'Casos']} contentStyle={{ borderRadius: 14, border: '1px solid #e2e8f0', boxShadow: '0 12px 28px rgba(15,23,42,.10)' }} />
+                      <Tooltip cursor={{ fill: '#f5f3ff' }} formatter={(value: number) => [value, 'Casos']} contentStyle={{ borderRadius: 14, border: '1px solid #ede9fe', boxShadow: '0 12px 28px rgba(148,163,184,.14)' }} />
                       <Bar dataKey="cantidad" radius={[0, 8, 8, 0]} barSize={24}>{categories.map(item => <Cell key={item.name} fill={item.bar} />)}</Bar>
                     </BarChart>
                   </ResponsiveContainer>
@@ -242,36 +235,30 @@ const SsiCsiDashboard: React.FC<SsiCsiDashboardProps> = ({ onBack }) => {
               ) : <div className="mt-6 rounded-2xl border border-dashed border-slate-200 bg-slate-50 px-5 py-10 text-center text-sm font-medium text-slate-400">No hay notas de 1 a 8 dentro de los filtros elegidos.</div>}
             </section>
 
-            <section className="overflow-hidden rounded-[1.7rem] border border-slate-200 bg-white shadow-sm">
-              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-6 py-5"><div><h3 className="font-black text-slate-950">Detalle de encuestas {program}</h3><p className="text-xs text-slate-400">{program === 'SSI' ? 'Categorización, causa raíz y acciones asociadas' : 'Comentarios y datos de la experiencia postventa'}</p></div><span className="rounded-full bg-slate-100 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-slate-500">{filteredData.length} registros</span></div>
+            <section className="overflow-hidden rounded-[1.7rem] border border-white/80 bg-white/75 shadow-[0_12px_30px_rgba(148,163,184,0.08)] backdrop-blur-sm">
+              <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-100 px-6 py-5"><div><h3 className="font-black text-slate-950">Resumen de encuestas {program}</h3><p className="text-xs text-slate-400">Información esencial de cada respuesta</p></div><span className="rounded-full bg-sky-100 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-sky-700">{filteredData.length} registros</span></div>
               <div className="overflow-x-auto">
-                <table className={`w-full text-left ${program === 'SSI' ? 'min-w-[1320px]' : 'min-w-[850px]'}`}>
+                <table className="w-full min-w-[760px] text-left">
                   <thead className="bg-slate-50 text-[9px] font-black uppercase tracking-[0.16em] text-slate-400">
                     <tr>
                       <th className="px-5 py-4">Nota</th>
                       <th className="px-5 py-4">Período</th>
                       <th className="px-5 py-4">Vehículo</th>
                       <th className="px-5 py-4">{program === 'SSI' ? 'Canal' : 'Sucursal'}</th>
-                      <th className="px-5 py-4">{program === 'SSI' ? 'Categorización' : 'Motivo'}</th>
-                      {showCauseColumn && <th className="px-5 py-4">Causa raíz</th>}
-                      {showActionColumns && <><th className="px-5 py-4">Acción correctiva</th><th className="px-5 py-4">Prevención</th></>}
+                      <th className="px-5 py-4">Categoría</th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-100">
                     {filteredData.map(record => (
                       <tr key={record.id} className="align-top text-sm transition-colors hover:bg-slate-50/70">
-                        <td className="px-5 py-4"><ScorePill score={satisfactionScore(record)} /><span className="ml-2 text-[10px] font-bold text-slate-400">Rec. {scoreLabel(recommendationScore(record))}</span></td>
+                        <td className="px-5 py-4"><ScorePill score={satisfactionScore(record)} /></td>
                         <td className="px-5 py-4 text-xs font-semibold text-slate-600">{record.anio || '—'}<br /><span className="font-normal text-slate-400">{record.semestre} · Ola {record.ola}</span></td>
-                        <td className="px-5 py-4 text-xs font-bold text-slate-700">{record.modelo}<br /><span className="font-mono text-[10px] font-normal text-slate-400">{record.vin || 'Sin VIN'}{record.cod_id ? ` · ${record.cod_id}` : ''}</span></td>
-                        <td className="px-5 py-4 text-xs text-slate-600">{program === 'SSI' ? record.canal_venta : record.provincia}<br />{program === 'CSI' && <span className="font-mono text-[10px] text-slate-400">CE {record.ce || '—'}</span>}</td>
-                        <td className="max-w-xs px-5 py-4 text-xs leading-5 text-slate-600">
-                          {program === 'SSI' ? <div className="flex flex-wrap gap-1.5">{splitCategories(record).map(category => <span key={category} className={`rounded-md px-2 py-1 text-[9px] font-black ${categoryColor(category).pill}`}>{category}</span>)}</div> : record.motivo_calificacion || '—'}
-                        </td>
-                        {showCauseColumn && <td className="max-w-sm px-5 py-4 text-xs leading-5 text-slate-600">{record.causa_raiz || '—'}</td>}
-                        {showActionColumns && <><td className="max-w-xs px-5 py-4 text-xs leading-5 text-slate-600">{record.accion_correctiva || '—'}</td><td className="max-w-xs px-5 py-4 text-xs leading-5 text-slate-600">{record.accion_preventiva || '—'}</td></>}
+                        <td className="px-5 py-4 text-xs font-bold text-slate-700">{record.modelo}<br /><span className="font-mono text-[10px] font-normal text-slate-400">{record.vin || 'Sin VIN'}</span></td>
+                        <td className="px-5 py-4 text-xs text-slate-600">{program === 'SSI' ? record.canal_venta : record.provincia}</td>
+                        <td className="max-w-xs px-5 py-4"><div className="flex flex-wrap gap-1.5">{splitCategories(record).map(category => <span key={category} className={`rounded-md px-2 py-1 text-[9px] font-black ${categoryColor(category).pill}`}>{category}</span>)}</div></td>
                       </tr>
                     ))}
-                    {filteredData.length === 0 && <tr><td colSpan={5 + Number(showCauseColumn) + (showActionColumns ? 2 : 0)} className="px-5 py-12 text-center text-sm text-slate-400">No se encontraron encuestas con los filtros seleccionados.</td></tr>}
+                    {filteredData.length === 0 && <tr><td colSpan={5} className="px-5 py-12 text-center text-sm text-slate-400">No se encontraron encuestas con los filtros seleccionados.</td></tr>}
                   </tbody>
                 </table>
               </div>

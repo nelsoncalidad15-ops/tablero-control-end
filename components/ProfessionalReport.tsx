@@ -14,7 +14,7 @@ import {
     BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, 
     Cell, LineChart, Line, LabelList, PieChart, Pie 
 } from 'recharts';
-import { MONTHS, YEARS, DETAILED_QUALITY_SHEET_KEY, DETAILED_QUALITY_SALTA_SHEET_KEY } from '../constants';
+import { MONTHS, DETAILED_QUALITY_SHEET_KEY, DETAILED_QUALITY_SALTA_SHEET_KEY } from '../constants';
 import { LoadingState, AppConfig, DetailedQualityRecord, SalesQualityRecord, QualityRecord, SalesClaimsRecord, CemOsRecord, InternalPostventaRecord } from '../types';
 
 interface ProfessionalReportProps {
@@ -155,6 +155,40 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
       .trim();
   };
 
+  const matchesSelectedBranch = (row: any) => {
+    if (!selectedBranch) return true;
+    const branchValue = normalizeBranchKey(row.sucursal || row.nombre_sucursal || row.concesionario || row.codigo || '');
+    if (selectedBranch === 'JUJUY') return branchValue === 'JUJUY' || branchValue === '3059';
+    if (selectedBranch === 'SALTA') return branchValue === 'SALTA' || branchValue === '3087' || branchValue === '3089';
+    return branchValue === normalizeBranchKey(selectedBranch);
+  };
+
+  const reportYear = useMemo(() => {
+    const allRows = [
+      ...data.detailedQuality,
+      ...data.salesQuality,
+      ...data.quality,
+      ...data.salesClaims,
+      ...data.cemOs,
+      ...data.internalPostventa
+    ];
+
+    const monthYears = allRows
+      .filter((row: any) => row?.mes === selectedMonth && matchesSelectedBranch(row))
+      .map((row: any) => Number(row?.anio))
+      .filter((year) => Number.isFinite(year) && year > 0);
+
+    if (monthYears.length > 0) {
+      return Math.max(...monthYears);
+    }
+
+    const fallbackYears = allRows
+      .map((row: any) => Number(row?.anio))
+      .filter((year) => Number.isFinite(year) && year > 0);
+
+    return fallbackYears.length > 0 ? Math.max(...fallbackYears) : new Date().getFullYear();
+  }, [data, selectedMonth, selectedBranch]);
+
   const isDate = (val: string) => {
     if (!val) return false;
     const clean = val.trim();
@@ -173,13 +207,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
   };
 
   const filteredMetrics = useMemo(() => {
-    const branchFilter = (d: any) => {
-        if (!selectedBranch) return true;
-        const branchValue = normalizeBranchKey(d.sucursal || d.nombre_sucursal || d.concesionario || d.codigo || '');
-        if (selectedBranch === 'JUJUY') return branchValue === 'JUJUY' || branchValue === '3059';
-        if (selectedBranch === 'SALTA') return branchValue === 'SALTA' || branchValue === '3087' || branchValue === '3089';
-        return branchValue === normalizeBranchKey(selectedBranch);
-    };
+    const branchFilter = (d: any) => matchesSelectedBranch(d);
 
     const getDetailedQualityMonthData = (month: string) => {
         const monthData = data.detailedQuality.filter(d => d.mes === month && branchFilter(d));
@@ -333,7 +361,11 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
     });
 
     // 6. Encuesta Interna Postventa
-    const internalPostventaData = data.internalPostventa.filter(d => d.mes === reportMonths.mMinus1 && branchFilter(d));
+    const internalPostventaData = data.internalPostventa.filter(d =>
+        d.mes === reportMonths.mMinus1 &&
+        d.anio === reportYear &&
+        branchFilter(d)
+    );
     const avgScore = (key: keyof InternalPostventaRecord) => {
         const scores = internalPostventaData.map(r => Number(r[key])).filter(v => !isNaN(v) && v > 0);
         return scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
@@ -427,7 +459,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
             evolution: annualClaimsEvolution
         }
     };
-  }, [data, selectedMonth, selectedBranch, reportMonths]);
+  }, [data, selectedMonth, selectedBranch, reportMonths, reportYear]);
 
   const handlePrint = () => {
     window.print();
@@ -547,7 +579,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                             className="text-2xl md:text-3xl font-black text-slate-300 tracking-tighter italic uppercase print:!text-slate-700"
                             style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}
                         >
-                            {selectedBranch || 'CONSOLIDADO GENERAL'} - {selectedMonth} {YEARS[0]}
+                            {selectedBranch || 'CONSOLIDADO GENERAL'} - {selectedMonth} {reportYear}
                         </h2>
                     </div>
                 </div>
@@ -1026,7 +1058,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                 <div className="flex justify-between items-center mb-6">
                     <div>
                         <h2 className="text-4xl font-black text-slate-950 uppercase italic tracking-tighter leading-none">ENCUESTA INTERNA</h2>
-                        <p className="text-[10px] font-black text-blue-600 uppercase tracking-[0.5em] mt-2">POSTVENTA — {reportMonths.mMinus1.toUpperCase()}</p>
+                        <p className="text-[10px] font-black text-blue-600 uppercase tracking-[0.5em] mt-2">POSTVENTA — {reportMonths.mMinus1.toUpperCase()} {reportYear}</p>
                     </div>
                     <div className="text-right">
                         <div className="text-2xl font-black text-slate-950 italic leading-none">VW</div>

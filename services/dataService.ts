@@ -75,9 +75,6 @@ const extractMonthFromDateString = (val: string) => {
     const clean = val.trim();
     if (!clean) return 'Unknown';
 
-    const directMonth = normalizeMonth(clean);
-    if (SPANISH_MONTHS.includes(directMonth)) return directMonth;
-
     const yearMonthDayMatch = clean.match(/^\d{4}[-/](\d{1,2})[-/]\d{1,2}/);
     if (yearMonthDayMatch) {
         const monthNum = parseInt(yearMonthDayMatch[1], 10);
@@ -90,14 +87,13 @@ const extractMonthFromDateString = (val: string) => {
         if (monthNum >= 1 && monthNum <= 12) return SPANISH_MONTHS[monthNum - 1];
     }
 
-    return 'Unknown';
+    const directMonth = normalizeMonth(clean);
+    return SPANISH_MONTHS.includes(directMonth) ? directMonth : 'Unknown';
 };
 
 const pickFirstValidMonth = (...values: Array<string | undefined>) => {
     for (const value of values) {
         if (!value) continue;
-        const normalized = normalizeMonth(value);
-        if (SPANISH_MONTHS.includes(normalized)) return normalized;
         const extracted = extractMonthFromDateString(value);
         if (SPANISH_MONTHS.includes(extracted)) return extracted;
     }
@@ -2332,7 +2328,9 @@ const parseInternalPostventaCSV = (csvText: string): InternalPostventaRecord[] =
         });
 
         record.mes = pickFirstValidMonth(record.fecha_fin, record.created_at, record.mes);
-        if (!record.anio) record.anio = 2026;
+        const periodDate = String(record.fecha_fin || record.created_at || '');
+        const yearMatch = periodDate.match(/^(\d{4})[-/]/) || periodDate.match(/^\d{1,2}[-/]\d{1,2}[-/](\d{4})/);
+        record.anio = yearMatch ? Number(yearMatch[1]) : 0;
         if (!record.sucursal && record.nombre_sucursal) record.sucursal = normalizeBranch(record.nombre_sucursal);
 
         records.push(record as InternalPostventaRecord);

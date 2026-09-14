@@ -75,6 +75,7 @@ const InternalPostventaDashboard: React.FC<InternalPostventaDashboardProps> = ({
   const [loading, setLoading] = useState(LoadingState.LOADING);
   const [selectedMonth, setSelectedMonth] = useState<string>('Febrero');
   const [selectedSucursal, setSelectedSucursal] = useState<string>('Todas');
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
 
   useEffect(() => {
     const loadData = async () => {
@@ -85,7 +86,9 @@ const InternalPostventaDashboard: React.FC<InternalPostventaDashboardProps> = ({
         
         // Set default month to the latest one in the data
         if (result.length > 0) {
-          const availableMonths = Array.from(new Set(result.map(r => r.mes))).filter(m => m && m !== 'Unknown');
+          const latestYear = Math.max(...result.map(r => r.anio));
+          setSelectedYear(latestYear);
+          const availableMonths = Array.from(new Set(result.filter(r => r.anio === latestYear).map(r => r.mes))).filter(m => m && m !== 'Unknown');
           const latestMonth = availableMonths.sort((a, b) => MONTHS.indexOf(b) - MONTHS.indexOf(a))[0];
           if (latestMonth) setSelectedMonth(latestMonth);
         }
@@ -103,9 +106,9 @@ const InternalPostventaDashboard: React.FC<InternalPostventaDashboardProps> = ({
     return data.filter(r => {
       const monthMatch = selectedMonth === 'Todas' || r.mes === selectedMonth;
       const sucursalMatch = selectedSucursal === 'Todas' || r.sucursal === selectedSucursal;
-      return monthMatch && sucursalMatch;
+      return monthMatch && sucursalMatch && r.anio === selectedYear;
     });
-  }, [data, selectedMonth, selectedSucursal]);
+  }, [data, selectedMonth, selectedSucursal, selectedYear]);
 
   const sucursales = useMemo(() => {
     const s = new Set(data.map(r => r.sucursal));
@@ -135,12 +138,12 @@ const InternalPostventaDashboard: React.FC<InternalPostventaDashboardProps> = ({
   const lvsByMonth = useMemo(() => {
     const months = MONTHS;
     return months.map(m => {
-      const monthData = data.filter(r => r.mes === m && (selectedSucursal === 'Todas' || r.sucursal === selectedSucursal));
+      const monthData = data.filter(r => r.anio === selectedYear && r.mes === m && (selectedSucursal === 'Todas' || r.sucursal === selectedSucursal));
       const scores = monthData.map(r => Number(r.servicio_prestado)).filter(v => !isNaN(v) && v > 0);
       const avg = scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
       return { name: m.toLowerCase(), value: Number(avg.toFixed(2)) };
     }).filter(m => m.value > 0);
-  }, [data, selectedSucursal]);
+  }, [data, selectedSucursal, selectedYear]);
 
   const rankingAsesores = useMemo(() => {
     const asesores: Record<string, { sum: number, count: number }> = {};
@@ -218,12 +221,17 @@ const InternalPostventaDashboard: React.FC<InternalPostventaDashboardProps> = ({
       className="bg-slate-950"
       isLoading={loading === LoadingState.LOADING}
       onBack={onBack}
-      lastUpdated="06/03/2026 11:00"
     >
       <div className="px-8 space-y-12 pb-20">
         {/* Header Info & Filters */}
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-8 bg-white/5 p-8 rounded-[2rem] border border-white/10">
           <div className="flex flex-wrap gap-6">
+            <div className="space-y-2">
+              <label htmlFor="internal-surveys-year" className="text-[10px] font-black text-slate-500 uppercase tracking-widest block px-4">Año de cierre</label>
+              <select id="internal-surveys-year" value={selectedYear} onChange={(e) => setSelectedYear(Number(e.target.value))} className="bg-slate-900 border border-white/10 rounded-xl px-6 py-3 text-xs font-bold text-white outline-none cursor-pointer">
+                {Array.from(new Set(data.map(r => r.anio))).filter(Boolean).sort((a, b) => b - a).map(year => <option key={year} value={year}>{year}</option>)}
+              </select>
+            </div>
             <div className="space-y-2">
               <label className="text-[10px] font-black text-slate-500 uppercase tracking-widest block px-4">Mes de Análisis</label>
               <select 

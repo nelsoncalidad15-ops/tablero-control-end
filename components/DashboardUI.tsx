@@ -49,7 +49,7 @@ export const DashboardFrame: React.FC<DashboardFrameProps> = ({
     <div className={`flex flex-col min-h-screen transition-all duration-700 ${className}`}>
       {/* Compact Glass Header Bar */}
       {!isTvMode && (
-        <div className="flex-none z-40 flex flex-row justify-between items-center gap-2 bg-white/70 sticky top-0 p-3 md:p-4 border-b border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.03)] backdrop-blur-xl w-full print:hidden">
+        <div className="dashboard-frame-header flex-none z-40 flex flex-row justify-between items-center gap-2 bg-white/70 sticky top-0 p-3 md:p-4 border-b border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.03)] backdrop-blur-xl w-full print:hidden">
           <div className="flex items-center gap-3 md:gap-6">
             {onBack && (
               <motion.button 
@@ -121,7 +121,7 @@ export const DashboardFrame: React.FC<DashboardFrameProps> = ({
       )}
 
       {/* Main Content Area */}
-      <div className="flex flex-col lg:flex-row gap-6 flex-1 items-start w-full px-4 md:px-6 pb-8 lg:pb-10">
+      <div className="dashboard-frame-main flex flex-col lg:flex-row gap-6 flex-1 items-start w-full px-4 md:px-6 pb-8 lg:pb-10">
         {/* Filters Sidebar (Hidden in TV Mode) */}
         {!isTvMode && filters && (
           <motion.div 
@@ -136,7 +136,7 @@ export const DashboardFrame: React.FC<DashboardFrameProps> = ({
         )}
 
         {/* Dashboard Content */}
-        <div className="flex-1 min-w-0 w-full">
+        <div className="dashboard-frame-content flex-1 min-w-0 w-full">
           <AnimatePresence mode="wait">
             {isLoading ? (
               <motion.div 
@@ -430,7 +430,7 @@ export const ChartWrapper = ({ title, subtitle, children, className, action, isD
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      className={`${isDark ? 'bg-slate-900/90 border-white/10 shadow-2xl' : 'bg-white/70 border-white/60 shadow-[0_8px_32px_rgba(0,0,0,0.03)]'} rounded-[2rem] border p-8 relative group transition-all hover:shadow-[0_12px_40px_rgb(0,0,0,0.06)] backdrop-blur-xl flex flex-col ${className || ''}`}
+      className={`dashboard-chart-card ${isDark ? 'bg-slate-900/90 border-white/10 shadow-2xl' : 'bg-white/70 border-white/60 shadow-[0_8px_32px_rgba(0,0,0,0.03)]'} rounded-[2rem] border p-8 relative group transition-all hover:shadow-[0_12px_40px_rgb(0,0,0,0.06)] backdrop-blur-xl flex flex-col ${className || ''}`}
     >
       <div className="flex items-center justify-between mb-8 shrink-0">
         <div className="flex items-center gap-4">
@@ -535,7 +535,7 @@ export const LuxuryKPICard = ({ title, value, color, icon: Icon, trend, isDark =
       borderColor: ["rgba(225,29,72,0.1)", "rgba(225,29,72,0.3)", "rgba(225,29,72,0.1)"]
     } : {}}
     transition={isDanger ? { duration: 2, repeat: Infinity } : {}}
-    className={`${isDark ? 'bg-slate-900/90 border-white/10 shadow-2xl' : 'bg-white/70 border-white/60 shadow-[0_8px_32px_rgba(0,0,0,0.03)]'} 
+    className={`dashboard-kpi-card ${isDark ? 'bg-slate-900/90 border-white/10 shadow-2xl' : 'bg-white/70 border-white/60 shadow-[0_8px_32px_rgba(0,0,0,0.03)]'}
       ${featured ? 'ring-2 ring-indigo-500/10 shadow-[0_16px_40px_rgba(79,70,229,0.08)]' : ''}
       ${isDanger ? 'border-rose-500/30 bg-rose-50/10' : ''}
       ${isActive ? 'ring-2 ring-blue-500/30 border-blue-500/40 bg-blue-50/40' : ''}
@@ -691,7 +691,7 @@ export const DataTable = ({ data, columns, title, subtitle, pageSize = 10 }: {
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      className="bg-white/70 rounded-[2.5rem] border border-white/60 shadow-[0_8px_32px_rgba(0,0,0,0.03)] overflow-hidden transition-all hover:shadow-[0_12px_40px_rgb(0,0,0,0.06)] backdrop-blur-xl"
+      className="dashboard-data-table bg-white/70 rounded-[2.5rem] border border-white/60 shadow-[0_8px_32px_rgba(0,0,0,0.03)] overflow-hidden transition-all hover:shadow-[0_12px_40px_rgb(0,0,0,0.06)] backdrop-blur-xl"
     >
       {(title || subtitle) && (
         <div className="px-6 py-4 border-b border-white/40 bg-white/30">
@@ -715,7 +715,7 @@ export const DataTable = ({ data, columns, title, subtitle, pageSize = 10 }: {
         </div>
       ) : (
         <>
-          <div className="overflow-x-auto">
+          <div className="hidden overflow-x-auto md:block">
             <table className="w-full text-left border-collapse">
               <thead>
                 <tr className="bg-white/20 border-b border-white/40">
@@ -738,6 +738,36 @@ export const DataTable = ({ data, columns, title, subtitle, pageSize = 10 }: {
                 ))}
               </tbody>
             </table>
+          </div>
+          <div className="grid gap-3 p-3 md:hidden">
+            {currentData.map((row, rowIndex) => (
+              <details key={rowIndex} className="group rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="text-[9px] font-bold uppercase tracking-[0.14em] text-slate-400">{columns[0]?.header}</p>
+                    <div className="mt-1 truncate text-sm font-bold text-[#001e50]">
+                      {columns[0]?.render ? columns[0].render(row[columns[0].accessor], row) : row[columns[0]?.accessor]}
+                    </div>
+                    {columns[1] && (
+                      <div className="mt-2 truncate text-xs text-slate-600">
+                        {columns[1].render ? columns[1].render(row[columns[1].accessor], row) : row[columns[1].accessor]}
+                      </div>
+                    )}
+                  </div>
+                  <Icons.ChevronDown className="h-4 w-4 shrink-0 text-slate-400 transition-transform group-open:rotate-180" />
+                </summary>
+                <div className="mt-4 grid gap-3 border-t border-slate-100 pt-4">
+                  {columns.slice(2).map((col, columnIndex) => (
+                    <div key={columnIndex} className="grid grid-cols-[minmax(100px,.8fr)_minmax(0,1.2fr)] gap-3">
+                      <span className="text-[9px] font-bold uppercase tracking-[0.1em] text-slate-400">{col.header}</span>
+                      <div className="min-w-0 text-right text-xs text-slate-700">
+                        {col.render ? col.render(row[col.accessor], row) : row[col.accessor]}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </details>
+            ))}
           </div>
           {totalPages > 1 && (
             <div className="px-8 py-4 bg-white/20 border-t border-white/40 flex items-center justify-between">

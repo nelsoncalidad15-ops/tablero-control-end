@@ -248,6 +248,10 @@ function App() {
   };
 
   const handleSelectArea = (area: AreaConfig) => {
+    if (area.id === 'rrhh') {
+      window.location.href = 'https://nelsoncalidad15-ops.github.io/rrhh/';
+      return;
+    }
     handlePrefetchArea(area.id);
     if (area.id === 'executive' as any) {
         navigate('/executive');
@@ -549,14 +553,11 @@ function App() {
         );
       }
     } else if (effectiveType === 'rrhh') {
+      window.location.href = 'https://nelsoncalidad15-ops.github.io/rrhh/';
       dashboardContent = (
-        <RRHHDashboard
-          gradesUrl={resolveDataSource('hr_grades', config.sheetUrls.rrhh || '', FRONTEND_ONLY_RRHH)}
-          relatorioUrl={resolveDataSource('hr_relatorio', config.sheetUrls.hr_relatorio || '', FRONTEND_ONLY_RRHH)}
-          contactsUrl={resolveDataSource('hr_contacts', config.sheetUrls.hr_contacts || '', FRONTEND_ONLY_RRHH)}
-          phasesUrl={resolveDataSource('hr_phases', config.sheetUrls.hr_phases || '', FRONTEND_ONLY_RRHH)}
-          onBack={handleBack}
-        />
+        <div className="flex min-h-[50vh] items-center justify-center">
+          <RouteLoader label="Redirigiendo a RRHH..." />
+        </div>
       );
     } else if (effectiveType === 'executive') {
         dashboardContent = <ExecutiveSummary config={config} onBack={handleBack} />;

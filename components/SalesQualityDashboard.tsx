@@ -11,6 +11,7 @@ import { SalesQualityRecord, SalesClaimsRecord, CemOsRecord, LoadingState, AppCo
 import { MONTHS, SALES_QUALITY_SHEET_KEY, SALES_CLAIMS_SHEET_KEY, CEM_OS_SHEET_KEY, CEM_OS_SALTA_SHEET_KEY } from '../constants';
 import CemOsDashboard from './CemOsDashboard';
 import { DashboardFrame, LuxuryKPICard, SkeletonLoader, StatusBadge, InsightCard, DataTable, ChartWrapper, MonthSelector } from './DashboardUI';
+import './SalesQualityDashboard.css';
 
 // --- SHARED COMPONENTS ---
 
@@ -497,15 +498,15 @@ const isChatBotContactState = (value: string) => {
 const CONTACT_STATE_DEFINITIONS: ContactStateDefinition[] = [
     { label: 'RECONTACTADO', bucket: 'Efectivo', color: '#0F766E', contacted: true, action: 'Seguimiento confirmado', priority: 1 },
     { label: 'Contactado', bucket: 'Efectivo', color: '#10B981', contacted: true, action: 'Contacto exitoso', priority: 2 },
-    { label: 'Env�o por WSP', bucket: 'Recuperable', color: '#3B82F6', contacted: false, action: 'Esperar respuesta', priority: 3 },
+    { label: 'Envío por WSP', bucket: 'Recuperable', color: '#3B82F6', contacted: false, action: 'Esperar respuesta', priority: 3 },
     { label: 'Llamar luego', bucket: 'Recuperable', color: '#6366F1', contacted: false, action: 'Reprogramar llamada', priority: 4 },
-    { label: 'Buz�n de voz', bucket: 'Recuperable', color: '#8B5CF6', contacted: false, action: 'Reintento telef�nico', priority: 5 },
+    { label: 'Buzón de voz', bucket: 'Recuperable', color: '#8B5CF6', contacted: false, action: 'Reintento telefónico', priority: 5 },
     { label: 'No contactado', bucket: 'No contactable', color: '#F43F5E', contacted: false, action: 'Sin respuesta efectiva', priority: 6 },
     { label: 'No se Encuesta', bucket: 'No contactable', color: '#E11D48', contacted: false, action: 'Base sin encuestar', priority: 7 },
-    { label: 'N�mero Incorrecto', bucket: 'No contactable', color: '#FB7185', contacted: false, action: 'Depurar contacto', priority: 8 },
-    { label: 'Fuera de Servicio', bucket: 'No contactable', color: '#BE123C', contacted: false, action: 'N�mero inactivo', priority: 9 },
+    { label: 'Número Incorrecto', bucket: 'No contactable', color: '#FB7185', contacted: false, action: 'Depurar contacto', priority: 8 },
+    { label: 'Fuera de Servicio', bucket: 'No contactable', color: '#BE123C', contacted: false, action: 'Número inactivo', priority: 9 },
     { label: 'No quiere responder', bucket: 'No contactable', color: '#DC2626', contacted: false, action: 'Resistencia al contacto', priority: 10 },
-    { label: 'No retir�', bucket: 'No contactable', color: '#F97316', contacted: false, action: 'Caso pendiente', priority: 11 },
+    { label: 'No retiró', bucket: 'No contactable', color: '#F97316', contacted: false, action: 'Caso pendiente', priority: 11 },
     { label: 'Duplicado', bucket: 'No contactable', color: '#94A3B8', contacted: false, action: 'Excluir de la base', priority: 12 },
     { label: 'Cerrado Sin Respuesta', bucket: 'No contactable', color: '#64748B', contacted: false, action: 'Cierre administrativo', priority: 13 },
 ];
@@ -529,7 +530,7 @@ const resolveContactState = (rawValue: string): ContactStateDefinition => {
     if (normalized.includes('no se encuesta') || normalized.includes('no encuesta')) return CONTACT_STATE_DEFINITIONS[6];
     if (normalized.includes('no contactado') || normalized.includes('no contacta')) return CONTACT_STATE_DEFINITIONS[5];
     if (normalized.includes('no quiere responder')) return CONTACT_STATE_DEFINITIONS[9];
-    if (normalized.includes('no retiro') || normalized.includes('no retir�')) return CONTACT_STATE_DEFINITIONS[10];
+    if (normalized.includes('no retiro') || normalized.includes('no retiró')) return CONTACT_STATE_DEFINITIONS[10];
     if (normalized.includes('numero incorrecto') || normalized.includes('numero erroneo') || normalized.includes('numero equivocado')) return CONTACT_STATE_DEFINITIONS[7];
     if (normalized.includes('fuera de servicio') || normalized.includes('fuera servicio')) return CONTACT_STATE_DEFINITIONS[8];
     if (normalized.includes('duplicado')) return CONTACT_STATE_DEFINITIONS[11];
@@ -622,7 +623,7 @@ const SurveyView = ({
         let no = 0;
         filteredData.forEach((d: any) => {
             const val = String(d[key]).toLowerCase().trim();
-            if (val === 'si' || val === 's�') yes++;
+            if (val === 'si' || val === 'sí') yes++;
             else if (val === 'no') no++;
         });
         return { yes, no };
@@ -635,7 +636,7 @@ const SurveyView = ({
 
         filteredData.forEach((d: any) => {
             const raw = String(d[key] ?? '').toLowerCase().trim();
-            if (!raw || raw === '(vac�o)' || raw === '(vacio)' || raw === '-') return;
+            if (!raw || raw === '(vacío)' || raw === '(vacio)' || raw === '-') return;
 
             const normalized = raw.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
             if (normalized === 'si') yes++;
@@ -759,9 +760,9 @@ const SurveyView = ({
     
         const percent = totalRows > 0 ? (contactedEffective / totalRows) * 100 : 0;
         const methodData = [
-            { name: '1� Llamado', value: effectiveOn1st, fill: '#3B82F6' },
-            { name: '2� Llamado', value: effectiveOn2nd, fill: '#6366F1' },
-            { name: '3� Llamado', value: effectiveOn3rd, fill: '#8B5CF6' },
+            { name: '1° Llamado', value: effectiveOn1st, fill: '#3B82F6' },
+            { name: '2° Llamado', value: effectiveOn2nd, fill: '#6366F1' },
+            { name: '3° Llamado', value: effectiveOn3rd, fill: '#8B5CF6' },
             { name: 'WhatsApp', value: effectiveViaWpp, fill: '#10B981' }
         ];
         const statusChartData = Object.entries(statusCounts).map(([name, value]) => ({ name, value })).sort((a, b) => b.value - a.value);
@@ -774,9 +775,9 @@ const SurveyView = ({
 
     const deliveryData = useMemo(() => {
         return [
-            { subject: 'Estado Veh�culo', A: calculateAverageStats('estado_vehiculo', true).value, fullMark: 5 },
-            { subject: 'Explicaci�n Entrega', A: calculateAverageStats('explicacion_entrega').value, fullMark: 5 },
-            { subject: 'Tr�mites Adm.', A: calculateAverageStats('explicacion_tramites').value, fullMark: 5 },
+            { subject: 'Estado Vehículo', A: calculateAverageStats('estado_vehiculo', true).value, fullMark: 5 },
+            { subject: 'Explicación Entrega', A: calculateAverageStats('explicacion_entrega').value, fullMark: 5 },
+            { subject: 'Trámites Adm.', A: calculateAverageStats('explicacion_tramites').value, fullMark: 5 },
             { subject: 'Plazo Entrega', A: calculateAverageStats('plazo_entrega').value, fullMark: 5 },
         ];
     }, [contactSourceData]);
@@ -971,58 +972,55 @@ const SurveyView = ({
         { header: 'Tipo de Venta', accessor: 'tipo_venta', render: (val: any) => renderTagCell(normalizeSaleType(String(val || ''))) },
         { header: 'Vendedor', accessor: 'vendedor', render: renderTextCell },
         { header: 'CEM Asesoramiento', accessor: 'cem_asesoramiento', render: renderScoreCell },
-        { header: 'CEM Organizaci�n', accessor: 'cem_organizacion', render: renderScoreCell },
+        { header: 'CEM Organización', accessor: 'cem_organizacion', render: renderScoreCell },
         { header: 'CEM Trato', accessor: 'cem_trato', render: renderScoreCell },
-        { header: 'CEM Satisfacci�n General OS', accessor: 'cem_general', render: renderScoreCell },
-        { header: 'Entrega Estado del Veh�culo', accessor: 'estado_vehiculo', render: renderScoreCell },
+        { header: 'CEM Satisfacción General OS', accessor: 'cem_general', render: renderScoreCell },
+        { header: 'Entrega Estado del Vehículo', accessor: 'estado_vehiculo', render: renderScoreCell },
         { header: 'Resumen seguimiento (AV)', accessor: 'comentarios', render: renderSummaryCell },
     ];
 
     return (
         <div className="space-y-8">
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
-                <LuxuryKPICard title="Satisfacci�n General (OS)" value={metrics.general.value} color="bg-slate-950" icon={Icons.Star} featured footerLabel="Muestra" footerDetail={`${metrics.general.sampleCount} notas`} />
+            <div className="sales-primary-kpis grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+                <LuxuryKPICard title="Satisfacción General (OS)" value={metrics.general.value} color="bg-slate-950" icon={Icons.Star} featured footerLabel="Muestra" footerDetail={`${metrics.general.sampleCount} notas`} />
                 <LuxuryKPICard title="CEM - Trato" value={metrics.trato.value} color="bg-blue-600" icon={Icons.Users} featured footerLabel="Muestra" footerDetail={`${metrics.trato.sampleCount} notas`} />
-                <LuxuryKPICard title="CEM - Organizaci�n" value={metrics.organizacion.value} color="bg-indigo-600" icon={Icons.Layers} featured footerLabel="Muestra" footerDetail={`${metrics.organizacion.sampleCount} notas`} />
+                <LuxuryKPICard title="CEM - Organización" value={metrics.organizacion.value} color="bg-indigo-600" icon={Icons.Layers} featured footerLabel="Muestra" footerDetail={`${metrics.organizacion.sampleCount} notas`} />
                 <LuxuryKPICard title="CEM - Asesoramiento" value={metrics.asesoramiento.value} color="bg-emerald-600" icon={Icons.Activity} featured footerLabel="Muestra" footerDetail={`${metrics.asesoramiento.sampleCount} notas`} />
             </div>
             
             <ChartWrapper 
                 title="Evolucion mensual de indicadores"
-                subtitle="Los 5 puntajes vigentes de la encuesta. Hace clic en cada grafico para ampliarlo."
+                subtitle="Seleccioná un indicador para comparar su evolución durante el año."
             >
-                <div className="space-y-5 py-4">
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-5 gap-4">
+                <div className="space-y-5">
+                    <div className="sales-trend-tabs flex gap-2 overflow-x-auto pb-1">
                         {monthlyScoreTrends.map((trend) => (
-                            <MonthlyScoreCard
+                            <button
                                 key={trend.key}
-                                title={trend.title}
-                                color={trend.color}
-                                average={trend.average}
-                                averageLabel={trend.averageLabel}
-                                data={trend.data}
-                                highlightedMonths={selectedMonths}
                                 onClick={() => setExpandedTrendKey(trend.key)}
-                            />
+                                className={`min-w-max rounded-full border px-4 py-2.5 text-[10px] font-semibold transition ${expandedTrendKey === trend.key ? 'border-[#001e50] bg-[#001e50] text-white shadow-sm' : 'border-slate-200 bg-white text-slate-600 hover:border-[#91b5d0] hover:text-[#001e50]'}`}
+                            >
+                                {trend.title}
+                            </button>
                         ))}
                     </div>
 
                     {expandedTrend && (
-                        <div className="rounded-[2rem] border border-slate-100 bg-white/80 p-6 shadow-sm">
+                        <div className="rounded-2xl border border-slate-200 bg-[#f9fbfd] p-4 md:p-6">
                             <div className="flex flex-col gap-2 md:flex-row md:items-end md:justify-between">
                                 <div>
-                                    <p className="text-[9px] font-black uppercase tracking-[0.3em] text-slate-400">Indicador expandido</p>
-                                    <h4 className="text-xl font-black uppercase tracking-[0.14em] text-slate-950">{expandedTrend.title}</h4>
+                                    <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-[#65748a]">Indicador seleccionado</p>
+                                    <h4 className="mt-1 text-lg font-bold tracking-tight text-[#001e50] md:text-xl">{expandedTrend.title}</h4>
                                 </div>
-                                <div className="rounded-2xl border border-slate-100 bg-slate-50 px-4 py-3">
-                                    <p className="text-[8px] font-black uppercase tracking-[0.24em] text-slate-400">{expandedTrend.averageLabel}</p>
-                                    <p className="mt-1 text-2xl font-black tracking-tighter text-slate-950">
+                                <div className="rounded-xl border border-slate-200 bg-white px-4 py-3">
+                                    <p className="text-[8px] font-bold uppercase tracking-[0.18em] text-slate-500">{expandedTrend.averageLabel}</p>
+                                    <p className="mt-1 text-2xl font-bold tracking-tight text-[#001e50]">
                                         {expandedTrend.average > 0 ? expandedTrend.average.toFixed(2) : '-'}
                                     </p>
                                 </div>
                             </div>
 
-                            <div className="mt-6 h-72">
+                            <div className="mt-5 h-64 md:h-80">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <BarChart data={expandedTrend.data} margin={{ top: 10, right: 12, left: 0, bottom: 0 }}>
                                         <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
@@ -1071,7 +1069,7 @@ const SurveyView = ({
                 </div>
             </ChartWrapper>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-6">
+            <div className="sales-contact-summary grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
                 <LuxuryKPICard
                     title="Contactados efectivos"
                     value={contactCenterMetrics.effectiveCount}
@@ -1107,7 +1105,7 @@ const SurveyView = ({
                     icon={Icons.ShieldAlert}
                     breakdown={[
                         {
-                            name: 'Base cr�tica',
+                            name: 'Base crítica',
                             value: `${contactCenterMetrics.noContactableRate.toFixed(1)}%`,
                             secondaryValue: `${contactCenterMetrics.total} casos`,
                             percentage: contactCenterMetrics.noContactableRate,
@@ -1226,7 +1224,7 @@ const SurveyView = ({
                                             <th className="px-5 py-3 text-[8px] font-black uppercase tracking-widest text-slate-400">Estado</th>
                                             <th className="px-5 py-3 text-[8px] font-black uppercase tracking-widest text-slate-400">Cant.</th>
                                             <th className="px-5 py-3 text-[8px] font-black uppercase tracking-widest text-slate-400">%</th>
-                                            <th className="px-5 py-3 text-[8px] font-black uppercase tracking-widest text-slate-400">Clasificaci�n</th>
+                                            <th className="px-5 py-3 text-[8px] font-black uppercase tracking-widest text-slate-400">Clasificación</th>
                                         </tr>
                                     </thead>
                                     <tbody className="divide-y divide-slate-100">
@@ -1721,6 +1719,7 @@ const SalesQualityDashboard: React.FC<SalesQualityDashboardProps> = ({ onBack, i
   const [osFilter, setOsFilter] = useState<string | null>(null);
   const [selectedVendedor, setSelectedVendedor] = useState<string | null>(null);
   const [selectedAdministrativo, setSelectedAdministrativo] = useState<string | null>(null);
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false);
 
   const availableSurveyFilters = useMemo(() => {
     return {
@@ -1972,7 +1971,7 @@ const SalesQualityDashboard: React.FC<SalesQualityDashboardProps> = ({ onBack, i
   }, [filteredSurveyData, filteredClaimsData, cemOsData, activeTab, selectedMonths]);
 
   const horizontalFilters = (
-    <div className="flex flex-wrap items-center gap-4">
+    <div className="sales-quality-filters flex flex-wrap items-center gap-3">
         {/* Sample Size Indicator */}
         <div className="flex items-center gap-3 px-5 py-2.5 bg-slate-950 text-white rounded-2xl shadow-xl shadow-slate-900/20 border border-white/10">
             <div className="w-8 h-8 bg-blue-600 rounded-xl flex items-center justify-center shadow-inner">
@@ -2063,6 +2062,17 @@ const SalesQualityDashboard: React.FC<SalesQualityDashboardProps> = ({ onBack, i
 
         {activeTab === 'surveys' && (
             <>
+                <button
+                    type="button"
+                    onClick={() => setShowAdvancedFilters((current) => !current)}
+                    className={`inline-flex min-h-[42px] items-center justify-center gap-2 rounded-xl border px-4 text-[10px] font-bold transition ${showAdvancedFilters ? 'border-[#001e50] bg-[#001e50] text-white' : 'border-slate-200 bg-white text-[#38516b] hover:border-[#91b5d0]'}`}
+                    aria-expanded={showAdvancedFilters}
+                >
+                    <Icons.Filter className="h-3.5 w-3.5" />
+                    {showAdvancedFilters ? 'Ocultar filtros' : 'Más filtros'}
+                </button>
+
+                {showAdvancedFilters && <div className="contents">
                 <div className="relative min-w-[140px]">
                     <select 
                         className="w-full text-[10px] font-black uppercase tracking-widest pl-4 pr-10 py-2.5 rounded-xl border border-white bg-white/80 backdrop-blur-xl text-slate-600 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all appearance-none cursor-pointer shadow-sm"
@@ -2100,6 +2110,7 @@ const SalesQualityDashboard: React.FC<SalesQualityDashboardProps> = ({ onBack, i
                     </select>
                     <Icons.ChevronDown className="w-3 h-3 text-slate-400 absolute right-3 top-1/2 -translate-y-1/2 pointer-events-none" />
                 </div>
+                </div>}
             </>
         )}
 
@@ -2173,6 +2184,7 @@ const SalesQualityDashboard: React.FC<SalesQualityDashboardProps> = ({ onBack, i
 
   return (
     <DashboardFrame
+        className="sales-quality-shell"
         title="Calidad de Ventas"
         context={
           <>
@@ -2187,24 +2199,35 @@ const SalesQualityDashboard: React.FC<SalesQualityDashboardProps> = ({ onBack, i
             </span>
           </>
         }
-        subtitle={activeTab === 'surveys' ? "Encuestas de Satisfacci�n" : activeTab === 'claims' ? "Gesti�n de Reclamos" : "CEM OS"}
+        subtitle={activeTab === 'surveys' ? "Encuestas de Satisfacción" : activeTab === 'claims' ? "Gestión de Reclamos" : "CEM OS"}
         lastUpdated={new Date().toLocaleTimeString()}
         filters={null}
         isLoading={loadingState === LoadingState.LOADING}
         onBack={onBack}
     >
-        <div className="space-y-6 pb-20">
+        <div className="sales-quality-content space-y-5 pb-10">
+            <section className="sales-quality-intro">
+                <div>
+                    <p className="sales-quality-eyebrow"><span /> Calidad de Ventas</p>
+                    <h2>{activeTab === 'surveys' ? 'Encuestas de satisfacción' : activeTab === 'claims' ? 'Gestión de reclamos' : 'Experiencia CEM OS'}</h2>
+                    <p>Una lectura clara de la experiencia del cliente para detectar oportunidades y actuar.</p>
+                </div>
+                <div className="sales-quality-scope">
+                    <span>{activeMonthLabel}</span>
+                    <strong>{scopeLabel}</strong>
+                </div>
+            </section>
 
             {/* Horizontal Filters Bar */}
-            <div className="flex flex-col gap-4">
-                <div className="bg-white/50 backdrop-blur-xl p-4 rounded-[2rem] border border-white shadow-sm">
+            <div className="sales-quality-toolbar flex flex-col gap-3">
+                <div className="sales-quality-months bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
                     <MonthSelector 
                         selectedMonths={selectedMonths}
                         onToggle={toggleMonth}
                         months={MONTHS}
                     />
                 </div>
-                <div className="px-2">
+                <div>
                     {horizontalFilters}
                 </div>
             </div>

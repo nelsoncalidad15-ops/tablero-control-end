@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { 
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, PieChart, Pie, Legend, ScatterChart, Scatter, ZAxis, ReferenceLine, ComposedChart, LineChart, Line
 } from 'recharts';
@@ -295,233 +295,178 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
 
   return (
     <DashboardFrame
-        title="GESTION"
-        subtitle="Analisis de Calidad Autosol"
-        context={
-            <>
-                <span className="px-3 py-1.5 rounded-full bg-slate-950 text-white text-[9px] font-black uppercase tracking-[0.2em]">
-                    Calidad
-                </span>
-                <span className="px-3 py-1.5 rounded-full bg-white border border-slate-200 text-slate-500 text-[9px] font-black uppercase tracking-[0.2em]">
-                    Mes: {selectedMonths.length === 0 ? 'ANUAL' : selectedMonths.join(' / ')}
-                </span>
-                <span className="px-3 py-1.5 rounded-full bg-white border border-slate-200 text-slate-500 text-[9px] font-black uppercase tracking-[0.2em]">
-                    Sucursal: {selectedBranches.length === 0 ? 'TODAS' : selectedBranches.join(' / ')}
-                </span>
-            </>
-        }
+        title="Gestión de Reclamos"
+        subtitle="Calidad Postventa • Análisis de Satisfacción y Procesos"
         lastUpdated={new Date().toLocaleTimeString()}
         onExport={() => navigate('/report')}
         isLoading={loadingState === LoadingState.LOADING}
         onBack={onBack}
     >
-        <div className="space-y-8 pb-24 -m-6 p-6 md:p-8 bg-[#f6f8fb] min-h-screen">
+        <div className="space-y-5 pb-16 bg-[#f7f9fc]">
 
-            {/* Modern Header Section */}
-            <div className="flex flex-col xl:flex-row justify-between items-start xl:items-end gap-4">
-                <div className="max-w-3xl">
-                    <motion.div 
-                        initial={{ opacity: 0, x: -20 }}
-                        animate={{ opacity: 1, x: 0 }}
-                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-blue-50 border border-blue-100 text-blue-700 text-[9px] font-semibold tracking-[0.16em] mb-3"
-                    >
-                        <Icons.Activity className="w-3 h-3" /> Calidad Postventa
-                    </motion.div>
-                    <h1 className="text-3xl md:text-4xl font-black text-slate-950 tracking-tight leading-none mb-2">
-                        GESTION DE <span className="text-blue-600">RECLAMOS</span>
-                    </h1>
-                    <p className="text-xs md:text-sm text-slate-500 leading-relaxed">
-                        Analisis de Satisfaccion y Procesos • {area.name}
-                    </p>
-                </div>
-                
-                <div className="flex flex-col items-end gap-4 w-full xl:w-auto xl:min-w-[220px]">
-                    <div className="text-right">
-                        <span className="text-[9px] font-black text-slate-300 uppercase tracking-[0.35em] block mb-1">Total Casos</span>
-                        <div className="flex items-baseline justify-end gap-2">
-                            <span className="text-4xl font-black text-slate-950 leading-none">{uniqueClaimsCount}</span>
-                            <span className="text-[10px] font-black text-blue-500 uppercase tracking-widest">ORs</span>
+            {/* Compact Professional Filters Bar */}
+            <div className="bg-white p-4 md:p-5 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-4">
+                <div className="flex flex-wrap items-center gap-6">
+                    {/* Periodo */}
+                    <div className="flex flex-col gap-1.5">
+                        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                            <Icons.Calendar className="w-3.5 h-3.5 text-blue-600" /> Periodo
+                        </span>
+                        <MonthSelector 
+                            selectedMonths={selectedMonths} 
+                            onToggle={toggleMonth} 
+                            months={MONTHS} 
+                        />
+                    </div>
+
+                    <div className="hidden lg:block h-9 w-px bg-slate-200"></div>
+
+                    {/* Sucursal */}
+                    <div className="flex flex-col gap-1.5">
+                        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                            <Icons.MapPin className="w-3.5 h-3.5 text-emerald-600" /> Sucursal
+                        </span>
+                        <div className="flex flex-wrap gap-1.5">
+                            {['', ...availableBranches].map((suc) => (
+                                <button
+                                    key={suc}
+                                    onClick={() => {
+                                        if (suc === '') setSelectedBranches([]);
+                                        else setSelectedBranches([suc]);
+                                    }}
+                                    className={`px-3 py-1.5 rounded-xl text-[11px] font-bold transition-all border ${
+                                        (selectedBranches.length === 1 && selectedBranches[0] === suc) || (suc === '' && selectedBranches.length === 0)
+                                            ? 'bg-slate-950 text-white border-slate-950 shadow-sm' 
+                                            : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                                    }`}
+                                >
+                                    {suc || 'Todas'}
+                                </button>
+                            ))}
                         </div>
                     </div>
 
+                    <div className="hidden lg:block h-9 w-px bg-slate-200"></div>
+
+                    {/* Responsable */}
+                    <div className="flex flex-col gap-1.5">
+                        <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                            <Icons.User className="w-3.5 h-3.5 text-indigo-600" /> Responsable
+                        </span>
+                        <select 
+                            value={selectedResponsable || ''} 
+                            onChange={(e) => setSelectedResponsable(e.target.value || null)}
+                            className="text-xs font-bold text-slate-800 bg-slate-50 px-3 py-2 rounded-xl border border-slate-200 outline-none cursor-pointer hover:border-slate-300 transition-colors min-w-[200px]"
+                        >
+                            <option value="">Todos los responsables</option>
+                            {responsableTableData.map(r => <option key={r.name} value={r.name}>{r.name}</option>)}
+                        </select>
+                    </div>
+                </div>
+
+                {/* Acciones */}
+                <div className="flex items-center gap-2.5 ml-auto">
+                    {(selectedMonths.length > 0 || selectedBranches.length > 0 || selectedMotivo || selectedResponsable) && (
+                        <button 
+                            onClick={() => {
+                                setSelectedMonths([]);
+                                setSelectedBranches([]);
+                                setSelectedMotivo(null);
+                                setSelectedResponsable(null);
+                            }}
+                            className="px-3 py-2 bg-slate-100 text-slate-600 rounded-xl text-[11px] font-bold border border-slate-200 flex items-center gap-1.5 hover:bg-slate-200 transition-all"
+                            title="Limpiar filtros"
+                        >
+                            <Icons.X className="w-3.5 h-3.5" /> Limpiar
+                        </button>
+                    )}
                     <button
                         type="button"
                         onClick={() => navigate('/report')}
-                        className="inline-flex w-full items-center justify-center gap-2 rounded-2xl bg-slate-950 px-4 py-3 text-[10px] font-black uppercase tracking-[0.28em] text-white shadow-[0_16px_40px_rgba(15,23,42,0.18)] transition-transform hover:scale-[1.01] hover:bg-slate-800"
+                        className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-4 py-2 text-[11px] font-bold uppercase tracking-wider text-white shadow-sm transition hover:bg-slate-800"
                     >
-                        <Icons.FileText className="h-4 w-4" />
+                        <Icons.FileText className="h-3.5 w-3.5" />
                         Generar reporte
                     </button>
                 </div>
             </div>
 
-            {/* Professional Horizontal Filters Bar - NOW AT THE TOP */}
-            <div className="bg-white px-6 md:px-8 py-6 rounded-[2rem] border border-slate-200 shadow-sm flex flex-wrap items-end gap-6 md:gap-8">
-                <div className="flex flex-col gap-2 min-w-[240px]">
-                    <span className="text-[11px] font-semibold text-slate-500 tracking-[0.14em] flex items-center gap-2">
-                        <Icons.Calendar className="w-3 h-3" /> Periodo
-                    </span>
-                    <MonthSelector 
-                        selectedMonths={selectedMonths} 
-                        onToggle={toggleMonth} 
-                        months={MONTHS} 
-                    />
-                </div>
-
-                <div className="hidden md:block h-10 w-px bg-slate-200"></div>
-
-                <div className="flex flex-col gap-2 min-w-[240px]">
-                    <span className="text-[11px] font-semibold text-slate-500 tracking-[0.14em] flex items-center gap-2">
-                        <Icons.MapPin className="w-3 h-3" /> Sucursal
-                    </span>
-                    <div className="flex flex-wrap gap-2">
-                        {['', ...availableBranches].map((suc) => (
-                            <button
-                                key={suc}
-                                onClick={() => {
-                                    if (suc === '') setSelectedBranches([]);
-                                    else setSelectedBranches([suc]);
-                                }}
-                                className={`px-4 py-2 rounded-xl text-[11px] font-semibold transition-all border ${
-                                    (selectedBranches.length === 1 && selectedBranches[0] === suc) || (suc === '' && selectedBranches.length === 0)
-                                        ? 'bg-slate-950 text-white border-slate-950 shadow-sm' 
-                                        : 'bg-slate-50 text-slate-500 border-slate-200 hover:bg-slate-100'
-                                }`}
-                            >
-                                {suc || 'Todas'}
-                            </button>
-                        ))}
-                    </div>
-                </div>
-
-                <div className="hidden md:block h-10 w-px bg-slate-200"></div>
-
-                <div className="flex flex-col gap-2 min-w-[240px]">
-                    <span className="text-[11px] font-semibold text-slate-500 tracking-[0.14em] flex items-center gap-2">
-                        <Icons.User className="w-3 h-3" /> Responsable
-                    </span>
-                    <select 
-                        value={selectedResponsable || ''} 
-                        onChange={(e) => setSelectedResponsable(e.target.value || null)}
-                        className="text-sm font-semibold text-slate-800 bg-slate-50 px-4 py-2.5 rounded-xl border border-slate-200 outline-none cursor-pointer hover:border-slate-300 transition-colors min-w-[220px]"
-                    >
-                        <option value="">Todos los responsables</option>
-                        {responsableTableData.map(r => <option key={r.name} value={r.name}>{r.name}</option>)}
-                    </select>
-                </div>
-
-                <div className="ml-auto">
-                    <button 
-                        onClick={() => {
-                            setSelectedMonths([]);
-                            setSelectedBranches([]);
-                            setSelectedMotivo(null);
-                            setSelectedResponsable(null);
-                        }}
-                        className="px-5 py-2.5 bg-white text-slate-700 rounded-2xl text-[11px] font-semibold border border-slate-200 flex items-center gap-2.5 hover:bg-slate-50 transition-all"
-                    >
-                        <Icons.X className="w-3 h-3" /> Limpiar
-                    </button>
-                </div>
-            </div>
-
             {/* Modern KPIs Section */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <motion.div 
-                    whileHover={{ y: -4 }}
-                    className="bg-white p-7 rounded-[2rem] border border-slate-200 shadow-sm"
+                    whileHover={{ y: -3 }}
+                    className="bg-white p-5 md:p-6 rounded-2xl border border-slate-200 shadow-sm"
                 >
-                    <div className="flex justify-between items-start mb-6">
-                        <div className="flex items-center gap-4">
-                            <div className="w-11 h-11 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-700">
+                    <div className="flex justify-between items-start mb-3">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-blue-50 flex items-center justify-center text-blue-700">
                                 <Icons.ClipboardList className="w-5 h-5" />
                             </div>
                             <div>
-                                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-1">Volumen Total</h3>
-                                <p className="text-xs font-black text-slate-900 uppercase tracking-widest">Reclamos Unicos</p>
+                                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Volumen Total</h3>
+                                <p className="text-xs font-bold text-slate-900 uppercase tracking-tight">Reclamos Únicos</p>
                             </div>
                         </div>
                     </div>
-                    <div className="flex items-baseline gap-3 mb-10">
-                        <span className="text-5xl font-black text-slate-950 tracking-tight leading-none">{uniqueClaimsCount}</span>
+                    <div className="flex items-baseline gap-3">
+                        <span className="text-4xl font-black text-slate-950 tracking-tight leading-none">{uniqueClaimsCount}</span>
                         <div className="flex flex-col">
-                            <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Casos</span>
-                            <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest flex items-center gap-1 mt-1">
-                                <Icons.TrendingDown className="w-3 h-3" /> -8%
-                            </span>
+                            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Casos (ORs)</span>
                         </div>
-                    </div>
-                    {/* Decorative background number */}
-                    <div className="hidden">
-                        01
                     </div>
                 </motion.div>
 
                 <motion.div 
-                    whileHover={{ y: -4 }}
-                    className="bg-slate-950 p-7 rounded-[2rem] text-white shadow-lg shadow-slate-900/15"
+                    whileHover={{ y: -3 }}
+                    className="bg-slate-950 p-5 md:p-6 rounded-2xl text-white shadow-lg shadow-slate-900/15"
                 >
-                    <div className="flex justify-between items-start mb-6">
-                        <div className="flex items-center gap-4">
-                            <div className="w-11 h-11 rounded-2xl bg-white/10 flex items-center justify-center text-white">
+                    <div className="flex justify-between items-start mb-3">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-white/10 flex items-center justify-center text-white">
                                 <Icons.Tag className="w-5 h-5" />
                             </div>
                             <div>
-                                <h3 className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.3em] mb-1">Analisis de Reclamos</h3>
-                                <p className="text-xs font-black text-white uppercase tracking-widest">Cantidad de Reclamos</p>
+                                <h3 className="text-[10px] font-black text-indigo-300 uppercase tracking-[0.2em]">Análisis de Reclamos</h3>
+                                <p className="text-xs font-bold text-white uppercase tracking-tight">Cantidad de Reclamos</p>
                             </div>
                         </div>
                     </div>
-                    <div className="flex items-baseline gap-3 mb-10">
-                        <span className="text-5xl font-black text-white tracking-tight leading-none">{totalClaimsCount}</span>
+                    <div className="flex items-baseline gap-3">
+                        <span className="text-4xl font-black text-white tracking-tight leading-none">{totalClaimsCount}</span>
                         <div className="flex flex-col">
-                            <span className="text-xs font-black text-indigo-300 uppercase tracking-widest">Registros</span>
-                            <span className="text-[10px] font-black text-indigo-400 uppercase tracking-widest flex items-center gap-1 mt-1">
-                                <Icons.Activity className="w-3 h-3" /> IA Activa
-                            </span>
+                            <span className="text-xs font-semibold text-indigo-300 uppercase tracking-wider">Registros</span>
                         </div>
-                    </div>
-                    {/* Decorative background number */}
-                    <div className="hidden">
-                        02
                     </div>
                 </motion.div>
 
                 <motion.div 
-                    whileHover={{ y: -4 }}
-                    className="bg-white p-7 rounded-[2rem] border border-slate-200 shadow-sm"
+                    whileHover={{ y: -3 }}
+                    className="bg-white p-5 md:p-6 rounded-2xl border border-slate-200 shadow-sm"
                 >
-                    <div className="flex justify-between items-start mb-6">
-                        <div className="flex items-center gap-4">
-                            <div className="w-11 h-11 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-700">
+                    <div className="flex justify-between items-start mb-3">
+                        <div className="flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-700">
                                 <Icons.CheckCircle className="w-5 h-5" />
                             </div>
                             <div>
-                                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mb-1">Efectividad</h3>
-                                <p className="text-xs font-black text-slate-900 uppercase tracking-widest">Resolucion</p>
+                                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Efectividad</h3>
+                                <p className="text-xs font-bold text-slate-900 uppercase tracking-tight">Resolución</p>
                             </div>
                         </div>
                     </div>
-                    <div className="flex items-baseline gap-3 mb-10">
-                        <span className="text-5xl font-black text-slate-950 tracking-tight leading-none">
+                    <div className="flex items-baseline gap-3">
+                        <span className="text-4xl font-black text-slate-950 tracking-tight leading-none">
                             {Math.round((resolutionChartData.find(d => d.name === 'Resuelto')?.value || 0) / (uniqueClaimsCount || 1) * 100)}%
                         </span>
                         <div className="flex flex-col">
-                            <span className="text-xs font-black text-slate-400 uppercase tracking-widest">Tasa</span>
-                            <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest flex items-center gap-1 mt-1">
-                                <Icons.TrendingUp className="w-3 h-3" /> +4%
-                            </span>
+                            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Tasa de Éxito</span>
                         </div>
-                    </div>
-                    {/* Decorative background number */}
-                    <div className="hidden">
-                        03
                     </div>
                 </motion.div>
             </div>
 
             {/* Main Charts Grid */}
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-10">
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
                 {/* Annual Evolution - Large */}
                 <div className="xl:col-span-2">
                     <ChartWrapper 
@@ -701,37 +646,37 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
             )}
 
             {/* Performance por Asesor Section */}
-            <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden">
-                <div className="px-8 py-5 border-b border-slate-200 bg-slate-50/60 flex items-center justify-between">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-200 bg-slate-50/60 flex items-center justify-between">
                     <div>
-                        <h3 className="text-xl font-black text-slate-900 tracking-tight">Performance por Asesor</h3>
-                        <p className="text-[11px] font-semibold text-slate-500 mt-1">Distribucion de carga</p>
+                        <h3 className="text-lg font-black text-slate-900 tracking-tight">Performance por Asesor</h3>
+                        <p className="text-[11px] font-semibold text-slate-500">Distribución de carga</p>
                     </div>
-                    <div className="w-10 h-10 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-700">
-                        <Icons.Users className="w-5 h-5" />
+                    <div className="w-9 h-9 bg-blue-50 rounded-xl flex items-center justify-center text-blue-700">
+                        <Icons.Users className="w-4 h-4" />
                     </div>
                 </div>
-                <div className="p-6 overflow-x-auto no-scrollbar">
-                    <div className="flex gap-4 min-w-max">
+                <div className="p-4 md:p-5 overflow-x-auto no-scrollbar">
+                    <div className="flex gap-3 min-w-max">
                         {responsableTableData.map((r, i) => {
                             const isSelected = selectedResponsable === r.name;
                             return (
                                 <motion.button 
                                     key={i} 
-                                    whileHover={{ y: -3 }}
+                                    whileHover={{ y: -2 }}
                                     onClick={() => setSelectedResponsable(isSelected ? null : r.name)}
-                                    className={`flex flex-col justify-center items-center min-w-[170px] p-6 rounded-[1.75rem] transition-all border ${
+                                    className={`flex flex-col justify-center items-center min-w-[150px] p-4 rounded-xl transition-all border ${
                                         isSelected 
-                                        ? 'bg-slate-950 text-white border-slate-950 shadow-xl shadow-slate-900/40' 
-                                        : 'bg-white hover:bg-slate-50 text-slate-600 border-slate-100'
+                                        ? 'bg-slate-950 text-white border-slate-950 shadow-md' 
+                                        : 'bg-white hover:bg-slate-50 text-slate-600 border-slate-200'
                                     }`}
                                 >
-                                    <div className={`w-10 h-10 rounded-2xl flex items-center justify-center mb-4 ${isSelected ? 'bg-blue-500/20 text-blue-400' : 'bg-slate-50 text-slate-400'}`}>
-                                        <Icons.User className="w-5 h-5" />
+                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center mb-2.5 ${isSelected ? 'bg-blue-500/20 text-blue-400' : 'bg-slate-50 text-slate-400'}`}>
+                                        <Icons.User className="w-4 h-4" />
                                     </div>
-                                    <span className="text-[12px] font-semibold mb-3 text-center line-clamp-2 max-w-[140px] leading-tight">{r.name}</span>
-                                    <div className={`text-3xl font-black ${isSelected ? 'text-blue-400' : 'text-slate-950'}`}>{r.value}</div>
-                                    <div className="text-[10px] font-medium opacity-60 mt-1">Reclamos</div>
+                                    <span className="text-[11px] font-bold mb-2 text-center line-clamp-2 max-w-[130px] leading-tight">{r.name}</span>
+                                    <div className={`text-2xl font-black ${isSelected ? 'text-blue-400' : 'text-slate-950'}`}>{r.value}</div>
+                                    <div className="text-[9px] font-semibold opacity-60 mt-0.5">Reclamos</div>
                                 </motion.button>
                             );
                         })}
@@ -740,99 +685,96 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
             </div>
 
             {/* Modern Detail Table */}
-            <div className="bg-white rounded-[2rem] shadow-sm border border-slate-200 overflow-hidden">
-                <div className="p-8 border-b border-slate-200 bg-slate-50/60 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+            <div className="bg-white rounded-2xl shadow-sm border border-slate-200 overflow-hidden">
+                <div className="p-5 md:p-6 border-b border-slate-200 bg-slate-50/60 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
                     <div>
-                        <h3 className="text-2xl md:text-3xl font-black text-slate-900 tracking-tight">Registros Detallados</h3>
-                        <p className="text-sm text-slate-500 mt-2">Historial completo de gestiones</p>
+                        <h3 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">Registros Detallados</h3>
+                        <p className="text-xs text-slate-500 mt-1">Historial completo de gestiones</p>
                     </div>
-                    <div className="flex items-center gap-6">
-                        <span className="text-sm font-semibold text-slate-600 bg-white border border-slate-200 px-5 py-3 rounded-2xl shadow-sm">
+                    <div className="flex items-center gap-3">
+                        <span className="text-xs font-bold text-slate-600 bg-white border border-slate-200 px-3.5 py-1.5 rounded-xl shadow-sm">
                             {displayData.length} Resultados
                         </span>
-                        <button className="w-12 h-12 rounded-2xl bg-white border border-slate-200 text-slate-700 flex items-center justify-center hover:bg-slate-50 transition-all shadow-sm">
-                            <Icons.Download className="w-5 h-5" />
-                        </button>
                     </div>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
-                            <tr className="bg-slate-50/50">
-                                <th className="p-8 text-[11px] font-semibold text-slate-500 tracking-[0.14em] w-1/3">Cliente / Informacion</th>
-                                <th className="p-8 text-[11px] font-semibold text-slate-500 tracking-[0.14em] w-2/3">Detalle del Reclamo y Gestion</th>
+                            <tr className="bg-slate-50/50 border-b border-slate-100">
+                                <th className="p-5 text-[11px] font-bold text-slate-500 uppercase tracking-wider w-1/3">Cliente / Información</th>
+                                <th className="p-5 text-[11px] font-bold text-slate-500 uppercase tracking-wider w-2/3">Detalle del Reclamo y Gestión</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-slate-50">
+                        <tbody className="divide-y divide-slate-100">
                             {displayData.slice(0, 50).map((record, idx) => {
                                 const isResolved = record.resuelto?.toLowerCase().includes('si');
                                 const isNotResolved = record.resuelto?.toLowerCase().includes('no');
                                 const advisor = record.asesor ? normalizeString(record.asesor) : (record.responsable ? normalizeString(record.responsable) : 'Sin Asignar');
                                 
                                 return (
-                                <tr key={idx} className="hover:bg-slate-50/30 transition-colors group">
-                                    <td className="p-8 align-top border-r border-slate-100">
-                                        <div className="text-slate-950 font-black text-lg tracking-tight mb-5 leading-tight">{record.cliente}</div>
-                                        <div className="flex flex-wrap gap-3 mb-10">
-                                            <div className="flex items-center gap-2 bg-slate-950 text-white px-3.5 py-2 rounded-xl text-[10px] font-semibold tracking-wide shadow-sm">
+                                <tr key={idx} className="hover:bg-slate-50/40 transition-colors group">
+                                    <td className="p-5 align-top border-r border-slate-100">
+                                        <div className="text-slate-950 font-bold text-base tracking-tight mb-3 leading-tight">{record.cliente}</div>
+                                        <div className="flex flex-wrap gap-2 mb-4">
+                                            <div className="flex items-center gap-1.5 bg-slate-950 text-white px-2.5 py-1 rounded-lg text-[10px] font-bold tracking-wide shadow-sm">
                                                 <Icons.FileText className="w-3 h-3 text-blue-400" />
                                                 OR: {record.orden}
                                             </div>
-                                            <div className="flex items-center gap-2 bg-slate-50 text-slate-600 px-3.5 py-2 rounded-xl text-[10px] font-semibold tracking-wide border border-slate-200">
-                                                <Icons.MapPin className="w-3 h-3 text-slate-300" />
+                                            <div className="flex items-center gap-1.5 bg-slate-50 text-slate-600 px-2.5 py-1 rounded-lg text-[10px] font-bold tracking-wide border border-slate-200">
+                                                <Icons.MapPin className="w-3 h-3 text-slate-400" />
                                                 {record.sucursal}
                                             </div>
                                             {record.categorizacion && record.categorizacion !== '-' && (
-                                                <div className="flex items-center gap-2 bg-blue-50 text-blue-700 px-3.5 py-2 rounded-xl text-[10px] font-semibold tracking-wide border border-blue-100">
+                                                <div className="flex items-center gap-1.5 bg-blue-50 text-blue-700 px-2.5 py-1 rounded-lg text-[10px] font-bold tracking-wide border border-blue-100">
                                                     <Icons.Tag className="w-3 h-3" />
                                                     {record.categorizacion}
                                                 </div>
                                             )}
                                         </div>
                                         
-                                        <div className="space-y-4">
-                                            <div className="flex items-center gap-3 text-[12px] font-semibold text-slate-600 group-hover:text-blue-700 transition-colors">
-                                                <div className="w-8 h-8 rounded-xl bg-slate-50 flex items-center justify-center">
-                                                    <Icons.User className="w-4 h-4" />
+                                        <div className="space-y-2.5">
+                                            <div className="flex items-center gap-2.5 text-xs font-medium text-slate-600 group-hover:text-blue-700 transition-colors">
+                                                <div className="w-6 h-6 rounded-lg bg-slate-100 flex items-center justify-center">
+                                                    <Icons.User className="w-3.5 h-3.5" />
                                                 </div>
-                                                <span>Asesor: {advisor}</span>
+                                                <span>Asesor: <strong>{advisor}</strong></span>
                                             </div>
                                             {record.sector && (
-                                                <div className="flex items-center gap-3 text-[12px] font-semibold text-slate-600">
-                                                    <div className="w-8 h-8 rounded-xl bg-slate-50 flex items-center justify-center">
-                                                        <Icons.ShieldCheck className="w-4 h-4 text-indigo-400" />
+                                                <div className="flex items-center gap-2.5 text-xs font-medium text-slate-600">
+                                                    <div className="w-6 h-6 rounded-lg bg-slate-100 flex items-center justify-center">
+                                                        <Icons.ShieldCheck className="w-3.5 h-3.5 text-indigo-500" />
                                                     </div>
-                                                    <span>Sector: {normalizeString(record.sector)}</span>
+                                                    <span>Sector: <strong>{normalizeString(record.sector)}</strong></span>
                                                 </div>
                                             )}
                                         </div>
 
                                         {(isResolved || isNotResolved) && (
-                                            <div className="mt-7">
-                                                <div className={`inline-flex items-center gap-2.5 px-4 py-2 rounded-full text-[10px] font-semibold tracking-[0.12em] border ${
+                                            <div className="mt-4">
+                                                <div className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-bold tracking-wider border ${
                                                     isResolved 
-                                                    ? 'bg-emerald-50 text-emerald-600 border-emerald-100' 
-                                                    : 'bg-rose-50 text-rose-600 border-rose-100'
+                                                    ? 'bg-emerald-50 text-emerald-700 border-emerald-200' 
+                                                    : 'bg-rose-50 text-rose-700 border-rose-200'
                                                 }`}>
-                                                    <span className={`w-2 h-2 rounded-full ${isResolved ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
+                                                    <span className={`w-1.5 h-1.5 rounded-full ${isResolved ? 'bg-emerald-500' : 'bg-rose-500'}`}></span>
                                                     {isResolved ? 'Resuelto' : 'Pendiente'}
                                                 </div>
                                             </div>
                                         )}
                                     </td>
-                                    <td className="p-8 text-sm text-slate-600 leading-relaxed align-top">
-                                        <div className="space-y-7">
-                                            <div className="bg-slate-50/70 p-6 rounded-[1.5rem] border border-slate-200 relative group-hover:border-blue-100 transition-colors">
-                                                <span className="text-[11px] text-slate-500 font-semibold tracking-[0.12em] block mb-4">Observacion del Reclamo</span>
-                                                <p className="text-[15px] font-medium text-slate-700 leading-7">
-                                                    {record.observacion || <span className="italic opacity-30">Sin descripcion registrada</span>}
+                                    <td className="p-5 text-sm text-slate-600 leading-relaxed align-top">
+                                        <div className="space-y-4">
+                                            <div className="bg-slate-50/80 p-4 rounded-xl border border-slate-200 relative group-hover:border-blue-100 transition-colors">
+                                                <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-2">Observación del Reclamo</span>
+                                                <p className="text-sm font-medium text-slate-700 leading-6">
+                                                    {record.observacion || <span className="italic opacity-40">Sin descripción registrada</span>}
                                                 </p>
                                             </div>
                                             
                                             {record.nota_reclamo && record.nota_reclamo.trim() !== '' && (
-                                                <div className="bg-amber-50/70 p-6 rounded-[1.5rem] border border-amber-200 relative group-hover:border-amber-300 transition-colors">
-                                                    <span className="text-[11px] text-amber-700 font-semibold tracking-[0.12em] block mb-4">Nota del Reclamo</span>
-                                                    <p className="text-[15px] font-medium text-slate-700 leading-7">
+                                                <div className="bg-amber-50/70 p-4 rounded-xl border border-amber-200 relative">
+                                                    <span className="text-[10px] text-amber-700 font-bold uppercase tracking-wider block mb-2">Nota del Reclamo</span>
+                                                    <p className="text-sm font-medium text-slate-700 leading-6">
                                                         {record.nota_reclamo}
                                                     </p>
                                                 </div>

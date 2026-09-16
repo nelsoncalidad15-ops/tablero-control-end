@@ -1,4 +1,4 @@
-﻿
+
 import React from 'react';
 import { AreaConfig } from '../types';
 import { AREAS } from '../constants';
@@ -81,6 +81,20 @@ const Portal: React.FC<PortalProps> = ({ onSelectArea, onPrefetchArea }) => {
         <div className="portal-area-grid">
           {portalAreas.map((area) => {
             const AreaIcon = Icons[area.icon as keyof typeof Icons] || Icons.Home;
+            if (area.id === 'rrhh') {
+              return (
+                <a
+                  key={area.id}
+                  href="https://nelsoncalidad15-ops.github.io/rrhh/"
+                  className="portal-area-card"
+                  style={{ textDecoration: 'none', color: 'inherit' }}
+                >
+                  <span className={`portal-area-icon portal-area-icon--${area.id}`}><AreaIcon className="h-5 w-5" /></span>
+                  <span className="portal-area-copy"><span className="portal-area-name">{area.name}</span><span className="portal-area-description">{area.description}</span></span>
+                  <Icons.ArrowRight className="portal-area-arrow h-4 w-4 shrink-0" />
+                </a>
+              );
+            }
             return (
               <button
                 key={area.id}

@@ -51,7 +51,7 @@
 .portal-area-description { font-size: 10px; color: #6b7c90; line-height: 1.5; }
 .portal-area-arrow { color: #6e8ca9; }
 .portal-footer { display: flex; justify-content: space-between; padding: 12px clamp(24px, 4vw, 72px); font-size: 10px; color: #7c899c; border-top: 1px solid #edf1f6; }
-.portal-light button:focus-visible { outline: 3px solid #008bc5; outline-offset: 4px; }
+.portal-light :is(button, a):focus-visible { outline: 3px solid #008bc5; outline-offset: 4px; }
 
 @media (min-width: 1024px) {
   .portal-light { min-height: max(620px, 100svh); }

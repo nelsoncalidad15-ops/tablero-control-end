@@ -2688,12 +2688,14 @@ const parseEnvironmentalConsumptionCSV = (csvText: string): EnvironmentalConsump
     if (!parsedPeriod.anio || !parsedPeriod.mesNumero) continue;
 
     const total = getNumber(header => header === 'total' || header === 'total general');
-    const consumoEnergiaKwh = getNumber(header =>
+    const consumoEnergiaRaw = getCell(header =>
       matches(header, 'consumo de energia') && !matches(header, 'indicador')
     );
-    const consumoAguaM3 = getNumber(header =>
+    const consumoAguaRaw = getCell(header =>
       matches(header, 'consumo de agua') && !matches(header, 'indicador')
     );
+    const consumoEnergiaKwh = parseNumber(consumoEnergiaRaw);
+    const consumoAguaM3 = parseNumber(consumoAguaRaw);
     const indicadorEnergiaRaw = getCell(header =>
       matches(header, 'indicador') && matches(header, 'energia')
     );
@@ -2717,8 +2719,10 @@ const parseEnvironmentalConsumptionCSV = (csvText: string): EnvironmentalConsump
       total,
       consumoEnergiaKwh,
       consumoAguaM3,
-      indicadorEnergia: indicadorEnergiaRaw ? parseNumber(indicadorEnergiaRaw) : (total > 0 ? consumoEnergiaKwh / total : 0),
-      indicadorAgua: indicadorAguaRaw ? parseNumber(indicadorAguaRaw) : (total > 0 ? consumoAguaM3 / total : 0),
+      tieneFacturaEnergia: Boolean(consumoEnergiaRaw),
+      tieneFacturaAgua: Boolean(consumoAguaRaw),
+      indicadorEnergia: indicadorEnergiaRaw ? parseNumber(indicadorEnergiaRaw) : (consumoEnergiaRaw && total > 0 ? consumoEnergiaKwh / total : 0),
+      indicadorAgua: indicadorAguaRaw ? parseNumber(indicadorAguaRaw) : (consumoAguaRaw && total > 0 ? consumoAguaM3 / total : 0),
     });
   }
 

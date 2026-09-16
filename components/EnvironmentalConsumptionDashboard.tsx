@@ -48,6 +48,8 @@ type MonthlyRow = ConsumptionSummary & {
 
 const ENERGY_COLOR = '#f59e0b';
 const WATER_COLOR = '#0ea5e9';
+const chartLabelSize = 'var(--chart-export-label-size, 10px)';
+const chartLegendSize = 'var(--chart-export-legend-size, 10px)';
 
 const formatNumber = (value: number, decimals = 0) =>
   new Intl.NumberFormat('es-AR', {
@@ -56,9 +58,17 @@ const formatNumber = (value: number, decimals = 0) =>
   }).format(Number(value || 0));
 
 const formatKwh = (value: number) => formatNumber(value) + ' kWh';
+const formatKwhDetail = (value: number) =>
+  new Intl.NumberFormat('es-AR', {
+    maximumFractionDigits: 2,
+  }).format(Number(value || 0)) + ' kWh';
 const formatWater = (value: number) => formatNumber(value, 1) + ' m\u00b3';
-const formatEnergyIntensity = (value: number) => formatNumber(value, 2) + ' kWh/u';
-const formatWaterIntensity = (value: number) => formatNumber(value, 2) + ' m\u00b3/u';
+const formatWaterDetail = (value: number) =>
+  new Intl.NumberFormat('es-AR', {
+    maximumFractionDigits: 2,
+  }).format(Number(value || 0)) + ' m\u00b3';
+const formatEnergyIntensity = (value: number) => formatNumber(value, 2) + ' kWh/PPT';
+const formatWaterIntensity = (value: number) => formatNumber(value, 2) + ' m\u00b3/PPT';
 
 const aggregate = (records: EnvironmentalConsumptionRecord[]): ConsumptionSummary => {
   const totals = records.reduce(
@@ -601,25 +611,27 @@ const CompanyConsumptionChart = ({ company, years, records, mode }: {
       const record = records.find(
         row => row.empresa === company && row.anio === year && row.mesNumero === index + 1
       );
-      if (record) point['year-' + year] = isEnergy ? record.consumoEnergiaKwh : record.consumoAguaM3;
+      const hasInvoice = isEnergy ? record?.tieneFacturaEnergia : record?.tieneFacturaAgua;
+      if (record && hasInvoice) point['year-' + year] = isEnergy ? record.consumoEnergiaKwh : record.consumoAguaM3;
     });
 
     return point;
-  }).filter(point => years.some(year => typeof point['year-' + year] === 'number'));
+  });
 
   return (
     <ChartWrapper
       title={(isEnergy ? 'Consumo de energia' : 'Consumo de agua') + ' - ' + company.replace(/^Autosol\s+/i, '')}
       subtitle={isEnergy ? 'kWh' : 'm\u00b3'}
       className="h-[355px]"
+      exportLayout="a4-portrait"
     >
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={series} margin={{ top: 32, right: 28, left: 4, bottom: 6 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-          <XAxis dataKey="mesCorto" tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} />
-          <YAxis tickFormatter={(value: number) => formatNumber(value)} tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} width={52} />
+          <XAxis dataKey="mesCorto" tick={{ fill: '#64748b', fontSize: chartLabelSize, fontWeight: 700 }} axisLine={false} tickLine={false} />
+          <YAxis tickFormatter={(value: number) => formatNumber(value)} tick={{ fill: '#64748b', fontSize: chartLabelSize, fontWeight: 700 }} axisLine={false} tickLine={false} width={52} />
           <Tooltip labelFormatter={label => String(label).toUpperCase()} formatter={(value: number) => [valueFormatter(Number(value)), 'Consumo']} contentStyle={{ borderRadius: 14, borderColor: '#e2e8f0', fontSize: 12, fontWeight: 700 }} />
-          <Legend formatter={value => <span className="text-[10px] font-black text-slate-600">{String(value)}</span>} />
+          <Legend formatter={value => <span style={{ fontSize: chartLegendSize }} className="font-black text-slate-600">{String(value)}</span>} />
           {years.map((year, index) => {
             const color = comparisonColors[mode][index] || comparisonColors[mode][1];
             const dataKey = 'year-' + year;
@@ -630,7 +642,7 @@ const CompanyConsumptionChart = ({ company, years, records, mode }: {
                   position="top"
                   offset={8}
                   formatter={labelFormatter}
-                  style={{ fill: color, fontSize: 10, fontWeight: 800 }}
+                  style={{ fill: color, fontSize: chartLabelSize, fontWeight: 800 }}
                 />
               </Bar>
             );
@@ -659,7 +671,8 @@ const CompanyComparisonChart = ({ company, years, records, mode }: {
       const record = records.find(
         row => row.empresa === company && row.anio === year && row.mesNumero === index + 1
       );
-      if (record) {
+      const hasInvoice = isEnergy ? record?.tieneFacturaEnergia : record?.tieneFacturaAgua;
+      if (record && hasInvoice && record.total > 0) {
         point['year-' + year] = isEnergy
           ? record.consumoEnergiaKwh / Math.max(record.total, 1)
           : record.consumoAguaM3 / Math.max(record.total, 1);
@@ -667,21 +680,22 @@ const CompanyComparisonChart = ({ company, years, records, mode }: {
     });
 
     return point;
-  }).filter(point => years.some(year => typeof point['year-' + year] === 'number'));
+  });
 
   return (
     <ChartWrapper
       title={(isEnergy ? 'Indicador de energ\u00eda' : 'Indicador de agua') + ' - ' + company.replace(/^Autosol\s+/i, '')}
-      subtitle={isEnergy ? 'kWh por unidad' : 'm\u00b3 por unidad'}
+      subtitle={isEnergy ? 'kWh/PPT' : 'm\u00b3/PPT'}
       className="h-[355px]"
+      exportLayout="a4-portrait"
     >
       <ResponsiveContainer width="100%" height="100%">
         <BarChart data={series} margin={{ top: 32, right: 28, left: 4, bottom: 6 }}>
           <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
-          <XAxis dataKey="mesCorto" tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} />
-          <YAxis tickFormatter={(value: number) => formatNumber(value, isEnergy ? 0 : 2)} tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }} axisLine={false} tickLine={false} width={52} />
+          <XAxis dataKey="mesCorto" tick={{ fill: '#64748b', fontSize: chartLabelSize, fontWeight: 700 }} axisLine={false} tickLine={false} />
+          <YAxis tickFormatter={(value: number) => formatNumber(value, isEnergy ? 0 : 2)} tick={{ fill: '#64748b', fontSize: chartLabelSize, fontWeight: 700 }} axisLine={false} tickLine={false} width={52} />
           <Tooltip labelFormatter={label => String(label).toUpperCase()} formatter={(value: number) => [valueFormatter(Number(value)), 'Indicador']} contentStyle={{ borderRadius: 14, borderColor: '#e2e8f0', fontSize: 12, fontWeight: 700 }} />
-          <Legend formatter={value => <span className="text-[10px] font-black text-slate-600">{String(value)}</span>} />
+          <Legend formatter={value => <span style={{ fontSize: chartLegendSize }} className="font-black text-slate-600">{String(value)}</span>} />
           {years.map((year, index) => {
             const color = comparisonColors[mode][index] || comparisonColors[mode][1];
             const dataKey = 'year-' + year;
@@ -692,7 +706,7 @@ const CompanyComparisonChart = ({ company, years, records, mode }: {
                   position="top"
                   offset={8}
                   formatter={labelFormatter}
-                  style={{ fill: color, fontSize: 10, fontWeight: 800 }}
+                  style={{ fill: color, fontSize: chartLabelSize, fontWeight: 800 }}
                 />
               </Bar>
             );
@@ -893,13 +907,15 @@ const EnvironmentalConsumptionDashboard: React.FC<EnvironmentalConsumptionDashbo
             pageSize={12}
             columns={[
               { header: 'Empresa', accessor: 'empresa' },
-              { header: 'Periodo', accessor: 'periodo', render: (_value, row) => (row as EnvironmentalConsumptionRecord).mes.substring(0, 3).toUpperCase() + ' ' + (row as EnvironmentalConsumptionRecord).anio },
-              { header: 'TUS', accessor: 'totalUnidadesServicio', render: value => formatNumber(Number(value || 0)) },
+              { header: 'A\u00f1o', accessor: 'anio' },
+              { header: 'Mes', accessor: 'mes' },
+              { header: 'Total de Unidades de Servicio (PPT)', accessor: 'totalUnidadesServicio', render: value => formatNumber(Number(value || 0)) },
+              { header: 'Entregas 0Km', accessor: 'entregas0Km', render: value => formatNumber(Number(value || 0)) },
               { header: 'Total', accessor: 'total', render: value => formatNumber(Number(value || 0)) },
-              { header: 'Energia', accessor: 'consumoEnergiaKwh', render: value => formatKwh(Number(value || 0)) },
-              { header: 'Agua', accessor: 'consumoAguaM3', render: value => formatWater(Number(value || 0)) },
-              { header: 'Ind. energia', accessor: 'indicadorEnergia', render: (_value, row) => { const record = row as EnvironmentalConsumptionRecord; return formatEnergyIntensity(record.total ? record.consumoEnergiaKwh / record.total : 0); } },
-              { header: 'Ind. agua', accessor: 'indicadorAgua', render: (_value, row) => { const record = row as EnvironmentalConsumptionRecord; return formatWaterIntensity(record.total ? record.consumoAguaM3 / record.total : 0); } },
+              { header: 'Consumo de energ\u00eda seg\u00fan factura (kWh)', accessor: 'consumoEnergiaKwh', render: (value, row) => (row as EnvironmentalConsumptionRecord).tieneFacturaEnergia ? formatKwhDetail(Number(value || 0)) : '—' },
+              { header: 'Consumo de agua (m\u00b3)', accessor: 'consumoAguaM3', render: (value, row) => (row as EnvironmentalConsumptionRecord).tieneFacturaAgua ? formatWaterDetail(Number(value || 0)) : '—' },
+              { header: 'Indicador de consumo de energ\u00eda', accessor: 'indicadorEnergia', render: (value, row) => { const record = row as EnvironmentalConsumptionRecord; return record.tieneFacturaEnergia && record.total > 0 ? formatEnergyIntensity(Number(value || 0)) : '—'; } },
+              { header: 'Indicador de consumo de agua', accessor: 'indicadorAgua', render: (value, row) => { const record = row as EnvironmentalConsumptionRecord; return record.tieneFacturaAgua && record.total > 0 ? formatWaterIntensity(Number(value || 0)) : '—'; } },
             ]}
           />
         </>

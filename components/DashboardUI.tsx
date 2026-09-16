@@ -366,7 +366,15 @@ export const EmptyStatePanel = ({
   </div>
 );
 
-export const ChartWrapper = ({ title, subtitle, children, className, action, isDark = false }: { title: string, subtitle?: string, children: React.ReactNode, className?: string, action?: React.ReactNode, isDark?: boolean }) => {
+export const ChartWrapper = ({ title, subtitle, children, className, action, isDark = false, exportLayout = 'default' }: {
+  title: string,
+  subtitle?: string,
+  children: React.ReactNode,
+  className?: string,
+  action?: React.ReactNode,
+  isDark?: boolean,
+  exportLayout?: 'default' | 'a4-portrait'
+}) => {
   const chartRef = useRef<HTMLDivElement>(null);
   const [isDownloading, setIsDownloading] = useState(false);
 
@@ -374,10 +382,29 @@ export const ChartWrapper = ({ title, subtitle, children, className, action, isD
     if (!chartRef.current) return;
     setIsDownloading(true);
     try {
-      const dataUrl = await toJpeg(chartRef.current, { 
+      const isA4Portrait = exportLayout === 'a4-portrait';
+      const exportVariables = {
+        '--chart-export-title-size': '25px',
+        '--chart-export-subtitle-size': '15px',
+        '--chart-export-label-size': '16px',
+        '--chart-export-legend-size': '15px',
+      };
+      if (isA4Portrait) {
+        Object.entries(exportVariables).forEach(([property, value]) => chartRef.current?.style.setProperty(property, value));
+      }
+      const dataUrl = await toJpeg(chartRef.current, {
         quality: 0.95, 
+        pixelRatio: isA4Portrait ? 2 : 1,
         backgroundColor: isDark ? '#0f172a' : '#ffffff',
-        style: {
+        filter: node => !node.classList?.contains('chart-download-button'),
+        style: isA4Portrait ? {
+          width: '794px',
+          height: '1123px',
+          minHeight: '1123px',
+          padding: '52px',
+          borderRadius: '0',
+          boxShadow: 'none',
+        } : {
           transform: 'scale(1)',
           transformOrigin: 'top left'
         }
@@ -389,12 +416,17 @@ export const ChartWrapper = ({ title, subtitle, children, className, action, isD
     } catch (err) {
       console.error('Error downloading chart:', err);
     } finally {
+      if (exportLayout === 'a4-portrait') {
+        ['--chart-export-title-size', '--chart-export-subtitle-size', '--chart-export-label-size', '--chart-export-legend-size']
+          .forEach(property => chartRef.current?.style.removeProperty(property));
+      }
       setIsDownloading(false);
     }
   };
 
   return (
-    <motion.div 
+    <motion.div
+      ref={chartRef}
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
@@ -404,8 +436,8 @@ export const ChartWrapper = ({ title, subtitle, children, className, action, isD
         <div className="flex items-center gap-4">
           <div className={`w-1 h-6 ${isDark ? 'bg-blue-500' : 'bg-blue-600'} rounded-full`}></div>
           <div>
-            <h3 className={`text-xs font-black ${isDark ? 'text-white' : 'text-slate-900'} uppercase tracking-tight italic`}>{title}</h3>
-            {subtitle && <p className={`text-[9px] font-bold ${isDark ? 'text-slate-500' : 'text-slate-400'} uppercase tracking-widest mt-1`}>{subtitle}</p>}
+            <h3 style={{ fontSize: 'var(--chart-export-title-size, 0.75rem)' }} className={`font-black ${isDark ? 'text-white' : 'text-slate-900'} uppercase tracking-tight italic`}>{title}</h3>
+            {subtitle && <p style={{ fontSize: 'var(--chart-export-subtitle-size, 0.5625rem)' }} className={`font-bold ${isDark ? 'text-slate-500' : 'text-slate-400'} uppercase tracking-widest mt-1`}>{subtitle}</p>}
           </div>
         </div>
         <div className="flex items-center gap-2">
@@ -413,14 +445,14 @@ export const ChartWrapper = ({ title, subtitle, children, className, action, isD
           <button 
             disabled={isDownloading}
             onClick={downloadChart}
-            className={`w-10 h-10 flex items-center justify-center ${isDark ? 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white' : 'bg-white/50 hover:bg-white text-slate-400 hover:text-blue-600'} rounded-xl transition-all disabled:opacity-50 border ${isDark ? 'border-white/10' : 'border-white/60'} backdrop-blur-md`}
+            className={`chart-download-button w-10 h-10 flex items-center justify-center ${isDark ? 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white' : 'bg-white/50 hover:bg-white text-slate-400 hover:text-blue-600'} rounded-xl transition-all disabled:opacity-50 border ${isDark ? 'border-white/10' : 'border-white/60'} backdrop-blur-md`}
             title="Descargar JPG"
           >
             {isDownloading ? <div className={`w-4 h-4 border-2 ${isDark ? 'border-white/30 border-t-white' : 'border-blue-600/30 border-t-blue-600'} rounded-full animate-spin`}></div> : <Icons.Download className="w-4 h-4" />}
           </button>
         </div>
       </div>
-      <div ref={chartRef} className={`flex-1 min-h-0 ${isDark ? 'bg-transparent' : 'bg-transparent'}`}>
+      <div className={`flex-1 min-h-0 ${isDark ? 'bg-transparent' : 'bg-transparent'}`}>
         {children}
       </div>
     </motion.div>

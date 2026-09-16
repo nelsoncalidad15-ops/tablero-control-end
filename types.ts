@@ -312,6 +312,9 @@ export interface EnvironmentalConsumptionRecord {
   total: number;
   consumoEnergiaKwh: number;
   consumoAguaM3: number;
+  /** Distingue una factura cargada en cero de una celda aun sin factura. */
+  tieneFacturaEnergia: boolean;
+  tieneFacturaAgua: boolean;
   indicadorEnergia: number;
   indicadorAgua: number;
   [key: string]: any;

@@ -480,7 +480,7 @@ const EnvironmentalConsumptionDashboardLegacy: React.FC<EnvironmentalConsumption
         <EmptyStatePanel icon={Icons.Leaf} title="Sin consumos para este filtro" subtitle="No hay filas compatibles con el ano, la empresa o los meses elegidos." />
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5">
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 xl:gap-4">
             {cards.map(card => (
               <LuxuryKPICard
                 key={card.title}
@@ -498,12 +498,12 @@ const EnvironmentalConsumptionDashboardLegacy: React.FC<EnvironmentalConsumption
             ))}
           </div>
 
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-2">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 xl:gap-6">
             <TrendChart data={monthlySeries} mode="energy" />
             <TrendChart data={monthlySeries} mode="water" />
           </div>
 
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+          <div className="grid grid-cols-1 lg:grid-cols-[1.05fr_0.95fr] gap-4 xl:gap-6">
             <ChartWrapper title="Comparacion entre empresas" subtitle="Intensidad de consumo en el periodo seleccionado" className="h-auto">
               <div className="space-y-5">
                 {companyRows.map(row => (
@@ -873,7 +873,7 @@ const EnvironmentalConsumptionDashboard: React.FC<EnvironmentalConsumptionDashbo
         <EmptyStatePanel icon={Icons.Leaf} title="Sin datos" subtitle="No hay consumos para el filtro elegido." />
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <CompactMetric label="Energia" value={formatKwh(summary.energia)} icon={Icons.Zap} color={ENERGY_COLOR} />
             <CompactMetric label="Agua" value={formatWater(summary.agua)} icon={Icons.Droplet} color={WATER_COLOR} />
             <CompactMetric label="Intensidad energia" value={formatEnergyIntensity(summary.indicadorEnergia)} icon={Icons.Zap} color="#b45309" />

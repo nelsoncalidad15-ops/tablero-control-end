@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { motion } from 'motion/react';
 import { toPng } from 'html-to-image';
 import {
@@ -481,7 +481,7 @@ const WarrantyDashboard: React.FC<PostventaWarrantyDashboardProps> = ({ sheetUrl
                   </div>
           </div>
 
-          <div className="mt-5 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+          <div className="mt-5 grid gap-3 grid-cols-2 lg:grid-cols-4">
             {lotSummaryData.map(item => (
               <div key={item.lot} className="rounded-[1.25rem] border border-slate-200/70 bg-gradient-to-br from-white to-slate-50/70 p-4 shadow-[0_10px_24px_rgba(15,23,42,0.04)]">
                 <p className="text-[9px] font-black uppercase tracking-[0.35em] text-slate-500">Lote {item.lot}</p>

@@ -324,7 +324,7 @@ export const PostventaPvtOccupationDashboard: React.FC<PostventaPvtOccupationDas
         </div>
       ) : (
         <>
-          <div className="grid grid-cols-1 gap-5 md:grid-cols-2 xl:grid-cols-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5 xl:gap-5">
             {METRIC_DEFS.map((metric) => (
               <LuxuryKPICard
                 key={metric.id}
@@ -340,7 +340,7 @@ export const PostventaPvtOccupationDashboard: React.FC<PostventaPvtOccupationDas
             ))}
           </div>
 
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.2fr_0.8fr]">
+          <div className="grid grid-cols-1 gap-4 xl:gap-6 lg:grid-cols-[1.2fr_0.8fr]">
             <ChartWrapper title="Grado de ocupación mensual" subtitle="Suma general según técnicos seleccionados" className="h-[400px]">
               <ResponsiveContainer width="100%" height="100%">
                 <ComposedChart data={monthlyOccupationChart} margin={{ top: 20, right: 24, left: 4, bottom: 20 }}>
@@ -416,7 +416,7 @@ export const PostventaPvtOccupationDashboard: React.FC<PostventaPvtOccupationDas
             ))}
           </div>
 
-          <div className="grid grid-cols-1 gap-6 xl:grid-cols-[1.05fr_0.95fr]">
+          <div className="grid grid-cols-1 gap-4 xl:gap-6 lg:grid-cols-[1.05fr_0.95fr]">
             <ChartWrapper title="Matriz mensual de indicadores" subtitle="Lectura consolidada por mes, similar a una planilla ejecutiva" className="h-auto">
               <MonthlySummaryGrid rows={monthlySummary} />
             </ChartWrapper>

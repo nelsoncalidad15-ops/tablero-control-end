@@ -324,7 +324,7 @@ const CemOsDashboard: React.FC<CemOsDashboardProps> = ({
         {activeView === 'general' ? (
           <>
             {/* KPI Row */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3 xl:gap-4">
               <LuxuryKPICard title="Patentados" value={kpis.total} color="bg-slate-900" icon={Icons.FileText} featured footerLabel="VIN / Chasis" footerValue={kpis.total} />
               <LuxuryKPICard title="Declarados" value={kpis.declared} color="bg-blue-600" icon={Icons.TrendingUp} featured footerLabel="Base" footerValue={kpis.declared} />
               <LuxuryKPICard title="Respondieron" value={kpis.responded} color="bg-emerald-600" icon={Icons.Check} featured footerLabel="Base" footerValue={kpis.responded} />

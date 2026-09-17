@@ -239,11 +239,11 @@ const Dashboard: React.FC<DashboardProps> = ({ area, sheetUrl, apiKey, onBack })
         </div>
 
         {/* KPIs */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 xl:gap-8">
           <LuxuryKPICard title="Métrica Diario" value={formatNumber(metrics.pptDiarios, { maximumFractionDigits: 2 })} color="bg-slate-950" icon={Icons.Activity} />
           <LuxuryKPICard title="Objetivo Mes" value={formatNumber(metrics.objMensual, { maximumFractionDigits: 0 })} color="bg-blue-600" icon={Icons.Target} />
           <LuxuryKPICard title="Avance Total" value={formatNumber(metrics.totalAvance, { maximumFractionDigits: 0 })} color="bg-emerald-600" icon={Icons.TrendingUp} />
-          <div className="bg-white rounded-[3rem] shadow-sm border border-slate-100 p-8 flex flex-col items-center justify-center text-center group">
+          <div className="bg-white rounded-[2.5rem] xl:rounded-[3rem] shadow-sm border border-slate-100 p-6 xl:p-8 flex flex-col items-center justify-center text-center group">
             <div className="w-full h-40">
               <GaugeChart value={metrics.percent} label="Cumplimiento" />
             </div>
@@ -252,7 +252,7 @@ const Dashboard: React.FC<DashboardProps> = ({ area, sheetUrl, apiKey, onBack })
         </div>
 
         {/* Charts Section */}
-        <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 xl:gap-8">
           {['Avance PPT', 'PPT Diario', 'Servicios'].map((metric, idx) => {
             const dataKeySuffix = metric === 'Avance PPT' ? 'AvancePPT' : metric === 'PPT Diario' ? 'PPTDiario' : 'Servicios';
             return (

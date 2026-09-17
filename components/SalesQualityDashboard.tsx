@@ -981,13 +981,12 @@ const SurveyView = ({
 
     return (
         <div className="space-y-8">
-            <div className="sales-primary-kpis grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+            <div className="sales-primary-kpis grid grid-cols-2 lg:grid-cols-4 gap-3">
                 <LuxuryKPICard title="Satisfacción General (OS)" value={metrics.general.value} color="bg-slate-950" icon={Icons.Star} featured footerLabel="Muestra" footerDetail={`${metrics.general.sampleCount} notas`} />
                 <LuxuryKPICard title="CEM - Trato" value={metrics.trato.value} color="bg-blue-600" icon={Icons.Users} featured footerLabel="Muestra" footerDetail={`${metrics.trato.sampleCount} notas`} />
                 <LuxuryKPICard title="CEM - Organización" value={metrics.organizacion.value} color="bg-indigo-600" icon={Icons.Layers} featured footerLabel="Muestra" footerDetail={`${metrics.organizacion.sampleCount} notas`} />
                 <LuxuryKPICard title="CEM - Asesoramiento" value={metrics.asesoramiento.value} color="bg-emerald-600" icon={Icons.Activity} featured footerLabel="Muestra" footerDetail={`${metrics.asesoramiento.sampleCount} notas`} />
             </div>
-            
             <ChartWrapper 
                 title="Evolucion mensual de indicadores"
                 subtitle="Seleccioná un indicador para comparar su evolución durante el año."
@@ -1069,7 +1068,7 @@ const SurveyView = ({
                 </div>
             </ChartWrapper>
 
-            <div className="sales-contact-summary grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-3">
+            <div className="sales-contact-summary grid grid-cols-2 lg:grid-cols-4 gap-3">
                 <LuxuryKPICard
                     title="Contactados efectivos"
                     value={contactCenterMetrics.effectiveCount}
@@ -1517,7 +1516,7 @@ const ClaimsView = ({
 
     return (
         <div className="space-y-8">
-            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 xl:gap-6">
                 <LuxuryKPICard title="Total Reclamos" value={totalClaims} color="bg-slate-950" icon={Icons.AlertCircle} />
                 <LuxuryKPICard
                     title="Pendientes"

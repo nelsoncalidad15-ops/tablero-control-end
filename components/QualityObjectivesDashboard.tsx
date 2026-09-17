@@ -824,7 +824,7 @@ const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
 
           {activeTab === 'simulator' ? (
           <>
-          <section className="grid grid-cols-1 gap-3 xl:grid-cols-4">
+          <section className="grid grid-cols-2 lg:grid-cols-4 gap-3">
             <div className="rounded-[1.2rem] border border-slate-200 bg-white p-3 shadow-sm">
               <p className="text-[8px] font-black uppercase tracking-[0.14em] text-slate-400">Wholesale</p>
               <p className="mt-1 text-lg font-black text-slate-950">{formatCurrency(wholesaleValue)}</p>
@@ -870,7 +870,7 @@ const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-3 xl:grid-cols-2 2xl:grid-cols-3">
+                <div className="grid grid-cols-1 gap-3 md:grid-cols-2 2xl:grid-cols-3">
                   {section.items.map(indicator => {
                     const evaluation = evaluations[indicator.id];
                     const statusClass =
@@ -987,7 +987,7 @@ const QualityObjectivesDashboard: React.FC<QualityObjectivesDashboardProps> = ({
                 </div>
               </div>
 
-              <div className="grid grid-cols-1 gap-4 xl:grid-cols-2 2xl:grid-cols-3">
+              <div className="grid grid-cols-1 gap-4 md:grid-cols-2 2xl:grid-cols-3">
                 {scaleCardGroups.map(group => {
                   const theme = pickAreaTheme(group.area);
                   const labels = getScaleCardLabels(group);

@@ -6,8 +6,8 @@
 
 .sales-quality-shell .dashboard-frame-header {
   position: relative;
-  min-height: 72px;
-  padding: 12px clamp(20px, 3vw, 52px);
+  min-height: 58px;
+  padding: 8px clamp(16px, 2.4vw, 40px);
   background: #fff;
   border-color: #e6ecf2;
   box-shadow: none;
@@ -29,7 +29,7 @@
 
 .sales-quality-shell .dashboard-frame-main {
   gap: 0;
-  padding: 20px clamp(18px, 3vw, 52px) 36px;
+  padding: 16px clamp(14px, 2.4vw, 40px) 28px;
 }
 
 .sales-quality-shell .dashboard-frame-content > div > div { gap: 20px; }
@@ -137,8 +137,8 @@
 .sales-quality-shell .dashboard-data-table h3 { color: #001e50; font-style: normal; font-weight: 700; letter-spacing: -.01em; text-transform: none; }
 
 @media (max-width: 767px) {
-  .sales-quality-shell .dashboard-frame-header { min-height: 64px; padding: 10px 16px; }
-  .sales-quality-shell .dashboard-frame-main { padding: 14px 12px 28px; }
+  .sales-quality-shell .dashboard-frame-header { min-height: 54px; padding: 7px 12px; }
+  .sales-quality-shell .dashboard-frame-main { padding: 12px 10px 24px; }
   .sales-quality-toolbar { padding: 10px; border-radius: 14px; }
   .sales-quality-intro { display: block; padding: 4px; }
   .sales-quality-intro h2 { font-size: 30px; }

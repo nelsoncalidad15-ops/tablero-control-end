@@ -20,7 +20,6 @@ interface DashboardFrameProps {
 export const DashboardFrame: React.FC<DashboardFrameProps> = ({ 
   title, 
   subtitle, 
-  context,
   lastUpdated, 
   children, 
   filters,
@@ -49,38 +48,33 @@ export const DashboardFrame: React.FC<DashboardFrameProps> = ({
     <div className={`flex flex-col min-h-screen transition-all duration-700 ${className}`}>
       {/* Compact Glass Header Bar */}
       {!isTvMode && (
-        <div className="dashboard-frame-header flex-none z-40 flex flex-row justify-between items-center gap-2 bg-white/70 sticky top-0 p-3 md:p-4 border-b border-white/20 shadow-[0_8px_32px_rgba(0,0,0,0.03)] backdrop-blur-xl w-full print:hidden">
-          <div className="flex items-center gap-3 md:gap-6">
+        <div className="dashboard-frame-header flex-none z-40 flex flex-row justify-between items-center gap-2 bg-white/95 sticky top-0 px-3 py-2 md:px-5 md:py-2.5 border-b border-slate-200/80 shadow-sm backdrop-blur-xl w-full print:hidden">
+          <div className="flex min-w-0 items-center gap-2 md:gap-3">
             {onBack && (
               <motion.button 
                 whileHover={{ scale: 1.05, x: -3 }}
                 whileTap={{ scale: 0.95 }}
                 onClick={onBack} 
-                className="p-2 rounded-xl bg-white/50 border border-white/40 transition-all text-slate-400 hover:text-blue-600 hover:bg-blue-50/50 hover:border-blue-100 shadow-sm backdrop-blur-md"
+                className="p-2 rounded-xl bg-white border border-slate-200 transition-all text-slate-400 hover:text-blue-600 hover:bg-blue-50/50 hover:border-blue-100 shadow-sm"
               >
                 <Icons.ArrowLeft className="w-4 h-4" />
               </motion.button>
             )}
-            <div className="flex items-center gap-2 md:gap-4">
+            <div className="flex min-w-0 items-center gap-2 md:gap-3">
               <motion.div 
                 initial={{ rotate: -10, scale: 0.9 }}
                 animate={{ rotate: -3, scale: 1 }}
                 whileHover={{ rotate: 0, scale: 1.05 }}
-                className="w-8 h-8 md:w-11 md:h-11 bg-slate-950 rounded-xl md:rounded-2xl flex items-center justify-center text-white shadow-2xl shadow-slate-900/30 transition-all duration-500"
+                className="w-8 h-8 md:w-9 md:h-9 bg-slate-950 rounded-xl flex items-center justify-center text-white shadow-lg shadow-slate-900/20 transition-all duration-500"
               >
-                <Icons.Activity className="w-4 h-4 md:w-5 md:h-5" />
+                <Icons.Activity className="w-4 h-4" />
               </motion.div>
-              <div>
-                <h1 className="text-sm md:text-xl font-black text-slate-950 uppercase tracking-tight italic leading-none">{title}</h1>
-                <p className="hidden xs:flex text-[6px] md:text-[8px] font-black text-slate-400 uppercase tracking-[0.3em] md:tracking-[0.5em] mt-1 md:mt-2 items-center gap-2">
+              <div className="min-w-0">
+                <h1 className="truncate text-sm md:text-lg font-bold text-[#001e50] tracking-[-0.035em] leading-none">{title}</h1>
+                <p className="hidden sm:flex text-[7px] font-bold text-slate-400 uppercase tracking-[0.16em] mt-1.5 items-center gap-2">
                   <span className="w-1 h-1 rounded-full bg-blue-500 animate-pulse"></span>
                   {subtitle || 'Autosol Intelligence System'}
                 </p>
-                {context && (
-                  <div className="hidden md:flex flex-wrap items-center gap-2 mt-2">
-                    {context}
-                  </div>
-                )}
               </div>
             </div>
           </div>
@@ -93,7 +87,7 @@ export const DashboardFrame: React.FC<DashboardFrameProps> = ({
               </div>
             )}
             
-            <div className="flex bg-white/40 p-1 md:p-1.5 rounded-xl md:rounded-2xl border border-white/60 shadow-inner backdrop-blur-md">
+            <div className="flex bg-slate-50 p-0.5 rounded-xl border border-slate-200/80">
               <button 
                 onClick={() => setIsTvMode(!isTvMode)}
                 className={`p-1.5 md:p-2 rounded-lg md:rounded-xl transition-all flex items-center gap-2 ${isTvMode ? 'bg-slate-950 text-white shadow-lg' : 'text-slate-400 hover:text-slate-950 hover:bg-white/60'}`}
@@ -121,7 +115,7 @@ export const DashboardFrame: React.FC<DashboardFrameProps> = ({
       )}
 
       {/* Main Content Area */}
-      <div className="dashboard-frame-main flex flex-col lg:flex-row gap-6 flex-1 items-start w-full px-4 md:px-6 pb-8 lg:pb-10">
+      <div className="dashboard-frame-main flex flex-col lg:flex-row gap-4 flex-1 items-start w-full px-3 pt-4 pb-6 md:px-5 md:pt-5 lg:pb-8">
         {/* Filters Sidebar (Hidden in TV Mode) */}
         {!isTvMode && filters && (
           <motion.div 
@@ -129,7 +123,7 @@ export const DashboardFrame: React.FC<DashboardFrameProps> = ({
             animate={{ x: 0, opacity: 1 }}
             className="w-full lg:w-64 flex-shrink-0"
           >
-            <div className="sticky top-8 space-y-6">
+            <div className="sticky top-16 space-y-4">
               {filters}
             </div>
           </motion.div>
@@ -171,7 +165,7 @@ export const DashboardFrame: React.FC<DashboardFrameProps> = ({
                 key="content"
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
-                className="space-y-8"
+                className="space-y-5"
               >
                 {isTvMode && (
                   <div className="fixed top-8 right-8 z-50 flex gap-4">
@@ -187,7 +181,7 @@ export const DashboardFrame: React.FC<DashboardFrameProps> = ({
                 
                 {/* Professional Footer */}
                 {!isTvMode && (
-                  <div className="pt-16 pb-8 border-t border-slate-200/60 flex flex-col md:flex-row justify-between items-center gap-8 print:hidden">
+                  <div className="pt-8 pb-3 border-t border-slate-200/60 flex flex-col md:flex-row justify-between items-center gap-4 print:hidden">
                     <div className="flex items-center gap-4">
                       <div className="w-10 h-10 bg-slate-950 rounded-2xl flex items-center justify-center text-white shadow-xl shadow-slate-900/20">
                         <Icons.Activity className="w-5 h-5" />
@@ -430,9 +424,9 @@ export const ChartWrapper = ({ title, subtitle, children, className, action, isD
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      className={`dashboard-chart-card ${isDark ? 'bg-slate-900/90 border-white/10 shadow-2xl' : 'bg-white/70 border-white/60 shadow-[0_8px_32px_rgba(0,0,0,0.03)]'} rounded-[2rem] border p-8 relative group transition-all hover:shadow-[0_12px_40px_rgb(0,0,0,0.06)] backdrop-blur-xl flex flex-col ${className || ''}`}
+      className={`dashboard-chart-card ${isDark ? 'bg-slate-900/90 border-white/10 shadow-2xl' : 'bg-white border-slate-200/80 shadow-[0_6px_22px_rgba(0,30,80,0.035)]'} rounded-[1.125rem] border p-4 md:p-5 relative group transition-all hover:shadow-[0_10px_28px_rgba(0,30,80,0.07)] flex flex-col ${className || ''}`}
     >
-      <div className="flex items-center justify-between mb-8 shrink-0">
+      <div className="flex items-center justify-between mb-5 shrink-0">
         <div className="flex items-center gap-4">
           <div className={`w-1 h-6 ${isDark ? 'bg-blue-500' : 'bg-blue-600'} rounded-full`}></div>
           <div>
@@ -445,7 +439,7 @@ export const ChartWrapper = ({ title, subtitle, children, className, action, isD
           <button 
             disabled={isDownloading}
             onClick={downloadChart}
-            className={`chart-download-button w-10 h-10 flex items-center justify-center ${isDark ? 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white' : 'bg-white/50 hover:bg-white text-slate-400 hover:text-blue-600'} rounded-xl transition-all disabled:opacity-50 border ${isDark ? 'border-white/10' : 'border-white/60'} backdrop-blur-md`}
+            className={`chart-download-button w-8 h-8 flex items-center justify-center ${isDark ? 'bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white' : 'bg-slate-50 hover:bg-white text-slate-400 hover:text-blue-600'} rounded-lg transition-all disabled:opacity-50 border ${isDark ? 'border-white/10' : 'border-slate-200'}`}
             title="Descargar JPG"
           >
             {isDownloading ? <div className={`w-4 h-4 border-2 ${isDark ? 'border-white/30 border-t-white' : 'border-blue-600/30 border-t-blue-600'} rounded-full animate-spin`}></div> : <Icons.Download className="w-4 h-4" />}
@@ -691,7 +685,7 @@ export const DataTable = ({ data, columns, title, subtitle, pageSize = 10 }: {
       initial={{ opacity: 0, y: 20 }}
       whileInView={{ opacity: 1, y: 0 }}
       viewport={{ once: true }}
-      className="dashboard-data-table bg-white/70 rounded-[2.5rem] border border-white/60 shadow-[0_8px_32px_rgba(0,0,0,0.03)] overflow-hidden transition-all hover:shadow-[0_12px_40px_rgb(0,0,0,0.06)] backdrop-blur-xl"
+      className="dashboard-data-table bg-white rounded-[1.125rem] border border-slate-200/80 shadow-[0_6px_22px_rgba(0,30,80,0.035)] overflow-hidden transition-all hover:shadow-[0_10px_28px_rgba(0,30,80,0.07)]"
     >
       {(title || subtitle) && (
         <div className="px-6 py-4 border-b border-white/40 bg-white/30">

@@ -37,8 +37,14 @@ const Portal: React.FC<PortalProps> = ({ onSelectArea, onPrefetchArea }) => {
     <main className="portal-light">
       <header className="portal-header">
         <div className="portal-brand">
-          <span className="portal-brand-symbol" aria-hidden="true">VW</span>
-          <span>Autosol <span className="portal-brand-descriptor">| Gestión</span></span>
+          <img
+            src={`${import.meta.env.BASE_URL}images/autosol-vw-logo.png`}
+            alt="Volkswagen Autosol"
+            width={1030}
+            height={324}
+            className="portal-brand-logo"
+          />
+          <span className="portal-brand-descriptor">Gestión</span>
         </div>
         <span className="portal-header-label">Centro de Control Operativo</span>
       </header>
@@ -119,4 +125,3 @@ const Portal: React.FC<PortalProps> = ({ onSelectArea, onPrefetchArea }) => {
 };
 
 export default Portal;
-

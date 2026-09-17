@@ -426,6 +426,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
             annualCounts: annualSurveyCounts
         },
         internalVentas: {
+            total: internalVentasData.length,
             avgOS: avgInternalOS,
             avgTrato: avgInternalTrato,
             avgOrg: avgInternalOrg,
@@ -570,7 +571,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                             style={{ fontFamily: 'Arial Black, Arial, Helvetica, sans-serif' }}
                         >
                             INFORME DE<br />
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-cyan-300 print:!text-blue-600 print:!bg-none print:!bg-clip-border">DIRECCIÓN</span>
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-cyan-300 print:!text-blue-600 print:!bg-none print:!bg-clip-border">CALIDAD</span>
                         </h1>
                         <div className="h-1.5 w-40 bg-gradient-to-r from-blue-500 to-emerald-500 mx-auto rounded-full print:!bg-blue-600"></div>
                         <h2
@@ -834,60 +835,69 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                     <div className="px-6 py-2 bg-amber-600 text-white text-xs font-black uppercase tracking-widest rounded-full shadow-xl shadow-amber-600/20">AUDITORÍA INTERNA</div>
                 </div>
 
-                <div className="grid grid-cols-[1.2fr_1fr] gap-6 flex-1 min-h-0">
-                    <div className="space-y-4 flex flex-col">
-                        <div className="p-4 bg-slate-50 rounded-[2.5rem] border border-slate-100 flex flex-col items-center justify-center text-center shadow-sm flex-1">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-4">Satisfaccion General (OS)</p>
-                            <div className="relative w-80 h-40">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <PieChart>
-                                        <Pie
-                                            data={[
-                                                { value: filteredMetrics.internalVentas.avgOS },
-                                                { value: 5 - filteredMetrics.internalVentas.avgOS }
-                                            ]}
-                                            cx="50%"
-                                            cy="100%"
-                                            startAngle={180}
-                                            endAngle={0}
-                                            innerRadius={100}
-                                            outerRadius={140}
-                                            paddingAngle={0}
-                                            dataKey="value"
-                                        >
-                                            <Cell fill="#d97706" />
-                                            <Cell fill="#f1f5f9" />
-                                        </Pie>
-                                    </PieChart>
-                                </ResponsiveContainer>
-                                <div className="absolute bottom-0 left-1/2 -translate-x-1/2 text-7xl font-black text-slate-950 italic">
-                                    {filteredMetrics.internalVentas.avgOS.toFixed(2)}
-                                </div>
+                <div className="flex flex-1 flex-col gap-5 min-h-0">
+                    <div className="grid grid-cols-6 gap-3">
+                        <div className="col-span-2 flex items-center justify-between rounded-2xl bg-[#001e50] px-6 py-5 text-white shadow-lg shadow-[#001e50]/15">
+                            <div>
+                                <p className="text-[8px] font-bold uppercase tracking-[.24em] text-blue-200">Satisfacción general</p>
+                                <p className="mt-2 text-5xl font-black tracking-[-.06em]">{filteredMetrics.internalVentas.avgOS.toFixed(2)}</p>
+                                <p className="mt-1 text-[9px] font-semibold text-slate-300">Resultado sobre 5 puntos</p>
                             </div>
+                            <div className="flex h-16 w-16 items-center justify-center rounded-full border-[7px] border-sky-400/80 text-sm font-black">OS</div>
                         </div>
-                        <div className="p-5 bg-slate-50 rounded-[1.5rem] border border-slate-100 text-center shadow-sm">
-                            <p className="text-[8px] font-black text-slate-400 uppercase tracking-[0.24em]">Indicador principal</p>
-                            <p className="mt-2 text-sm font-black uppercase tracking-[0.18em] text-slate-700">Satisfaccion General (OS)</p>
-                            <p className="mt-3 text-3xl font-black italic text-slate-900">{filteredMetrics.internalVentas.avgOS.toFixed(2)}</p>
-                        </div>
+                        {[
+                            { label: 'Trato', value: filteredMetrics.internalVentas.avgTrato, accent: 'bg-blue-500' },
+                            { label: 'Organización', value: filteredMetrics.internalVentas.avgOrg, accent: 'bg-indigo-500' },
+                            { label: 'Asesoramiento', value: filteredMetrics.internalVentas.avgAses, accent: 'bg-emerald-500' },
+                            { label: 'Estado del vehículo', value: filteredMetrics.internalVentas.avgVehiculo, accent: 'bg-amber-500' },
+                        ].map((metric) => (
+                            <div key={metric.label} className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white px-4 py-5 shadow-sm">
+                                <span className={`absolute inset-x-0 top-0 h-1 ${metric.accent}`} />
+                                <p className="min-h-[28px] text-[8px] font-bold uppercase tracking-[.18em] text-slate-400">{metric.label}</p>
+                                <p className="mt-2 text-3xl font-black tracking-[-.05em] text-[#001e50]">{metric.value.toFixed(2)}</p>
+                                <p className="mt-1 text-[8px] font-semibold uppercase tracking-wider text-slate-400">sobre 5</p>
+                            </div>
+                        ))}
                     </div>
 
-                    <div className="p-6 bg-slate-50 rounded-[2.5rem] border border-slate-100 shadow-sm flex flex-col min-h-0">
-                        <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-widest mb-6 italic text-center">Indicadores vigentes de la encuesta</h4>
-                        <div className="grid grid-cols-2 gap-4 flex-1 min-h-0 content-center">
-                            {[
-                                { label: 'CEM Trato', value: filteredMetrics.internalVentas.avgTrato, color: '#2563eb' },
-                                { label: 'CEM Organizacion', value: filteredMetrics.internalVentas.avgOrg, color: '#4f46e5' },
-                                { label: 'CEM Asesoramiento', value: filteredMetrics.internalVentas.avgAses, color: '#10b981' },
-                                { label: 'Entrega Estado del Vehiculo', value: filteredMetrics.internalVentas.avgVehiculo, color: '#f59e0b' },
-                            ].map((metric, index) => (
-                                <div key={index} className="rounded-[2rem] border border-slate-100 bg-white px-5 py-6 text-center shadow-sm">
-                                    <p className="text-[8px] font-black text-slate-400 uppercase tracking-[0.24em] leading-tight min-h-[32px]">{metric.label}</p>
-                                    <p className="mt-4 text-4xl font-black italic tracking-tighter" style={{ color: metric.color }}>
-                                        {metric.value.toFixed(2)}
-                                    </p>
+                    <div className="grid flex-1 min-h-0 grid-cols-[1.35fr_.65fr] gap-5">
+                        <div className="flex min-h-0 flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
+                            <div className="flex items-start justify-between">
+                                <div>
+                                    <p className="text-[8px] font-bold uppercase tracking-[.22em] text-blue-600">Adherencia comercial</p>
+                                    <h3 className="mt-1 text-lg font-bold tracking-tight text-[#001e50]">Cumplimiento de procesos clave</h3>
                                 </div>
-                            ))}
+                                <span className="rounded-full bg-blue-50 px-3 py-1.5 text-[8px] font-bold uppercase tracking-wider text-blue-700">{reportMonths.mMinus1}</span>
+                            </div>
+                            <div className="mt-3 flex-1 min-h-0">
+                                <ResponsiveContainer width="100%" height="100%">
+                                    <BarChart data={filteredMetrics.internalVentas.processMetrics} layout="vertical" margin={{ top: 4, right: 35, left: 20, bottom: 0 }}>
+                                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
+                                        <XAxis type="number" domain={[0, 100]} axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#64748b' }} />
+                                        <YAxis type="category" dataKey="name" width={110} axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 700, fill: '#334155' }} />
+                                        <Tooltip formatter={(value: number) => [`${value.toFixed(1)}%`, 'Cumplimiento']} />
+                                        <Bar dataKey="value" fill="#2563eb" radius={[0, 7, 7, 0]} barSize={20}>
+                                            <LabelList dataKey="value" position="right" formatter={(value: number) => `${value.toFixed(0)}%`} style={{ fill: '#001e50', fontSize: 10, fontWeight: 800 }} />
+                                        </Bar>
+                                    </BarChart>
+                                </ResponsiveContainer>
+                            </div>
+                        </div>
+
+                        <div className="flex flex-col rounded-2xl bg-slate-50 p-5 ring-1 ring-slate-200">
+                            <p className="text-[8px] font-bold uppercase tracking-[.22em] text-slate-400">Lectura ejecutiva</p>
+                            <h3 className="mt-2 text-xl font-bold tracking-tight text-[#001e50]">Experiencia consistente</h3>
+                            <p className="mt-3 text-xs leading-5 text-slate-600">Los indicadores de trato, organización, asesoramiento y entrega se presentan juntos para facilitar la comparación y detectar rápidamente el punto con mayor oportunidad.</p>
+                            <div className="mt-auto grid grid-cols-2 gap-3">
+                                <div className="rounded-xl bg-white p-4 ring-1 ring-slate-200">
+                                    <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Respuestas</p>
+                                    <p className="mt-1 text-2xl font-black text-[#001e50]">{filteredMetrics.internalVentas.total}</p>
+                                </div>
+                                <div className="rounded-xl bg-white p-4 ring-1 ring-slate-200">
+                                    <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Período</p>
+                                    <p className="mt-1 text-sm font-black uppercase text-[#001e50]">{reportMonths.mMinus1}</p>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

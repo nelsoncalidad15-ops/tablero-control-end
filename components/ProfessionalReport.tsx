@@ -189,6 +189,10 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
     return fallbackYears.length > 0 ? Math.max(...fallbackYears) : new Date().getFullYear();
   }, [data, selectedMonth, selectedBranch]);
 
+  const closedMonthYear = reportYear - (MONTHS.indexOf(selectedMonth) === 0 ? 1 : 0);
+  const hasSurveyScore = (value: unknown): value is number =>
+    typeof value === 'number' && Number.isFinite(value) && value >= 1 && value <= 5;
+
   const isDate = (val: string) => {
     if (!val) return false;
     const clean = val.trim();
@@ -256,7 +260,11 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
     });
 
     // 2. Encuesta Interna Ventas - Month - 1
-    const internalVentasData = data.salesQuality.filter(d => d.mes === reportMonths.mMinus1 && branchFilter(d));
+    const internalVentasData = data.salesQuality.filter(d =>
+        d.mes === reportMonths.mMinus1 && d.anio === closedMonthYear && branchFilter(d)
+    );
+    const salesScoreKeys = ['cem_general', 'cem_trato', 'cem_organizacion', 'cem_asesoramiento', 'estado_vehiculo'] as const;
+    const salesResponses = internalVentasData.filter(row => salesScoreKeys.some(key => hasSurveyScore(row[key])));
     const averageSalesQualityScore = (key: keyof SalesQualityRecord) => {
         const scores = internalVentasData
             .map((row) => row[key])
@@ -268,7 +276,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                 }
                 return NaN;
             })
-            .filter((value) => Number.isFinite(value) && value > 0);
+            .filter(hasSurveyScore);
 
         return scores.length > 0
             ? scores.reduce((acc, value) => acc + value, 0) / scores.length
@@ -290,7 +298,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
             else if (val === 'no') no++;
         });
         const total = yes + no;
-        return total > 0 ? (yes / total) * 100 : 0;
+        return total > 0 ? (yes / total) * 100 : null;
     };
 
     const processMetrics = [
@@ -363,11 +371,11 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
     // 6. Encuesta Interna Postventa
     const internalPostventaData = data.internalPostventa.filter(d =>
         d.mes === reportMonths.mMinus1 &&
-        d.anio === reportYear &&
+        d.anio === closedMonthYear &&
         branchFilter(d)
     );
     const avgScore = (key: keyof InternalPostventaRecord) => {
-        const scores = internalPostventaData.map(r => Number(r[key])).filter(v => !isNaN(v) && v > 0);
+        const scores = internalPostventaData.map(r => r[key]).filter(hasSurveyScore);
         return scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
     };
 
@@ -377,7 +385,10 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
         organizacion: avgScore('organizacion'),
         trabajoTaller: avgScore('trabajo_taller'),
         lavado: avgScore('lavado'),
-        total: internalPostventaData.length
+        total: internalPostventaData.filter(row =>
+            ['servicio_prestado', 'trato_personal', 'organizacion', 'trabajo_taller', 'lavado']
+                .some(key => hasSurveyScore(row[key]))
+        ).length
     };
 
     const topServicios = (() => {
@@ -426,7 +437,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
             annualCounts: annualSurveyCounts
         },
         internalVentas: {
-            total: internalVentasData.length,
+            total: salesResponses.length,
             avgOS: avgInternalOS,
             avgTrato: avgInternalTrato,
             avgOrg: avgInternalOrg,
@@ -460,7 +471,12 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
             evolution: annualClaimsEvolution
         }
     };
-  }, [data, selectedMonth, selectedBranch, reportMonths, reportYear]);
+  }, [data, selectedMonth, selectedBranch, reportMonths, reportYear, closedMonthYear]);
+
+  const formatSurveyScore = (value: number) => value > 0 ? value.toFixed(2) : 'Sin datos';
+  const internalPostventaSummary = filteredMetrics.internalPostventa.total > 0
+    ? `Respuestas con calificaciones: ${filteredMetrics.internalPostventa.total}. Período: ${reportMonths.mMinus1} ${closedMonthYear}. Satisfacción con el servicio: ${formatSurveyScore(filteredMetrics.internalPostventa.lvs)}. Trato personal: ${formatSurveyScore(filteredMetrics.internalPostventa.trato)}. Organización: ${formatSurveyScore(filteredMetrics.internalPostventa.organizacion)}. Trabajo de taller: ${formatSurveyScore(filteredMetrics.internalPostventa.trabajoTaller)}. Lavado: ${formatSurveyScore(filteredMetrics.internalPostventa.lavado)}.`
+    : `No hay respuestas con calificaciones para ${reportMonths.mMinus1} ${closedMonthYear} en la sucursal seleccionada.`;
 
   const handlePrint = () => {
     window.print();
@@ -485,6 +501,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
 
             <div className="flex flex-1 flex-wrap items-center justify-end gap-2 sm:flex-none">
                 <select 
+                    aria-label="Mes del informe"
                     value={selectedMonth}
                     onChange={(e) => setSelectedMonth(e.target.value)}
                     className="min-h-10 min-w-[130px] bg-slate-50 border border-slate-200 text-slate-700 text-[10px] font-bold rounded-xl px-4 py-2 outline-none uppercase tracking-wider"
@@ -493,6 +510,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                 </select>
 
                 <select 
+                    aria-label="Sucursal del informe"
                     value={selectedBranch}
                     onChange={(e) => setSelectedBranch(e.target.value)}
                     className="min-h-10 min-w-[170px] bg-slate-50 border border-slate-200 text-slate-700 text-[10px] font-bold rounded-xl px-4 py-2 outline-none uppercase tracking-wider"
@@ -829,7 +847,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
             <div className="h-[210mm] p-12 page-break-after-always bg-white flex flex-col overflow-hidden">
                 <div className="flex justify-between items-center mb-6">
                     <div>
-                        <h2 className="text-4xl font-black text-slate-900 tracking-tighter italic uppercase">ENCUESTA INTERNA — {reportMonths.mMinus1.toUpperCase()}</h2>
+                        <h2 className="text-4xl font-black text-slate-900 tracking-tighter italic uppercase">ENCUESTA INTERNA — {reportMonths.mMinus1.toUpperCase()} {closedMonthYear}</h2>
                         <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mt-1">Gestión de Calidad Interna (Ventas)</p>
                     </div>
                     <div className="px-6 py-2 bg-amber-600 text-white text-xs font-black uppercase tracking-widest rounded-full shadow-xl shadow-amber-600/20">AUDITORÍA INTERNA</div>
@@ -840,7 +858,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                         <div className="col-span-2 flex items-center justify-between rounded-2xl bg-[#001e50] px-6 py-5 text-white shadow-lg shadow-[#001e50]/15">
                             <div>
                                 <p className="text-[8px] font-bold uppercase tracking-[.24em] text-blue-200">Satisfacción general</p>
-                                <p className="mt-2 text-5xl font-black tracking-[-.06em]">{filteredMetrics.internalVentas.avgOS.toFixed(2)}</p>
+                                <p className="mt-2 text-3xl font-black">{formatSurveyScore(filteredMetrics.internalVentas.avgOS)}</p>
                                 <p className="mt-1 text-[9px] font-semibold text-slate-300">Resultado sobre 5 puntos</p>
                             </div>
                             <div className="flex h-16 w-16 items-center justify-center rounded-full border-[7px] border-sky-400/80 text-sm font-black">OS</div>
@@ -854,7 +872,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                             <div key={metric.label} className="relative overflow-hidden rounded-2xl border border-slate-200 bg-white px-4 py-5 shadow-sm">
                                 <span className={`absolute inset-x-0 top-0 h-1 ${metric.accent}`} />
                                 <p className="min-h-[28px] text-[8px] font-bold uppercase tracking-[.18em] text-slate-400">{metric.label}</p>
-                                <p className="mt-2 text-3xl font-black tracking-[-.05em] text-[#001e50]">{metric.value.toFixed(2)}</p>
+                                <p className="mt-2 text-2xl font-black text-[#001e50]">{formatSurveyScore(metric.value)}</p>
                                 <p className="mt-1 text-[8px] font-semibold uppercase tracking-wider text-slate-400">sobre 5</p>
                             </div>
                         ))}
@@ -870,6 +888,9 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                                 <span className="rounded-full bg-blue-50 px-3 py-1.5 text-[8px] font-bold uppercase tracking-wider text-blue-700">{reportMonths.mMinus1}</span>
                             </div>
                             <div className="mt-3 flex-1 min-h-0">
+                                {filteredMetrics.internalVentas.processMetrics.every(metric => metric.value === null) ? (
+                                    <div className="flex h-full items-center justify-center text-sm text-slate-500">Sin respuestas sobre procesos en este período</div>
+                                ) : (
                                 <ResponsiveContainer width="100%" height="100%">
                                     <BarChart data={filteredMetrics.internalVentas.processMetrics} layout="vertical" margin={{ top: 4, right: 35, left: 20, bottom: 0 }}>
                                         <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
@@ -881,13 +902,16 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                                         </Bar>
                                     </BarChart>
                                 </ResponsiveContainer>
+                                )}
                             </div>
                         </div>
 
                         <div className="flex flex-col rounded-2xl bg-slate-50 p-5 ring-1 ring-slate-200">
                             <p className="text-[8px] font-bold uppercase tracking-[.22em] text-slate-400">Lectura ejecutiva</p>
-                            <h3 className="mt-2 text-xl font-bold tracking-tight text-[#001e50]">Experiencia consistente</h3>
-                            <p className="mt-3 text-xs leading-5 text-slate-600">Los indicadores de trato, organización, asesoramiento y entrega se presentan juntos para facilitar la comparación y detectar rápidamente el punto con mayor oportunidad.</p>
+                            <h3 className="mt-2 text-xl font-bold text-[#001e50]">{filteredMetrics.internalVentas.total > 0 ? 'Resultados del período' : 'Sin respuestas'}</h3>
+                            <p className="mt-3 text-xs leading-5 text-slate-600">{filteredMetrics.internalVentas.total > 0
+                                ? `Respuestas con calificaciones: ${filteredMetrics.internalVentas.total}. Satisfacción general: ${formatSurveyScore(filteredMetrics.internalVentas.avgOS)}${filteredMetrics.internalVentas.avgOS > 0 ? ' sobre 5' : ''}.`
+                                : 'No hay respuestas con calificaciones para el período y la sucursal seleccionados.'}</p>
                             <div className="mt-auto grid grid-cols-2 gap-3">
                                 <div className="rounded-xl bg-white p-4 ring-1 ring-slate-200">
                                     <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Respuestas</p>
@@ -895,7 +919,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                                 </div>
                                 <div className="rounded-xl bg-white p-4 ring-1 ring-slate-200">
                                     <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Período</p>
-                                    <p className="mt-1 text-sm font-black uppercase text-[#001e50]">{reportMonths.mMinus1}</p>
+                                    <p className="mt-1 text-sm font-black uppercase text-[#001e50]">{reportMonths.mMinus1} {closedMonthYear}</p>
                                 </div>
                             </div>
                         </div>
@@ -1066,7 +1090,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                 <div className="flex justify-between items-center mb-6">
                     <div>
                         <h2 className="text-4xl font-black text-slate-950 uppercase italic tracking-tighter leading-none">ENCUESTA INTERNA</h2>
-                        <p className="text-[10px] font-black text-blue-600 uppercase tracking-[0.5em] mt-2">POSTVENTA — {reportMonths.mMinus1.toUpperCase()} {reportYear}</p>
+                        <p className="text-[10px] font-black text-blue-600 uppercase tracking-[0.5em] mt-2">POSTVENTA — {reportMonths.mMinus1.toUpperCase()} {closedMonthYear}</p>
                     </div>
                     <div className="text-right">
                         <div className="text-2xl font-black text-slate-950 italic leading-none">VW</div>
@@ -1084,7 +1108,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                     ].map((m, i) => (
                         <div key={i} className="bg-slate-50 rounded-3xl p-4 border border-slate-100 text-center">
                             <p className="text-[8px] font-black text-slate-400 uppercase tracking-widest mb-2 h-6 flex items-center justify-center">{m.label}</p>
-                            <p className="text-2xl font-black text-slate-950 italic leading-none mb-2">{m.value.toFixed(2)}</p>
+                            <p className="text-2xl font-black text-slate-950 italic leading-none mb-2">{formatSurveyScore(m.value)}</p>
                             <div className="w-full h-1.5 bg-slate-200 rounded-full overflow-hidden">
                                 <div className="h-full bg-blue-600" style={{ width: `${(m.value / 5) * 100}%` }}></div>
                             </div>
@@ -1123,7 +1147,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                     <div className="p-6 bg-slate-950 rounded-[2rem] text-white">
                         <h4 className="text-[10px] font-black text-blue-400 uppercase tracking-widest mb-2 italic">Insights de Calidad Interna</h4>
                         <p contentEditable suppressContentEditableWarning={true} className="text-xs leading-relaxed font-medium text-slate-300 outline-none focus:bg-white/10 p-2 rounded transition-all cursor-text border border-transparent hover:border-white/10">
-                            La percepción interna del servicio se mantiene en niveles de excelencia, con un fuerte enfoque en el trato personal y la organización del taller. El lavado continúa siendo un área de oportunidad para maximizar la satisfacción final.
+                            {internalPostventaSummary}
                         </p>
                     </div>
                 </div>
@@ -1212,7 +1236,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                 <div className="text-center relative z-10 mb-8">
                     <h2 contentEditable suppressContentEditableWarning={true} className="text-[72px] font-black tracking-[-.06em] leading-[0.88] mb-6 outline-none focus:bg-white/10 p-6 rounded uppercase cursor-text">
                         PRÓXIMOS<br />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-cyan-300 text-[88px]">PASOS</span>
+                        <span className="text-sky-400 text-[88px]">PASOS</span>
                     </h2>
                     <p contentEditable suppressContentEditableWarning={true} className="text-xl text-slate-400 max-w-2xl leading-relaxed font-medium outline-none focus:bg-white/10 p-4 rounded cursor-text mx-auto">
                         Síntesis preparada para orientar decisiones, definir responsables y dar seguimiento a las prioridades de calidad de Autosol.
@@ -1221,10 +1245,10 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
 
                 <div className="relative z-10 w-full max-w-2xl p-6 bg-white/5 backdrop-blur-2xl rounded-[3rem] border border-white/10 text-center shadow-2xl mx-auto">
                     <h4 className="text-[11px] font-black text-blue-400 uppercase tracking-[0.4em] mb-4">Visualización Interactiva</h4>
-                    <div className="flex items-center justify-center gap-6 text-white font-black text-lg uppercase tracking-widest">
-                        <Icons.ExternalLink className="w-6 h-6 text-blue-400" />
-                        https://nelsoncalidad15-ops.github.io/tablero-control-end/
-                    </div>
+                    <a href="https://nelsoncalidad15-ops.github.io/tablero-control-end/" className="flex items-center justify-center gap-3 text-white font-bold text-sm break-all">
+                        <Icons.ExternalLink className="w-5 h-5 shrink-0 text-blue-400" />
+                        <span>nelsoncalidad15-ops.github.io/tablero-control-end/</span>
+                    </a>
                 </div>
 
                 <div className="absolute bottom-12 right-12 flex items-center gap-6">
@@ -1242,10 +1266,12 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                 body { background: white !important; margin: 0 !important; padding: 0 !important; }
                 .print\\:hidden { display: none !important; }
                 .page-break-after-always { page-break-after: always !important; }
+                .executive-report-document > .page-break-after-always:last-child { page-break-after: auto !important; }
                 @page { size: A4 landscape; margin: 0; }
+                .professional-report-shell { padding: 0 !important; print-color-adjust: exact; -webkit-print-color-adjust: exact; }
                 .recharts-wrapper { width: 100% !important; }
-                .executive-report-document { gap: 0 !important; }
-                .executive-report-document > .page-break-after-always { margin: 0 !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; }
+                .executive-report-document { width: 297mm !important; gap: 0 !important; overflow: visible !important; }
+                .executive-report-document > .page-break-after-always { width: 297mm !important; min-width: 0 !important; height: 210mm !important; break-inside: avoid; margin: 0 !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; }
             }
             .executive-report-document { display: flex; flex-direction: column; gap: 20px; }
             .executive-report-document > .page-break-after-always {
@@ -1264,13 +1290,13 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
             .executive-report-document [class*="rounded-[3"] {
                 border-radius: 1.25rem;
             }
-            @media (max-width: 760px) {
+            @media screen and (max-width: 760px) {
                 .professional-report-shell { padding: 8px; }
                 .report-command-bar { align-items: stretch; }
                 .report-command-bar select { flex: 1 1 145px; min-width: 0; }
                 .report-command-bar button:last-child { flex: 1 1 100%; justify-content: center; }
                 .executive-report-document { gap: 10px; overflow-x: auto; }
-                .executive-report-document > .page-break-after-always { min-width: 880px; }
+                .executive-report-document > .page-break-after-always { min-width: 297mm; }
             }
             .custom-scrollbar::-webkit-scrollbar {
                 width: 6px;

@@ -255,7 +255,13 @@ const CemOsDashboard: React.FC<CemOsDashboardProps> = ({
   }, [data, selectedMonths]);
 
   const detailedRankingStats = useMemo(() => {
-    const advisors: Record<string, { count: number, totalScore: number, displayName: string }> = {};
+    const advisors: Record<string, { 
+      declared: number;
+      count: number; 
+      totalScore: number; 
+      displayName: string; 
+    }> = {};
+
     // Use unified filters
     const baseData = data.filter(d => {
       const matchMonth = selectedMonths.length === 0 || selectedMonths.includes(d.mes);
@@ -267,18 +273,43 @@ const CemOsDashboard: React.FC<CemOsDashboardProps> = ({
 
     baseData.forEach(d => {
       const key = normalizeAdvisorName(d.vendedor);
-      if (!key || d.cem_score === null) return;
-      if (!advisors[key]) advisors[key] = { count: 0, totalScore: 0, displayName: prettifyAdvisorName(d.vendedor) };
-      advisors[key].count += 1;
-      advisors[key].totalScore += d.cem_score;
+      if (!key) return;
+      if (!advisors[key]) {
+        advisors[key] = { 
+          declared: 0, 
+          count: 0, 
+          totalScore: 0, 
+          displayName: prettifyAdvisorName(d.vendedor) 
+        };
+      }
+
+      const hasLink = isValidDateValue(d.fecha_link_llega);
+      const hasResponded = d.cem_score !== null;
+
+      if (hasLink) {
+        advisors[key].declared += 1;
+      }
+      if (d.cem_score !== null) {
+        advisors[key].count += 1;
+        advisors[key].totalScore += d.cem_score;
+      }
     });
 
     return Object.entries(advisors)
-      .map(([, stats]) => ({
-        name: stats.displayName,
-        count: stats.count,
-        avg: stats.totalScore / stats.count
-      }))
+      .map(([, stats]) => {
+        const totalDeclared = Math.max(stats.declared, stats.count);
+        const effectiveness = totalDeclared > 0 
+          ? Number(((stats.count / totalDeclared) * 100).toFixed(1)) 
+          : 0;
+
+        return {
+          name: stats.displayName,
+          count: stats.count,
+          declared: totalDeclared,
+          effectiveness,
+          avg: stats.count > 0 ? stats.totalScore / stats.count : 0
+        };
+      })
       .filter(s => s.count > 0)
       .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'es'));
   }, [data, selectedMonths, selectedCodigo, selectedZona, selectedCanal]);
@@ -553,18 +584,32 @@ const CemOsDashboard: React.FC<CemOsDashboardProps> = ({
             title="Ranking de Asesores"
             subtitle="Performance por Encuestas CEM"
         >
-          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-12 gap-6">
-            <div className="flex flex-col items-end gap-2 ml-auto">
-              <div className="px-6 py-2 bg-slate-50 rounded-2xl border border-slate-100">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-8 gap-4">
+            <div className="flex flex-wrap items-center gap-4">
+              <div className="flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded-md bg-slate-100 border border-slate-300 inline-block"></span>
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Ingresadas</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded-md bg-[#00B0F0] inline-block"></span>
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Promedio OS</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <span className="w-3 h-3 rounded-md bg-emerald-500 inline-block"></span>
+                <span className="text-[10px] font-black text-slate-500 uppercase tracking-widest">Efectividad (% Ingreso / Declaradas)</span>
+              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 ml-auto">
+              <div className="px-4 py-1.5 bg-slate-50 rounded-xl border border-slate-100">
                 <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Filtros: </span>
                 <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest">{selectedMonths.length > 0 ? selectedMonths.join(', ') : 'Anual'} | {selectedCodigo || 'Todas'} | {selectedZona || 'Todas'} | {selectedCanal || 'Todos'}</span>
               </div>
-              <span className="text-[10px] font-black text-slate-300 uppercase tracking-widest">{detailedRankingStats.length} asesores en el ranking</span>
+              <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{detailedRankingStats.length} asesores</span>
             </div>
           </div>
           <div style={{ height: Math.max(520, detailedRankingStats.length * 34) }}>
             <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={detailedRankingStats} layout="vertical" margin={{ left: 20, right: 120 }}>
+              <BarChart data={detailedRankingStats} layout="vertical" margin={{ left: 20, right: 230 }}>
                 <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f8fafc" />
                 <XAxis type="number" hide />
                 <YAxis 
@@ -580,11 +625,33 @@ const CemOsDashboard: React.FC<CemOsDashboardProps> = ({
                 />
                 <Tooltip 
                   cursor={{fill: '#f8fafc'}}
-                  contentStyle={{ borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.15)', padding: '16px 24px' }}
-                  formatter={(value: number, name: string) => [
-                    name === 'count' ? `${value} encuestas` : `${value.toFixed(2)} promedio`,
-                    name === 'count' ? 'Cantidad' : 'Promedio OS'
-                  ]}
+                  content={({ active, payload }) => {
+                    if (!active || !payload || !payload.length) return null;
+                    const item = payload[0].payload;
+                    return (
+                      <div className="bg-white p-4 rounded-2xl shadow-xl border border-slate-100 space-y-2">
+                        <p className="text-xs font-black text-slate-900 uppercase tracking-wider">{item.name}</p>
+                        <div className="space-y-1 text-xs">
+                          <div className="flex items-center justify-between gap-4">
+                            <span className="text-slate-500 font-semibold">Ingresadas:</span>
+                            <span className="font-black text-slate-900">{item.count} encuestas</span>
+                          </div>
+                          <div className="flex items-center justify-between gap-4">
+                            <span className="text-slate-500 font-semibold">Declaradas:</span>
+                            <span className="font-black text-slate-700">{item.declared}</span>
+                          </div>
+                          <div className="flex items-center justify-between gap-4">
+                            <span className="text-slate-500 font-semibold">Efectividad:</span>
+                            <span className="font-black text-emerald-600">{item.effectiveness}%</span>
+                          </div>
+                          <div className="flex items-center justify-between gap-4">
+                            <span className="text-slate-500 font-semibold">Promedio OS:</span>
+                            <span className="font-black text-blue-600">{item.avg.toFixed(2)}</span>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  }}
                 />
                 <Bar dataKey="count" name="Cantidad Encuestas" fill="#001E50" radius={[0, 8, 8, 0]} barSize={32}>
                    <LabelList 
@@ -592,45 +659,71 @@ const CemOsDashboard: React.FC<CemOsDashboardProps> = ({
                       position="right" 
                       content={(props: any) => {
                         const { x, y, width, height, value, index } = props;
-                        const avg = detailedRankingStats[index]?.avg || 0;
+                        const advisor = detailedRankingStats[index];
+                        const avg = advisor?.avg || 0;
+                        const eff = advisor?.effectiveness || 0;
                         return (
                           <g>
+                            {/* 1. Cantidad ingresada */}
                             <rect 
-                              x={x + width + 15} 
+                              x={x + width + 10} 
                               y={y + height / 2 - 12} 
-                              width={40} 
+                              width={36} 
                               height={24} 
-                              rx={8} 
+                              rx={7} 
                               fill="#f8fafc" 
+                              stroke="#e2e8f0"
+                              strokeWidth={1}
                             />
                             <text 
-                              x={x + width + 35} 
+                              x={x + width + 28} 
                               y={y + height / 2 + 5} 
                               textAnchor="middle"
                               fill="#1e293b" 
-                              fontSize={12} 
+                              fontSize={11} 
                               fontWeight={900}
                             >
                               {value}
                             </text>
                             
+                            {/* 2. Promedio OS */}
                             <rect 
-                              x={x + width + 65} 
+                              x={x + width + 52} 
                               y={y + height / 2 - 12} 
-                              width={85} 
+                              width={78} 
                               height={24} 
-                              rx={8} 
+                              rx={7} 
                               fill="#00B0F0" 
                             />
                             <text 
-                              x={x + width + 107} 
+                              x={x + width + 91} 
                               y={y + height / 2 + 5} 
                               textAnchor="middle"
                               fill="white" 
-                              fontSize={11} 
+                              fontSize={10.5} 
                               fontWeight={900}
                             >
                               OS: {avg.toFixed(2)}
+                            </text>
+
+                            {/* 3. Porcentaje de Efectividad */}
+                            <rect 
+                              x={x + width + 136} 
+                              y={y + height / 2 - 12} 
+                              width={78} 
+                              height={24} 
+                              rx={7} 
+                              fill="#10b981" 
+                            />
+                            <text 
+                              x={x + width + 175} 
+                              y={y + height / 2 + 5} 
+                              textAnchor="middle"
+                              fill="white" 
+                              fontSize={10.5} 
+                              fontWeight={900}
+                            >
+                              {eff}% Ef.
                             </text>
                           </g>
                         );

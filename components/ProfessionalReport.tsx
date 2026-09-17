@@ -468,24 +468,25 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
   if (loading === LoadingState.LOADING) return <div className="p-20 text-center font-black uppercase tracking-widest animate-pulse">Cargando Reporte...</div>;
 
   return (
-    <div className="min-h-screen bg-slate-100 p-4 md:p-10 print:p-0 print:bg-white">
+    <div className="professional-report-shell min-h-screen bg-[#eef2f6] p-3 md:p-6 print:p-0 print:bg-white">
         {/* Controls - Hidden on Print */}
-        <div className="max-w-5xl mx-auto mb-10 rounded-[2.25rem] border border-slate-200/80 bg-white/90 p-6 shadow-[0_24px_80px_rgba(15,23,42,0.08)] backdrop-blur-xl flex flex-wrap items-center justify-between gap-6 print:hidden">
-            <div className="flex flex-wrap items-center gap-3 justify-end">
-                <button onClick={onBack} className="p-3 bg-slate-50 rounded-2xl text-slate-400 hover:text-blue-600 transition-all border border-slate-100 shadow-sm">
-                    <Icons.ArrowLeft className="w-5 h-5" />
+        <div className="report-command-bar max-w-[297mm] mx-auto mb-5 rounded-2xl border border-slate-200/80 bg-white/95 px-4 py-3 shadow-[0_10px_30px_rgba(15,23,42,0.06)] backdrop-blur-xl flex flex-wrap items-center justify-between gap-4 print:hidden">
+            <div className="flex min-w-0 items-center gap-3">
+                <button onClick={onBack} className="p-2.5 bg-slate-50 rounded-xl text-slate-400 hover:text-blue-600 transition-all border border-slate-200 shadow-sm" title="Volver">
+                    <Icons.ArrowLeft className="w-4 h-4" />
                 </button>
+                <div className="hidden h-9 w-9 items-center justify-center rounded-xl bg-[#001e50] text-white shadow-lg sm:flex"><Icons.FileText className="h-4 w-4" /></div>
                 <div>
-                    <h1 className="text-xl font-black text-slate-900 tracking-tighter italic">GENERADOR DE REPORTE</h1>
-                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Configuración de Informe Mensual</p>
+                    <h1 className="text-base font-bold text-[#001e50] tracking-tight md:text-lg">Informe para Dirección</h1>
+                    <p className="text-[8px] font-bold text-slate-400 uppercase tracking-[.18em]">Gestión mensual consolidada</p>
                 </div>
             </div>
 
-            <div className="flex items-center gap-4">
+            <div className="flex flex-1 flex-wrap items-center justify-end gap-2 sm:flex-none">
                 <select 
                     value={selectedMonth}
                     onChange={(e) => setSelectedMonth(e.target.value)}
-                    className="min-w-[140px] bg-slate-50 border border-slate-100 text-slate-900 text-[11px] font-black rounded-xl px-5 py-3 outline-none uppercase tracking-widest shadow-sm"
+                    className="min-h-10 min-w-[130px] bg-slate-50 border border-slate-200 text-slate-700 text-[10px] font-bold rounded-xl px-4 py-2 outline-none uppercase tracking-wider"
                 >
                     {MONTHS.map(m => <option key={m} value={m}>{m}</option>)}
                 </select>
@@ -493,7 +494,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                 <select 
                     value={selectedBranch}
                     onChange={(e) => setSelectedBranch(e.target.value)}
-                    className="min-w-[180px] bg-slate-50 border border-slate-100 text-slate-900 text-[11px] font-black rounded-xl px-5 py-3 outline-none uppercase tracking-widest shadow-sm"
+                    className="min-h-10 min-w-[170px] bg-slate-50 border border-slate-200 text-slate-700 text-[10px] font-bold rounded-xl px-4 py-2 outline-none uppercase tracking-wider"
                 >
                     <option value="">Todas las Sucursales</option>
                     <option value="JUJUY">Jujuy (3059)</option>
@@ -502,7 +503,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
 
                 <button 
                     onClick={handlePrint}
-                    className="px-8 py-3 bg-slate-950 text-white rounded-xl text-[11px] font-black uppercase tracking-widest shadow-lg shadow-slate-900/20 hover:scale-105 transition-all flex items-center gap-3"
+                    className="min-h-10 px-5 py-2 bg-[#001e50] text-white rounded-xl text-[10px] font-bold uppercase tracking-wider shadow-lg shadow-[#001e50]/15 hover:bg-[#073b75] transition-all flex items-center gap-2"
                 >
                     <Icons.Printer className="w-4 h-4" />
                     Imprimir / Guardar PDF
@@ -517,7 +518,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
         )}
 
         {/* REPORT CONTENT */}
-        <div ref={reportRef} className="max-w-[297mm] mx-auto bg-white shadow-2xl print:shadow-none min-h-[210mm] overflow-hidden print:block" style={{ fontFamily: 'Arial, Helvetica, sans-serif' }}>
+        <div ref={reportRef} className="executive-report-document max-w-[297mm] mx-auto min-h-[210mm] print:block" style={{ fontFamily: 'Plus Jakarta Sans, Arial, Helvetica, sans-serif' }}>
             
             {/* PAGE 1: COVER SLIDE */}
             <div className="h-[210mm] relative overflow-hidden page-break-after-always bg-slate-950 print:bg-white" style={{ WebkitPrintColorAdjust: 'exact', printColorAdjust: 'exact' }}>
@@ -526,14 +527,11 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                 <div className="absolute bottom-[-10%] left-[-5%] w-[400px] h-[400px] bg-emerald-500/10 rounded-full blur-[100px] print:hidden"></div>
                 <div className="absolute inset-0 opacity-10 print:hidden" style={{ backgroundImage: 'radial-gradient(circle at 2px 2px, rgba(255,255,255,0.1) 1px, transparent 0)', backgroundSize: '40px 40px' }}></div>
                 
-                <div className="absolute top-12 left-12 flex items-center gap-6">
-                    <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center shadow-2xl shadow-white/10 print:bg-slate-50 print:border print:border-slate-200">
-                        <span className="text-slate-950 font-black text-2xl">A</span>
+                <div className="absolute top-10 left-12 flex items-center gap-5">
+                    <div className="rounded-2xl bg-white px-5 py-3 shadow-2xl shadow-black/10 print:border print:border-slate-200">
+                        <img src={`${import.meta.env.BASE_URL}images/autosol-vw-logo.png`} alt="Volkswagen Autosol" className="h-10 w-auto" />
                     </div>
-                    <div>
-                        <div className="text-xs font-black text-blue-400 uppercase tracking-[0.3em] print:!text-blue-600">Autosol</div>
-                        <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest print:!text-slate-500">Grupo Cenoa</div>
-                    </div>
+                    <div className="border-l border-white/20 pl-5 text-[9px] font-bold uppercase tracking-[.24em] text-slate-400 print:border-slate-200 print:!text-slate-500">Dirección<br />Calidad y experiencia</div>
                 </div>
 
                 <div className="absolute top-12 right-12 w-[320px] rounded-[2rem] border border-white/10 bg-white/5 p-5 backdrop-blur-xl print:bg-white print:border-slate-200">
@@ -568,11 +566,11 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                             Reporte de Gestión Estratégica
                         </div>
                         <h1
-                            className="text-[80px] md:text-[100px] font-black text-white tracking-tighter italic leading-[0.9] print:!text-black"
+                            className="text-[68px] md:text-[84px] font-black text-white tracking-[-.065em] leading-[0.92] print:!text-black"
                             style={{ fontFamily: 'Arial Black, Arial, Helvetica, sans-serif' }}
                         >
-                            REUNIÓN DE<br />
-                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 print:!text-blue-600 print:!bg-none print:!bg-clip-border">CALIDAD</span>
+                            INFORME DE<br />
+                            <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-cyan-300 print:!text-blue-600 print:!bg-none print:!bg-clip-border">DIRECCIÓN</span>
                         </h1>
                         <div className="h-1.5 w-40 bg-gradient-to-r from-blue-500 to-emerald-500 mx-auto rounded-full print:!bg-blue-600"></div>
                         <h2
@@ -585,10 +583,10 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                 </div>
                 <div className="absolute bottom-12 right-12 flex items-center gap-6">
                     <div className="text-right">
-                        <p className="text-xs font-black text-slate-500 uppercase tracking-widest mb-1 print:!text-slate-400">Certificación de Calidad</p>
-                        <p className="text-2xl font-black text-white italic tracking-tighter print:!text-black">Volkswagen Autosol</p>
+                        <p className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-1 print:!text-slate-400">Gestión integrada</p>
+                        <p className="text-xl font-bold text-white tracking-tight print:!text-black">Volkswagen Autosol</p>
                     </div>
-                    <div className="w-16 h-16 border-2 border-white/20 rounded-full flex items-center justify-center font-black text-3xl text-white backdrop-blur-sm print:!border-slate-300 print:!text-black">W</div>
+                    <div className="h-12 w-px bg-white/20 print:bg-slate-200" />
                 </div>
             </div>
 
@@ -597,13 +595,13 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                 <div className="absolute top-0 right-0 w-64 h-64 bg-slate-50 rounded-bl-[200px]"></div>
                 
                 <div className="flex items-center gap-4 mb-12">
-                    <div className="w-10 h-10 bg-slate-950 rounded-xl flex items-center justify-center text-white font-black text-xs">A</div>
-                    <div className="text-[10px] font-black text-slate-900 uppercase tracking-widest">Temario de Gestión</div>
+                    <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 shadow-sm"><img src={`${import.meta.env.BASE_URL}images/autosol-vw-logo.png`} alt="" className="h-7 w-auto" /></div>
+                    <div className="text-[10px] font-bold text-[#001e50] uppercase tracking-[.2em]">Temario de Dirección</div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-12 items-center">
                     <div>
-                        <h2 className="text-5xl font-black text-slate-900 tracking-tighter italic mb-8 uppercase">CONTENIDO</h2>
+                        <h2 className="text-5xl font-black text-slate-900 tracking-tighter mb-8 uppercase">CONTENIDO EJECUTIVO</h2>
                         <ul className="space-y-3">
                             {[
                                 "Resultados KPI: CEM Ventas",
@@ -1194,19 +1192,20 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                 <div className="absolute top-0 right-0 w-[800px] h-[800px] bg-blue-600/10 rounded-full blur-[150px]"></div>
                 <div className="absolute bottom-0 left-0 w-[600px] h-[600px] bg-white/5 rounded-full blur-[100px]"></div>
                 
-                <div className="absolute top-12 left-12 flex items-center gap-6">
-                    <div className="w-16 h-16 bg-white rounded-2xl flex items-center justify-center text-slate-950 font-black text-2xl">A</div>
-                    <div className="text-xs font-black text-white uppercase tracking-[0.3em]">Grupo Cenoa</div>
+                <div className="absolute top-10 left-12 flex items-center gap-5">
+                    <div className="rounded-2xl bg-white px-5 py-3 shadow-2xl shadow-black/10">
+                        <img src={`${import.meta.env.BASE_URL}images/autosol-vw-logo.png`} alt="Volkswagen Autosol" className="h-10 w-auto" />
+                    </div>
+                    <div className="border-l border-white/20 pl-5 text-[9px] font-bold uppercase tracking-[.24em] text-slate-400">Dirección<br />Calidad y experiencia</div>
                 </div>
 
                 <div className="text-center relative z-10 mb-8">
-                    <h2 contentEditable suppressContentEditableWarning={true} className="text-[100px] font-black tracking-tighter italic leading-[0.8] mb-6 outline-none focus:bg-white/10 p-6 rounded uppercase cursor-text">
-                        ¡MUCHAS<br />
-                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-blue-400 to-emerald-400 text-[120px]">GRACIAS!</span>
+                    <h2 contentEditable suppressContentEditableWarning={true} className="text-[72px] font-black tracking-[-.06em] leading-[0.88] mb-6 outline-none focus:bg-white/10 p-6 rounded uppercase cursor-text">
+                        PRÓXIMOS<br />
+                        <span className="text-transparent bg-clip-text bg-gradient-to-r from-sky-400 to-cyan-300 text-[88px]">PASOS</span>
                     </h2>
                     <p contentEditable suppressContentEditableWarning={true} className="text-xl text-slate-400 max-w-2xl leading-relaxed font-medium outline-none focus:bg-white/10 p-4 rounded cursor-text mx-auto">
-                        Este reporte ha sido generado para el análisis estratégico de la calidad en Autosol. 
-                        Quedamos a su disposición para cualquier consulta adicional.
+                        Síntesis preparada para orientar decisiones, definir responsables y dar seguimiento a las prioridades de calidad de Autosol.
                     </p>
                 </div>
 
@@ -1220,9 +1219,9 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
 
                 <div className="absolute bottom-12 right-12 flex items-center gap-6">
                     <div className="text-right">
-                        <p className="text-2xl font-black text-white italic tracking-tighter">Autosol</p>
+                        <p className="text-xl font-bold text-white tracking-tight">Volkswagen Autosol</p>
                     </div>
-                    <div className="w-16 h-16 border-2 border-white/20 rounded-full flex items-center justify-center font-black text-2xl text-white">W</div>
+                    <div className="h-12 w-px bg-white/20" />
                 </div>
             </div>
         </div>
@@ -1235,6 +1234,33 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                 .page-break-after-always { page-break-after: always !important; }
                 @page { size: A4 landscape; margin: 0; }
                 .recharts-wrapper { width: 100% !important; }
+                .executive-report-document { gap: 0 !important; }
+                .executive-report-document > .page-break-after-always { margin: 0 !important; border: 0 !important; border-radius: 0 !important; box-shadow: none !important; }
+            }
+            .executive-report-document { display: flex; flex-direction: column; gap: 20px; }
+            .executive-report-document > .page-break-after-always {
+                border: 1px solid rgba(203, 213, 225, .8);
+                border-radius: 20px;
+                box-shadow: 0 18px 55px rgba(15, 23, 42, .09);
+            }
+            .executive-report-document > .page-break-after-always:nth-child(n+2):not(:last-child) h2 {
+                color: #001e50;
+                font-size: 2rem;
+                font-style: normal;
+                letter-spacing: -.045em;
+                line-height: 1.05;
+            }
+            .executive-report-document [class*="rounded-[2"],
+            .executive-report-document [class*="rounded-[3"] {
+                border-radius: 1.25rem;
+            }
+            @media (max-width: 760px) {
+                .professional-report-shell { padding: 8px; }
+                .report-command-bar { align-items: stretch; }
+                .report-command-bar select { flex: 1 1 145px; min-width: 0; }
+                .report-command-bar button:last-child { flex: 1 1 100%; justify-content: center; }
+                .executive-report-document { gap: 10px; overflow-x: auto; }
+                .executive-report-document > .page-break-after-always { min-width: 880px; }
             }
             .custom-scrollbar::-webkit-scrollbar {
                 width: 6px;

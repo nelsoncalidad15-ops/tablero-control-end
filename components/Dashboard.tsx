@@ -190,7 +190,6 @@ const Dashboard: React.FC<DashboardProps> = ({ area, sheetUrl, apiKey, onBack })
       subtitle="Intelligence Control Panel"
       lastUpdated={new Date().toLocaleTimeString()}
       filters={filters}
-      onExport={() => alert('Exportando reporte...')}
       onBack={onBack}
     >
       <div className="space-y-12 pb-20">

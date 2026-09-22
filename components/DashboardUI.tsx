@@ -102,18 +102,19 @@ export const DashboardFrame: React.FC<DashboardFrameProps> = ({
               >
                 {isFullScreen ? <Icons.Minimize className="w-3.5 h-3.5 md:w-4 md:h-4" /> : <Icons.Maximize className="w-3.5 h-3.5 md:w-4 md:h-4" />}
               </button>
-              <button 
-                onClick={onExport ? onExport : () => setShowReportModal(true)}
-                className="p-1.5 md:p-2 rounded-lg md:rounded-xl text-slate-400 hover:text-blue-600 hover:bg-white/60 transition-all"
-                title={onExport ? "Generar reporte" : "Reporte Gerencial"}
-              >
-                <Icons.FileText className="w-3.5 h-3.5 md:w-4 md:h-4" />
-              </button>
+              {onExport && (
+                <button 
+                  onClick={onExport}
+                  className="p-1.5 md:p-2 rounded-lg md:rounded-xl text-slate-400 hover:text-blue-600 hover:bg-white/60 transition-all"
+                  title="Generar reporte"
+                >
+                  <Icons.FileText className="w-3.5 h-3.5 md:w-4 md:h-4" />
+                </button>
+              )}
             </div>
           </div>
         </div>
       )}
-
       {/* Main Content Area */}
       <div className="dashboard-frame-main flex flex-col lg:flex-row gap-4 flex-1 items-start w-full px-3 pt-4 pb-6 md:px-5 md:pt-5 lg:pb-8">
         {/* Filters Sidebar (Hidden in TV Mode) */}

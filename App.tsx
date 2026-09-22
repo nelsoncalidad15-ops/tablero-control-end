@@ -5,8 +5,8 @@ import { motion, AnimatePresence } from 'motion/react';
 import Portal from './components/Portal';
 import { Icons } from './components/Icon';
 import { AppConfig, AreaConfig } from './types';
-import { DEFAULT_CONFIG, SALES_QUALITY_SHEET_KEY, SALES_CLAIMS_SHEET_KEY, CEM_OS_SHEET_KEY, CEM_OS_SALTA_SHEET_KEY, AREAS } from './constants';
-import { primeBackendConnection, primeSalesQualityData, primeSheetData } from './services/dataService';
+import { DEFAULT_CONFIG, AREAS, SALES_QUALITY_SHEET_KEY, SALES_CLAIMS_SHEET_KEY } from './constants';
+import { primeBackendConnection } from './services/dataService';
 
 const Dashboard = lazy(() => import('./components/Dashboard'));
 const QualityDashboard = lazy(() => import('./components/QualityDashboard'));
@@ -124,69 +124,7 @@ function App() {
   const [printReportLocation, setPrintReportLocation] = useState<'JUJUY' | 'SALTA' | null>(null);
   const [reportConfig, setReportConfig] = useState<{ location: 'JUJUY' | 'SALTA', month: string | null, template: any } | null>(null);
 
-  const primeAreaData = (areaId: string) => {
-    const sheets = config.sheetUrls;
-
-    if (areaId === 'executive') {
-      void primeSheetData([
-        sheets.sales_quality,
-        sheets.sales_claims,
-        sheets.cem_os,
-        sheets.cem_os_salta,
-        sheets.postventa,
-        sheets.calidad,
-      ]);
-      return;
-    }
-
-    if (areaId === 'calidad') {
-      void primeSheetData([
-        sheets.sales_quality,
-        sheets.sales_claims,
-        sheets.cem_os,
-        sheets.cem_os_salta,
-        sheets.calidad,
-        sheets.detailed_quality,
-        sheets.detailed_quality_salta,
-        sheets.internal_postventa,
-        sheets.ssi_surveys,
-        sheets.csi_surveys,
-      ]);
-      return;
-    }
-
-    if (areaId === 'postventa') {
-      void primeSheetData([
-        sheets.postventa,
-        sheets.postventa_kpis,
-        sheets.postventa_billing,
-        sheets.pvt_occupation,
-        sheets.warranty_q1,
-        sheets.warranty_q2,
-        sheets.warranty_q3,
-        sheets.warranty_q4,
-      ]);
-      return;
-    }
-
-    if (areaId === 'ambiente') {
-      void primeSheetData([sheets.ambiente]);
-      return;
-    }
-
-    if (areaId === 'rrhh') {
-      void primeSheetData([
-        sheets.rrhh,
-        sheets.hr_relatorio,
-        sheets.hr_contacts,
-        sheets.hr_phases,
-      ]);
-    }
-  };
-
   const handlePrefetchArea = (areaId: string) => {
-    primeAreaData(areaId);
-
     if (areaId === 'executive') {
       preloadModule(() => import('./components/ExecutiveSummary'));
       preloadModule(() => import('./components/ProfessionalReport'));
@@ -230,17 +168,6 @@ function App() {
 
   useEffect(() => {
     primeBackendConnection();
-
-    const prefetchId = window.setTimeout(() => {
-      void primeSalesQualityData(
-        SALES_QUALITY_SHEET_KEY,
-        SALES_CLAIMS_SHEET_KEY,
-        CEM_OS_SHEET_KEY,
-        CEM_OS_SALTA_SHEET_KEY
-      );
-    }, 150);
-
-    return () => window.clearTimeout(prefetchId);
   }, []);
 
   const handleSaveConfig = (newConfig: AppConfig) => {
@@ -650,7 +577,7 @@ function App() {
             <Route path="/calidad/refuerzo" element={<DashboardView type="calidad" subType="refuerzo" />} />
 
             <Route path="/executive" element={<DashboardView type="executive" />} />
-            <Route path="/report" element={<ProfessionalReport config={config} onBack={() => navigate('/executive')} />} />
+            <Route path="/report" element={<ProfessionalReport config={config} onBack={() => navigate('/calidad')} />} />
 
             <Route path="/ambiente" element={<AmbienteSelection />} />
             <Route path="/ambiente/consumos" element={<DashboardView type="ambiente" subType="consumos" />} />

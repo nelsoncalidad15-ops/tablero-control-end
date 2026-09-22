@@ -1,8 +1,7 @@
-﻿
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'motion/react';
 import { Icons } from './Icon';
-import { DashboardFrame, LuxuryKPICard, SkeletonLoader, InsightCard, ChartWrapper, StatusBadge } from './DashboardUI';
+import { DashboardFrame, ChartWrapper } from './DashboardUI';
 import { LoadingState, AppConfig, DetailedQualityRecord, SalesQualityRecord, QualityRecord, SalesClaimsRecord, CemOsRecord, InternalPostventaRecord } from '../types';
 import { 
     fetchDetailedQualityData, 
@@ -12,8 +11,9 @@ import {
     fetchCemOsData,
     fetchInternalPostventaData
 } from '../services/dataService';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LineChart, Line, Legend, LabelList, PieChart, Pie } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, LineChart, Line, LabelList, PieChart, Pie } from 'recharts';
 import { MONTHS, YEARS } from '../constants';
+import './ExecutiveSummary.css';
 
 interface ExecutiveSummaryProps {
   config: AppConfig;
@@ -27,25 +27,110 @@ type BranchGaugePoint = {
     closedValue?: number;
 };
 
+const countUniqueClaims = <T extends { id: string; sucursal?: string; anio?: number }>(
+    rows: T[],
+    getClaimNumber: (row: T) => string | undefined
+) => new Set(rows.map(row => {
+    const claimNumber = getClaimNumber(row)?.trim().toUpperCase();
+    return claimNumber
+        ? `${row.anio || ''}|${row.sucursal || ''}|${claimNumber}`
+        : row.id;
+})).size;
+
+export const OS_TARGETS: Record<'Q1' | 'Q2' | 'Q3' | 'Q4', number> = {
+    Q1: 4.80,
+    Q2: 4.81,
+    Q3: 4.82,
+    Q4: 4.83
+};
+
+export const MONTH_TO_QUARTER: Record<string, 'Q1' | 'Q2' | 'Q3' | 'Q4'> = {
+    'Enero': 'Q1',
+    'Febrero': 'Q1',
+    'Marzo': 'Q1',
+    'Abril': 'Q2',
+    'Mayo': 'Q2',
+    'Junio': 'Q2',
+    'Julio': 'Q3',
+    'Agosto': 'Q3',
+    'Septiembre': 'Q3',
+    'Octubre': 'Q4',
+    'Noviembre': 'Q4',
+    'Diciembre': 'Q4'
+};
+
+export const QUARTER_MONTHS: Record<'Q1' | 'Q2' | 'Q3' | 'Q4', string[]> = {
+    Q1: ['Enero', 'Febrero', 'Marzo'],
+    Q2: ['Abril', 'Mayo', 'Junio'],
+    Q3: ['Julio', 'Agosto', 'Septiembre'],
+    Q4: ['Octubre', 'Noviembre', 'Diciembre']
+};
+
+export const getOsTargetInfo = (months: string[]) => {
+    if (!months || months.length === 0) {
+        return {
+            target: 4.815,
+            label: 'Anual'
+        };
+    }
+
+    const quarters = Array.from(new Set(months.map(m => MONTH_TO_QUARTER[m]).filter(Boolean))) as ('Q1' | 'Q2' | 'Q3' | 'Q4')[];
+    
+    if (quarters.length === 1) {
+        const q = quarters[0];
+        return {
+            target: OS_TARGETS[q],
+            label: q
+        };
+    }
+
+    const total = months.reduce((sum, m) => sum + (OS_TARGETS[MONTH_TO_QUARTER[m]] || 4.80), 0);
+    const avg = total / months.length;
+    quarters.sort();
+    return {
+        target: avg,
+        label: quarters.join('-')
+    };
+};
+
 const GaugeMetric: React.FC<{ 
     title: string, 
     value: number, 
     inProgressValue?: number,
     closedValue?: number,
     target: number, 
+    inProgressTarget?: number,
+    closedTarget?: number,
+    targetLabel?: string,
     icon: React.ReactNode, 
     monthName: string, 
     inProgressMonthName?: string,
     closedMonthName?: string,
     comparisonSeries?: BranchGaugePoint[]
-}> = ({ title, value, inProgressValue, closedValue, target, icon, monthName, inProgressMonthName, closedMonthName, comparisonSeries }) => {
+}> = ({ 
+    title, 
+    value, 
+    inProgressValue, 
+    closedValue, 
+    target, 
+    inProgressTarget, 
+    closedTarget, 
+    targetLabel, 
+    icon, 
+    monthName, 
+    inProgressMonthName, 
+    closedMonthName, 
+    comparisonSeries 
+}) => {
     const isSuccess = value >= target;
     const color = isSuccess ? '#10b981' : '#ef4444';
     
-    const inProgressIsSuccess = inProgressValue !== undefined ? inProgressValue >= target : null;
+    const effInProgressTarget = inProgressTarget ?? target;
+    const inProgressIsSuccess = inProgressValue !== undefined ? inProgressValue >= effInProgressTarget : null;
     const inProgressColor = inProgressIsSuccess === true ? 'text-emerald-400' : inProgressIsSuccess === false ? 'text-rose-400' : 'text-slate-500';
 
-    const closedIsSuccess = closedValue !== undefined ? closedValue >= target : null;
+    const effClosedTarget = closedTarget ?? target;
+    const closedIsSuccess = closedValue !== undefined ? closedValue >= effClosedTarget : null;
     const closedColor = closedIsSuccess === true ? 'text-emerald-400' : closedIsSuccess === false ? 'text-rose-400' : 'text-slate-500';
 
     // Data for the gauge (half circle)
@@ -65,7 +150,7 @@ const GaugeMetric: React.FC<{
         ];
 
         return (
-            <div className="rounded-[2rem] border border-white/10 bg-white/5 backdrop-blur-xl p-4 shadow-xl min-h-[260px] flex flex-col">
+            <div className="executive-mini-gauge rounded-2xl border border-slate-200 bg-slate-50 p-3 min-h-[170px] flex flex-col">
                 <div className="flex items-center justify-between gap-2 mb-3">
                     <span className="text-[9px] font-black text-slate-400 uppercase tracking-[0.4em] truncate">{point.branch}</span>
                     <span className={`px-2.5 py-1 rounded-full text-[8px] font-black uppercase tracking-[0.25em] border ${pointIsSuccess ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20' : 'bg-rose-500/10 text-rose-400 border-rose-500/20'}`}>
@@ -73,7 +158,7 @@ const GaugeMetric: React.FC<{
                     </span>
                 </div>
 
-                <div className="relative w-full aspect-square max-w-[170px] mx-auto">
+                <div className="relative w-full aspect-square max-w-[115px] mx-auto">
                     <ResponsiveContainer width="100%" height="100%">
                         <PieChart>
                             <Pie
@@ -96,12 +181,11 @@ const GaugeMetric: React.FC<{
                     </ResponsiveContainer>
                     <div className="absolute inset-0 flex flex-col items-center justify-center">
                         <span className="text-[9px] font-black text-slate-500 uppercase tracking-[0.35em] mb-1">{monthName}</span>
-                        <span className={`text-4xl font-black tracking-tighter italic ${pointIsSuccess ? 'text-emerald-400' : 'text-rose-400'}`}>
+                        <span className={`text-2xl font-black tracking-tighter ${pointIsSuccess ? 'text-emerald-600' : 'text-rose-600'}`}>
                             {point.value.toFixed(2)}
                         </span>
                     </div>
                 </div>
-
             </div>
         );
     };
@@ -110,27 +194,27 @@ const GaugeMetric: React.FC<{
         <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="bg-white/5 backdrop-blur-xl rounded-[3.5rem] border border-white/10 p-10 flex flex-col items-center justify-center relative overflow-hidden group hover:bg-white/[0.08] transition-all duration-500 shadow-2xl min-h-[550px]"
+            className="executive-gauge-card bg-white rounded-[18px] border border-slate-200 p-5 flex flex-col items-center justify-center relative overflow-hidden group transition-all duration-300 min-h-[275px]"
         >
             {/* Decorative background glow */}
             <div className={`absolute inset-0 opacity-[0.03] transition-opacity duration-1000 group-hover:opacity-[0.1] ${isSuccess ? 'bg-emerald-500' : 'bg-rose-500'}`}></div>
             
-            <div className="flex items-center gap-4 mb-8 relative z-10">
+            <div className="flex items-center gap-3 mb-3 relative z-10">
                 <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isSuccess ? 'bg-emerald-500/20 text-emerald-400' : 'bg-rose-500/20 text-rose-400'} border border-white/10`}>
                     {icon}
                 </div>
-                <h4 className="text-[11px] font-black text-slate-400 uppercase tracking-[0.5em]">{title}</h4>
+                <h4 className="text-[11px] font-bold text-[#001e50] uppercase tracking-[0.08em]">{title}</h4>
             </div>
             
             {hasComparison ? (
-                <div className={`grid gap-4 mt-6 w-full relative z-10 ${comparisonSeries!.length === 2 ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1 lg:grid-cols-3'}`}>
+                <div className={`grid gap-3 mt-2 w-full relative z-10 ${comparisonSeries!.length === 2 ? 'grid-cols-2' : 'grid-cols-2 sm:grid-cols-3'}`}>
                     {comparisonSeries!.map(point => (
                         <MiniGauge key={point.branch} point={point} />
                     ))}
                 </div>
             ) : (
                 <>
-                    <div className="relative w-full aspect-square max-w-[260px] relative z-10">
+                    <div className="relative w-full aspect-square max-w-[160px] z-10">
                         <ResponsiveContainer width="100%" height="100%">
                             <PieChart>
                                 <Pie
@@ -158,7 +242,7 @@ const GaugeMetric: React.FC<{
                                 <motion.span 
                                     initial={{ scale: 0.5, opacity: 0 }}
                                     animate={{ scale: 1, opacity: 1 }}
-                                    className={`text-6xl font-black tracking-tighter italic ${isSuccess ? 'text-emerald-400' : 'text-rose-400'} drop-shadow-[0_0_30px_rgba(0,0,0,0.5)]`}
+                                    className={`text-4xl font-black tracking-tighter ${isSuccess ? 'text-emerald-600' : 'text-rose-600'}`}
                                 >
                                     {value.toFixed(2)}
                                 </motion.span>
@@ -166,9 +250,16 @@ const GaugeMetric: React.FC<{
                         </div>
                     </div>
 
-                    <div className="grid grid-cols-3 gap-6 mt-10 w-full relative z-10">
+                    <div className="grid grid-cols-3 gap-2 mt-4 w-full relative z-10">
                         <div className="flex flex-col items-center border-r border-white/10">
-                            <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest mb-1">Objetivo</span>
+                            <div className="flex items-center gap-1 mb-1">
+                                <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">Objetivo</span>
+                                {targetLabel && (
+                                    <span className="text-[7.5px] font-bold px-1 py-0.5 rounded bg-[#001e50]/5 text-[#001e50] border border-[#001e50]/10">
+                                        {targetLabel}
+                                    </span>
+                                )}
+                            </div>
                             <span className="text-lg font-black text-white">{target.toFixed(2)}</span>
                         </div>
                         <div className="flex flex-col items-center border-r border-white/10">
@@ -195,7 +286,7 @@ const GaugeMetric: React.FC<{
                 </>
             )}
 
-            <div className={`mt-10 px-10 py-3 rounded-full border text-[11px] font-black uppercase tracking-[0.4em] relative z-10 shadow-2xl transition-all duration-500 ${
+            <div className={`mt-4 px-4 py-1.5 rounded-full border text-[9px] font-bold uppercase tracking-[0.08em] relative z-10 transition-all duration-300 ${
                 isSuccess 
                     ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-400 shadow-emerald-500/10' 
                     : 'bg-rose-500/10 border-rose-500/20 text-rose-400 shadow-rose-500/10'
@@ -206,82 +297,13 @@ const GaugeMetric: React.FC<{
     );
 };
 
-const ReportCover: React.FC<{ year: number, month: string, branches: string[] }> = ({ year, month, branches }) => {
-    return (
-        <div className="relative overflow-hidden rounded-[2.5rem] border border-white/10 bg-slate-950/95 mb-10 group px-8 py-6">
-            {/* Animated Background Elements */}
-            <div className="absolute inset-0 overflow-hidden">
-                <motion.div 
-                    animate={{ 
-                        scale: [1, 1.2, 1],
-                        rotate: [0, 5, 0],
-                        opacity: [0.1, 0.15, 0.1]
-                    }}
-                    transition={{ duration: 20, repeat: Infinity }}
-                    className="absolute -top-1/4 -left-1/4 w-full h-full bg-blue-600 rounded-full blur-[150px]"
-                />
-                <motion.div 
-                    animate={{ 
-                        scale: [1, 1.3, 1],
-                        rotate: [0, -5, 0],
-                        opacity: [0.05, 0.1, 0.05]
-                    }}
-                    transition={{ duration: 25, repeat: Infinity, delay: 2 }}
-                    className="absolute -bottom-1/4 -right-1/4 w-full h-full bg-indigo-600 rounded-full blur-[150px]"
-                />
-                <div className="absolute inset-0 opacity-[0.03]" style={{ backgroundImage: 'radial-gradient(#3b82f6 1px, transparent 1px)', backgroundSize: '60px 60px' }}></div>
-            </div>
-
-            <div className="relative z-10 flex flex-col gap-4">
-                <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-4">
-                        <div className="w-14 h-14 bg-white rounded-2xl flex items-center justify-center text-slate-950 shadow-[0_0_30px_rgba(255,255,255,0.12)]">
-                            <Icons.Activity className="w-7 h-7" />
-                        </div>
-                        <div>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.5em] mb-1">Sala de situación</p>
-                            <h1 className="text-3xl md:text-4xl font-black text-white tracking-tighter italic uppercase leading-none">
-                                Panel ejecutivo
-                            </h1>
-                        </div>
-                    </div>
-                    <div className="hidden md:flex items-center gap-3">
-                        <span className="px-4 py-2 rounded-full bg-white/5 border border-white/10 text-[10px] font-black uppercase tracking-[0.35em] text-slate-300">
-                            {year}
-                        </span>
-                        <span className="px-4 py-2 rounded-full bg-blue-500/15 border border-blue-400/20 text-[10px] font-black uppercase tracking-[0.35em] text-blue-300">
-                            {month || 'Anual'}
-                        </span>
-                    </div>
-                </div>
-
-                <div className="flex flex-wrap gap-2">
-                    <span className="px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-[0.2em] text-slate-300">
-                        Periodo: {month || 'Anual'}
-                    </span>
-                    <span className="px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-[0.2em] text-slate-300">
-                        Sucursales: {branches.length === 0 ? 'Todas' : branches.join(' / ')}
-                    </span>
-                    <span className="px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-[0.2em] text-slate-300">
-                        Monitoreo ejecutivo en tiempo real
-                    </span>
-                </div>
-            </div>
-
-            {/* Bottom Decorative Bar */}
-            <div className="absolute bottom-0 left-0 w-full h-2 bg-gradient-to-r from-blue-600 via-indigo-600 to-blue-600"></div>
-        </div>
-    );
-};
-
 const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) => {
   const [loading, setLoading] = useState<LoadingState>(LoadingState.IDLE);
   
-  // Helper: Consistent Normalization
   const normalizeString = (str: string) => {
-      if (!str) return '';
-      const trimmed = str.trim();
-      return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
+    if (!str) return '';
+    const trimmed = str.trim();
+    return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
   };
 
   const [data, setData] = useState<{
@@ -302,7 +324,7 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
 
   // Filters
   const [selectedYear, setSelectedYear] = useState<number>(2026);
-  const [selectedMonth, setSelectedMonth] = useState<string>('');
+  const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
   const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
 
   useEffect(() => {
@@ -355,46 +377,47 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
   }, [data]);
 
   const filteredData = useMemo(() => {
-    const filterByYearMonthBranch = (list: any[], month?: string) => {
+    const filterByYearMonthBranch = (list: any[], months: string[] = []) => {
         return list.filter(d => {
             const matchYear = !selectedYear || d.anio === selectedYear || (d.fecha_reclamo && d.fecha_reclamo.includes(selectedYear.toString()));
-            const matchMonth = !month || d.mes === month;
+            const matchMonth = months.length === 0 || months.includes(d.mes);
             const matchBranch = selectedBranches.length === 0 || selectedBranches.includes(d.sucursal);
             return matchYear && matchMonth && matchBranch;
         });
     };
 
-    const selectedMonthIndex = selectedMonth ? MONTHS.indexOf(selectedMonth) : -1;
-    
-    const inProgressMonthIndex = selectedMonthIndex - 1;
-    const inProgressMonth = inProgressMonthIndex >= 0 ? MONTHS[inProgressMonthIndex] : undefined;
-    
-    const closedMonthIndex = selectedMonthIndex - 2;
-    const closedMonth = closedMonthIndex >= 0 ? MONTHS[closedMonthIndex] : undefined;
+    const previousMonths = (offset: number) => MONTHS.filter(month =>
+        selectedMonths.some(selected => MONTHS.indexOf(selected) - offset === MONTHS.indexOf(month))
+    );
+    const inProgressMonths = previousMonths(1);
+    const closedMonths = previousMonths(2);
+    const monthLabel = (months: string[]) => months.map(month => month.slice(0, 3)).join(' / ');
 
     return {
-        detailedQuality: filterByYearMonthBranch(data.detailedQuality, selectedMonth),
-        salesQuality: filterByYearMonthBranch(data.salesQuality, selectedMonth),
-        quality: filterByYearMonthBranch(data.quality, selectedMonth),
-        salesClaims: filterByYearMonthBranch(data.salesClaims, selectedMonth),
-        cemOs: filterByYearMonthBranch(data.cemOs, selectedMonth),
-        internalPostventa: filterByYearMonthBranch(data.internalPostventa, selectedMonth),
+        detailedQuality: filterByYearMonthBranch(data.detailedQuality, selectedMonths),
+        salesQuality: filterByYearMonthBranch(data.salesQuality, selectedMonths),
+        quality: filterByYearMonthBranch(data.quality, selectedMonths),
+        salesClaims: filterByYearMonthBranch(data.salesClaims, selectedMonths),
+        cemOs: filterByYearMonthBranch(data.cemOs, selectedMonths),
+        internalPostventa: filterByYearMonthBranch(data.internalPostventa, selectedMonths),
         
         // In Progress Month Data (M-1)
-        inProgressMonthName: inProgressMonth,
-        inProgressDetailedQuality: inProgressMonth ? filterByYearMonthBranch(data.detailedQuality, inProgressMonth) : [],
-        inProgressSalesQuality: inProgressMonth ? filterByYearMonthBranch(data.salesQuality, inProgressMonth) : [],
-        inProgressCemOs: inProgressMonth ? filterByYearMonthBranch(data.cemOs, inProgressMonth) : [],
-        inProgressInternalPostventa: inProgressMonth ? filterByYearMonthBranch(data.internalPostventa, inProgressMonth) : [],
+        inProgressMonthName: monthLabel(inProgressMonths),
+        inProgressMonths,
+        inProgressDetailedQuality: inProgressMonths.length ? filterByYearMonthBranch(data.detailedQuality, inProgressMonths) : [],
+        inProgressSalesQuality: inProgressMonths.length ? filterByYearMonthBranch(data.salesQuality, inProgressMonths) : [],
+        inProgressCemOs: inProgressMonths.length ? filterByYearMonthBranch(data.cemOs, inProgressMonths) : [],
+        inProgressInternalPostventa: inProgressMonths.length ? filterByYearMonthBranch(data.internalPostventa, inProgressMonths) : [],
 
         // Closed Month Data (M-2)
-        closedMonthName: closedMonth,
-        closedDetailedQuality: closedMonth ? filterByYearMonthBranch(data.detailedQuality, closedMonth) : [],
-        closedSalesQuality: closedMonth ? filterByYearMonthBranch(data.salesQuality, closedMonth) : [],
-        closedCemOs: closedMonth ? filterByYearMonthBranch(data.cemOs, closedMonth) : [],
-        closedInternalPostventa: closedMonth ? filterByYearMonthBranch(data.internalPostventa, closedMonth) : []
+        closedMonthName: monthLabel(closedMonths),
+        closedMonths,
+        closedDetailedQuality: closedMonths.length ? filterByYearMonthBranch(data.detailedQuality, closedMonths) : [],
+        closedSalesQuality: closedMonths.length ? filterByYearMonthBranch(data.salesQuality, closedMonths) : [],
+        closedCemOs: closedMonths.length ? filterByYearMonthBranch(data.cemOs, closedMonths) : [],
+        closedInternalPostventa: closedMonths.length ? filterByYearMonthBranch(data.internalPostventa, closedMonths) : []
     };
-  }, [data, selectedYear, selectedMonth, selectedBranches]);
+  }, [data, selectedYear, selectedMonths, selectedBranches]);
 
   const metrics = useMemo(() => {
     const calculateAvg = (list: any[], key: string) => {
@@ -408,22 +431,22 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
         return comparisonBranches.map(branch => {
             const branchCurrent = list.filter(d => {
                 const matchYear = !selectedYear || d.anio === selectedYear || (d.fecha_reclamo && d.fecha_reclamo.includes(selectedYear.toString()));
-                const matchMonth = !selectedMonth || d.mes === selectedMonth;
+                const matchMonth = selectedMonths.length === 0 || selectedMonths.includes(d.mes);
                 return matchYear && matchMonth && d.sucursal === branch;
             });
 
-            const branchInProgress = filteredData.inProgressMonthName
+            const branchInProgress = filteredData.inProgressMonths.length
                 ? list.filter(d => {
                     const matchYear = !selectedYear || d.anio === selectedYear || (d.fecha_reclamo && d.fecha_reclamo.includes(selectedYear.toString()));
-                    const matchMonth = d.mes === filteredData.inProgressMonthName;
+                    const matchMonth = filteredData.inProgressMonths.includes(d.mes);
                     return matchYear && matchMonth && d.sucursal === branch;
                 })
                 : [];
 
-            const branchClosed = filteredData.closedMonthName
+            const branchClosed = filteredData.closedMonths.length
                 ? list.filter(d => {
                     const matchYear = !selectedYear || d.anio === selectedYear || (d.fecha_reclamo && d.fecha_reclamo.includes(selectedYear.toString()));
-                    const matchMonth = d.mes === filteredData.closedMonthName;
+                    const matchMonth = filteredData.closedMonths.includes(d.mes);
                     return matchYear && matchMonth && d.sucursal === branch;
                 })
                 : [];
@@ -461,10 +484,10 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
     const lvsInternalBranchSeries = makeBranchSeries(data.internalPostventa, 'servicio_prestado');
 
     // 4. Total Reclamos (Internal Sales)
-    const totalSalesClaims = filteredData.salesClaims.length;
+    const totalSalesClaims = countUniqueClaims(filteredData.salesClaims, row => row.nro_r);
 
     // 5. Total Reclamos (Internal Postventa)
-    const totalPostventaClaims = filteredData.quality.length;
+    const totalPostventaClaims = countUniqueClaims(filteredData.quality, row => row.orden);
 
     // 6. Motivos de Reclamo (Postventa Internal) - Robust logic from QualityDashboard
     const postventaReasons: Record<string, number> = {};
@@ -489,7 +512,10 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
 
     // 6. Evolución Anual de Reclamos (Postventa Internal)
     const postventaEvolution = MONTHS.map(m => {
-        const count = data.quality.filter(d => d.mes === m && (!selectedYear || d.anio === selectedYear) && (selectedBranches.length === 0 || selectedBranches.includes(d.sucursal))).length;
+        const count = countUniqueClaims(
+            data.quality.filter(d => d.mes === m && (!selectedYear || d.anio === selectedYear) && (selectedBranches.length === 0 || selectedBranches.includes(d.sucursal))),
+            row => row.orden
+        );
         return { name: m, value: count };
     });
 
@@ -525,7 +551,10 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
 
     // 9. Volumen Anual de Reclamos (Sales Internal)
     const salesClaimsEvolution = MONTHS.map(m => {
-        const count = data.salesClaims.filter(d => d.mes === m && (!selectedYear || d.anio === selectedYear) && (selectedBranches.length === 0 || selectedBranches.includes(d.sucursal))).length;
+        const count = countUniqueClaims(
+            data.salesClaims.filter(d => d.mes === m && (!selectedYear || d.anio === selectedYear) && (selectedBranches.length === 0 || selectedBranches.includes(d.sucursal))),
+            row => row.nro_r
+        );
         return { name: m, value: count };
     });
 
@@ -554,7 +583,12 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
         topAdvisors,
         salesClaimsEvolution
     };
-  }, [filteredData, data.quality, data.salesClaims, selectedYear, selectedBranches]);
+  }, [filteredData, data.cemOs, data.detailedQuality, data.salesQuality, data.internalPostventa, data.quality, data.salesClaims, selectedYear, selectedMonths, selectedBranches]);
+
+  // Quarterly targets for OS
+  const osTarget = useMemo(() => getOsTargetInfo(selectedMonths), [selectedMonths]);
+  const osInProgressTarget = useMemo(() => getOsTargetInfo(filteredData.inProgressMonths), [filteredData.inProgressMonths]);
+  const osClosedTarget = useMemo(() => getOsTargetInfo(filteredData.closedMonths), [filteredData.closedMonths]);
 
   return (
     <DashboardFrame 
@@ -562,7 +596,7 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
         subtitle="REPORTE DE GESTIÓN ESTRATÉGICA"
         onBack={onBack}
         isLoading={loading === LoadingState.LOADING}
-        className="bg-slate-950 print:bg-white"
+        className="executive-summary-shell print:bg-white"
     >
         <style dangerouslySetInnerHTML={{ __html: `
             @media print {
@@ -587,9 +621,9 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
                 svg { max-width: 100% !important; }
             }
         `}} />
-        <div className="relative space-y-12 pb-20 px-4 md:px-8 print:p-0 print:space-y-8">
+        <div className="executive-summary-content relative space-y-6 pb-10 print:p-0 print:space-y-8">
             {/* Professional Tech Background Elements */}
-            <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+            <div className="hidden fixed inset-0 -z-10 overflow-hidden pointer-events-none">
                 <div className="absolute top-[-10%] left-[-10%] w-[60%] h-[60%] rounded-full bg-blue-600/10 blur-[120px] animate-pulse"></div>
                 <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-indigo-600/10 blur-[120px] animate-pulse" style={{ animationDelay: '2s' }}></div>
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full h-full opacity-[0.05] pointer-events-none" 
@@ -597,112 +631,114 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
             </div>
 
             {/* Header Section with Glassmorphism */}
-            <div className="flex flex-col gap-5 bg-white/5 backdrop-blur-2xl p-6 md:p-8 rounded-[2.5rem] shadow-2xl border border-white/10 print:hidden">
-                <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-5">
-                    <div className="flex items-center gap-4">
-                        <div className="w-12 h-12 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-2xl flex items-center justify-center text-white shadow-2xl shadow-blue-600/20 transform -rotate-2 shrink-0">
-                            <Icons.Activity className="w-6 h-6" />
+            <div className="executive-toolbar flex flex-col gap-3 bg-white p-4 rounded-[18px] border border-slate-200 print:hidden">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                    <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 bg-[#001e50] rounded-xl flex items-center justify-center text-white shrink-0">
+                            <Icons.Activity className="w-5 h-5" />
                         </div>
                         <div>
-                            <p className="text-[9px] font-black text-blue-400 uppercase tracking-[0.45em] mb-2">Sala de situación</p>
-                            <h2 className="text-2xl md:text-3xl font-black text-white tracking-tighter italic leading-none">Panel ejecutivo</h2>
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.3em] mt-2">Resumen operativo y estratégico</p>
+                            <p className="text-[9px] font-bold text-[#008bc5] uppercase tracking-[0.2em]">Sala de situación</p>
+                            <h2 className="text-xl md:text-2xl font-bold text-[#001e50] tracking-tight leading-tight">Panel ejecutivo</h2>
                         </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center gap-2">
-                        <span className="px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-[0.2em] text-slate-300">
-                            Año: {selectedYear}
-                        </span>
-                        <span className="px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-[9px] font-black uppercase tracking-[0.2em] text-slate-300">
-                            Mes: {selectedMonth || 'Todos'}
-                        </span>
-                        <span className="px-3 py-1.5 rounded-full bg-blue-500/15 border border-blue-400/20 text-[9px] font-black uppercase tracking-[0.2em] text-blue-300">
-                            Sucursales: {selectedBranches.length === 0 ? 'Todas' : selectedBranches.join(' / ')}
-                        </span>
+                    <div className="executive-filter-summary text-[11px] font-semibold text-[#586d83]">
+                        {selectedYear} · {osTarget.label && osTarget.label !== 'Anual' ? `${osTarget.label} · ` : ''}{selectedMonths.length ? selectedMonths.map(m => m.slice(0, 3)).join(' / ') : 'Todos los meses'} · {selectedBranches.length ? selectedBranches.join(' / ') : 'Todas las sucursales'}
                     </div>
                 </div>
 
-                <div className="flex flex-col gap-4">
-                    <div className="flex bg-white/5 p-1.5 rounded-2xl border border-white/10 backdrop-blur-md shadow-inner overflow-x-auto">
+                <div className="executive-filter-row">
+                    <span className="executive-filter-label">Año</span>
+                    <div className="executive-filter-options">
                         {YEARS.map(y => (
                             <button
+                                type="button"
                                 key={y}
                                 onClick={() => setSelectedYear(y)}
-                                className={`px-8 py-2.5 rounded-xl text-[11px] font-black transition-all duration-500 whitespace-nowrap ${
-                                    selectedYear === y ? 'bg-blue-600 text-white shadow-xl scale-105' : 'text-slate-500 hover:text-white'
-                                }`}
+                                aria-pressed={selectedYear === y}
+                                className={`executive-filter-button ${selectedYear === y ? 'is-active' : ''}`}
                             >
                                 {y}
                             </button>
                         ))}
                     </div>
+                </div>
 
-                    <div className="grid grid-cols-1 gap-4">
-                        <div className="flex flex-wrap items-center gap-2 p-2 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md shadow-inner">
-                            <button
-                                onClick={() => setSelectedMonth('')}
-                                className={`px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] transition-all border ${selectedMonth === '' ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-500/20' : 'bg-transparent text-slate-400 border-transparent hover:text-white hover:border-white/10'}`}
-                            >
-                                Todos
-                            </button>
-                            {MONTHS.map(m => (
+                <div className="executive-filter-row">
+                    <span className="executive-filter-label">Trimestre</span>
+                    <div className="executive-filter-options">
+                        {(['Q1', 'Q2', 'Q3', 'Q4'] as const).map(q => {
+                            const qMonths = QUARTER_MONTHS[q];
+                            const isQActive = qMonths.length === selectedMonths.length && qMonths.every(m => selectedMonths.includes(m));
+                            return (
                                 <button
-                                    key={m}
-                                    onClick={() => setSelectedMonth(m)}
-                                    className={`px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-widest transition-all border ${selectedMonth === m ? 'bg-white text-slate-950 border-white shadow-lg' : 'bg-white/0 text-slate-300 border-transparent hover:text-white hover:bg-white/5'}`}
+                                    type="button"
+                                    key={q}
+                                    onClick={() => {
+                                        if (isQActive) {
+                                            setSelectedMonths([]);
+                                        } else {
+                                            setSelectedMonths([...qMonths]);
+                                        }
+                                    }}
+                                    aria-pressed={isQActive}
+                                    className={`executive-filter-button ${isQActive ? 'is-active' : ''}`}
+                                    title={`${q}: ${qMonths.map(m => m.slice(0, 3)).join(', ')} (Obj. OS: ${OS_TARGETS[q].toFixed(2)})`}
                                 >
-                                    {m.substring(0, 3)}
+                                    {q} <span className="opacity-70 text-[9px] font-normal ml-1">({OS_TARGETS[q].toFixed(2)})</span>
                                 </button>
-                            ))}
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-2 p-2 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md shadow-inner">
-                            <button
-                                onClick={() => setSelectedBranches([])}
-                                className={`px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] transition-all border ${selectedBranches.length === 0 ? 'bg-blue-600 text-white border-blue-600 shadow-lg shadow-blue-500/20' : 'bg-transparent text-slate-400 border-transparent hover:text-white hover:border-white/10'}`}
-                            >
-                                Todas
-                            </button>
-                            {availableBranches.map(branch => {
-                                const active = selectedBranches.includes(branch);
-                                return (
-                                    <button
-                                        key={branch}
-                                        onClick={() => setSelectedBranches(prev => active ? prev.filter(b => b !== branch) : [...prev, branch])}
-                                        className={`px-3 py-2 rounded-xl text-[9px] font-black uppercase tracking-[0.2em] transition-all border ${active ? 'bg-white text-slate-950 border-white shadow-lg' : 'bg-white/0 text-slate-300 border-transparent hover:text-white hover:bg-white/5'}`}
-                                    >
-                                        {branch}
-                                    </button>
-                                );
-                            })}
-                        </div>
-
-                        <div className="flex flex-wrap items-center gap-2 px-1">
-                            {selectedBranches.length > 0 ? (
-                                selectedBranches.map(branch => (
-                                    <span key={branch} className="px-2.5 py-1 rounded-full bg-white/10 border border-white/10 text-[9px] font-black uppercase tracking-[0.18em] text-slate-200">
-                                        {branch}
-                                    </span>
-                                ))
-                            ) : (
-                                <span className="px-2.5 py-1 rounded-full bg-white/10 border border-white/10 text-[9px] font-black uppercase tracking-[0.18em] text-slate-400">
-                                    Todas las sucursales
-                                </span>
-                            )}
-                        </div>
+                            );
+                        })}
                     </div>
                 </div>
-            </div>            {/* Main KPIs with Gauges */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+
+                <div className="executive-filter-row">
+                    <span className="executive-filter-label">Meses</span>
+                    <div className="executive-filter-options executive-month-options">
+                        <button type="button" onClick={() => setSelectedMonths([])} aria-pressed={selectedMonths.length === 0} className={`executive-filter-button ${selectedMonths.length === 0 ? 'is-active' : ''}`}>Todos</button>
+                        {MONTHS.map(month => (
+                            <button
+                                type="button"
+                                key={month}
+                                onClick={() => setSelectedMonths(current => current.includes(month) ? current.filter(item => item !== month) : [...current, month])}
+                                aria-pressed={selectedMonths.includes(month)}
+                                className={`executive-filter-button ${selectedMonths.includes(month) ? 'is-active' : ''}`}
+                            >{month.slice(0, 3)}</button>
+                        ))}
+                    </div>
+                </div>
+
+                <div className="executive-filter-row">
+                    <span className="executive-filter-label">Sucursal</span>
+                    <div className="executive-filter-options">
+                        <button type="button" onClick={() => setSelectedBranches([])} aria-pressed={selectedBranches.length === 0} className={`executive-filter-button ${selectedBranches.length === 0 ? 'is-active' : ''}`}>Todas</button>
+                        {availableBranches.map(branch => (
+                            <button
+                                type="button"
+                                key={branch}
+                                onClick={() => setSelectedBranches(current => current.includes(branch) ? current.filter(item => item !== branch) : [...current, branch])}
+                                aria-pressed={selectedBranches.includes(branch)}
+                                className={`executive-filter-button ${selectedBranches.includes(branch) ? 'is-active' : ''}`}
+                            >{branch}</button>
+                        ))}
+                    </div>
+                </div>
+            </div>
+
+            {/* Main KPIs with Gauges */}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
                 <GaugeMetric 
                     title="VENTAS OS (EXTERNO)" 
                     value={metrics.avgCEM} 
                     inProgressValue={metrics.inProgressAvgCEM}
                     closedValue={metrics.closedAvgCEM}
-                    target={4.80}
+                    target={osTarget.target}
+                    inProgressTarget={osInProgressTarget.target}
+                    closedTarget={osClosedTarget.target}
+                    targetLabel={osTarget.label}
                     icon={<Icons.TrendingUp className="w-6 h-6" />}
-                    monthName={selectedMonth || 'Actual'}
+                    monthName={selectedMonths.length ? selectedMonths.map(m => m.slice(0, 3)).join(' / ') : 'Anual'}
                     inProgressMonthName={filteredData.inProgressMonthName}
                     closedMonthName={filteredData.closedMonthName}
                     comparisonSeries={metrics.cemBranchSeries}
@@ -714,7 +750,7 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
                     closedValue={metrics.closedAvgLVS}
                     target={4.80}
                     icon={<Icons.Settings className="w-6 h-6" />}
-                    monthName={selectedMonth || 'Actual'}
+                    monthName={selectedMonths.length ? selectedMonths.map(m => m.slice(0, 3)).join(' / ') : 'Anual'}
                     inProgressMonthName={filteredData.inProgressMonthName}
                     closedMonthName={filteredData.closedMonthName}
                     comparisonSeries={metrics.lvsBranchSeries}
@@ -724,9 +760,12 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
                     value={metrics.avgOSInternal} 
                     inProgressValue={metrics.inProgressAvgOSInternal}
                     closedValue={metrics.closedAvgOSInternal}
-                    target={4.80}
+                    target={osTarget.target}
+                    inProgressTarget={osInProgressTarget.target}
+                    closedTarget={osClosedTarget.target}
+                    targetLabel={osTarget.label}
                     icon={<Icons.UserCheck className="w-6 h-6" />}
-                    monthName={selectedMonth || 'Actual'}
+                    monthName={selectedMonths.length ? selectedMonths.map(m => m.slice(0, 3)).join(' / ') : 'Anual'}
                     inProgressMonthName={filteredData.inProgressMonthName}
                     closedMonthName={filteredData.closedMonthName}
                     comparisonSeries={metrics.osInternalBranchSeries}
@@ -738,7 +777,7 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
                     closedValue={metrics.closedAvgLVSInternal}
                     target={4.80}
                     icon={<Icons.ShieldCheck className="w-6 h-6" />}
-                    monthName={selectedMonth || 'Actual'}
+                    monthName={selectedMonths.length ? selectedMonths.map(m => m.slice(0, 3)).join(' / ') : 'Anual'}
                     inProgressMonthName={filteredData.inProgressMonthName}
                     closedMonthName={filteredData.closedMonthName}
                     comparisonSeries={metrics.lvsInternalBranchSeries}
@@ -746,7 +785,7 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
             </div>
 
             {/* Claims Volume Summary */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div className="bg-white/5 backdrop-blur-xl rounded-[3rem] border border-white/10 p-8 flex items-center justify-between group hover:bg-white/[0.08] transition-all duration-500 shadow-2xl">
                     <div className="flex items-center gap-6">
                         <div className="w-16 h-16 bg-blue-600/20 rounded-2xl flex items-center justify-center text-blue-400 border border-blue-500/20">
@@ -787,7 +826,7 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <ChartWrapper title="Motivos de Reclamo - Top 10 Análisis Detallado" isDark={true}>
+                    <ChartWrapper title="Motivos de Reclamo - Top 10 Análisis Detallado" isDark={false}>
                         <div className="h-[450px]">
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={metrics.topPostventaReasons} layout="vertical" margin={{ left: 40, right: 60, top: 20, bottom: 20 }}>
@@ -800,14 +839,14 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
                                         {/* @ts-ignore */}
                                         <LabelList dataKey="name" position="insideLeft" style={{ fill: '#fff', fontSize: 9, fontWeight: '900', textTransform: 'uppercase' }} offset={10} />
                                         {/* @ts-ignore */}
-                                        <LabelList dataKey="value" position="right" style={{ fill: '#60a5fa', fontSize: 12, fontWeight: '900' }} />
+                                        <LabelList dataKey="value" position="right" style={{ fill: '#2866b2', fontSize: 12, fontWeight: '900' }} />
                                     </Bar>
                                 </BarChart>
                             </ResponsiveContainer>
                         </div>
                     </ChartWrapper>
 
-                    <ChartWrapper title="Evolución Anual de Reclamos" isDark={true}>
+                    <ChartWrapper title="Evolución Anual de Reclamos" isDark={false}>
                         <div className="h-[450px]">
                             <ResponsiveContainer width="100%" height="100%">
                                 <LineChart data={metrics.postventaEvolution} margin={{ top: 20, right: 40, left: 20, bottom: 20 }}>
@@ -815,7 +854,7 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
                                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'black', fill: '#94a3b8'}} />
                                     <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'black', fill: '#94a3b8'}} />
                                     <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.3)' }} />
-                                    <Line type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={4} dot={{ r: 6, fill: '#3b82f6', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 8 }} label={{ position: 'top', fill: '#60a5fa', fontSize: 11, fontWeight: '900', offset: 10 }} />
+                                    <Line type="monotone" dataKey="value" stroke="#2866b2" strokeWidth={3} dot={{ r: 4, fill: '#2866b2', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} label={{ position: 'top', fill: '#2866b2', fontSize: 11, fontWeight: '700', offset: 10 }} />
                                 </LineChart>
                             </ResponsiveContainer>
                         </div>
@@ -832,7 +871,7 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <ChartWrapper title="Motivos Principales de Reclamo" isDark={true}>
+                    <ChartWrapper title="Motivos Principales de Reclamo" isDark={false}>
                         <div className="h-[400px]">
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={metrics.topSalesReasons} layout="vertical" margin={{ left: 40, right: 60, top: 20, bottom: 20 }}>
@@ -842,14 +881,14 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
                                     <Tooltip cursor={{fill: '#1e293b'}} contentStyle={{ backgroundColor: '#0f172a', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.3)' }} />
                                     <Bar dataKey="value" fill="#f59e0b" radius={[0, 10, 10, 0]} barSize={30}>
                                         {/* @ts-ignore */}
-                                        <LabelList dataKey="value" position="right" style={{ fill: '#fbbf24', fontSize: 12, fontWeight: '900' }} />
+                                        <LabelList dataKey="value" position="right" style={{ fill: '#b76a00', fontSize: 12, fontWeight: '900' }} />
                                     </Bar>
                                 </BarChart>
                             </ResponsiveContainer>
                         </div>
                     </ChartWrapper>
 
-                    <ChartWrapper title="Volumen Anual de Reclamos" isDark={true}>
+                    <ChartWrapper title="Volumen Anual de Reclamos" isDark={false}>
                         <div className="h-[400px]">
                             <ResponsiveContainer width="100%" height="100%">
                                 <LineChart data={metrics.salesClaimsEvolution} margin={{ top: 20, right: 40, left: 20, bottom: 20 }}>
@@ -857,7 +896,7 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
                                     <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'black', fill: '#94a3b8'}} />
                                     <YAxis axisLine={false} tickLine={false} tick={{fontSize: 10, fontWeight: 'black', fill: '#94a3b8'}} />
                                     <Tooltip contentStyle={{ backgroundColor: '#0f172a', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.3)' }} />
-                                    <Line type="monotone" dataKey="value" stroke="#f59e0b" strokeWidth={4} dot={{ r: 6, fill: '#f59e0b', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 8 }} label={{ position: 'top', fill: '#fbbf24', fontSize: 11, fontWeight: '900', offset: 10 }} />
+                                    <Line type="monotone" dataKey="value" stroke="#e99408" strokeWidth={3} dot={{ r: 4, fill: '#e99408', strokeWidth: 2, stroke: '#fff' }} activeDot={{ r: 6 }} label={{ position: 'top', fill: '#a65e00', fontSize: 11, fontWeight: '700', offset: 10 }} />
                                 </LineChart>
                             </ResponsiveContainer>
                         </div>
@@ -874,7 +913,7 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
                 </div>
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                    <ChartWrapper title="Ranking de Asesores (Top Respuestas CEM)" isDark={true}>
+                    <ChartWrapper title="Ranking de Asesores (Top Respuestas CEM)" isDark={false}>
                         <div className="h-[400px]">
                             <ResponsiveContainer width="100%" height="100%">
                                 <BarChart data={metrics.topAdvisors} layout="vertical" margin={{ left: 40, right: 60, top: 20, bottom: 20 }}>
@@ -884,7 +923,7 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
                                     <Tooltip cursor={{fill: '#1e293b'}} contentStyle={{ backgroundColor: '#0f172a', borderRadius: '20px', border: '1px solid rgba(255,255,255,0.1)', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.3)' }} />
                                     <Bar dataKey="value" fill="#10b981" radius={[0, 10, 10, 0]} barSize={30}>
                                         {/* @ts-ignore */}
-                                        <LabelList dataKey="value" position="right" style={{ fill: '#34d399', fontSize: 12, fontWeight: '900' }} />
+                                        <LabelList dataKey="value" position="right" style={{ fill: '#047857', fontSize: 12, fontWeight: '900' }} />
                                     </Bar>
                                 </BarChart>
                             </ResponsiveContainer>
@@ -898,4 +937,3 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
 };
 
 export default ExecutiveSummary;
-

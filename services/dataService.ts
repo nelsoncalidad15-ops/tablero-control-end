@@ -50,7 +50,7 @@ const normalizeMonth = (val: string) => {
         'jun': 'Junio', 'jun.': 'Junio', 'junio': 'Junio',
         'jul': 'Julio', 'jul.': 'Julio', 'julio': 'Julio',
         'ago': 'Agosto', 'ago.': 'Agosto', 'agosto': 'Agosto',
-        'sep': 'Septiembre', 'sep.': 'Septiembre', 'septiembre': 'Septiembre',
+        'sep': 'Septiembre', 'sep.': 'Septiembre', 'sept': 'Septiembre', 'sept.': 'Septiembre', 'septiembre': 'Septiembre',
         'set': 'Septiembre', 'set.': 'Septiembre',
         'oct': 'Octubre', 'oct.': 'Octubre', 'octubre': 'Octubre',
         'nov': 'Noviembre', 'nov.': 'Noviembre', 'noviembre': 'Noviembre',
@@ -289,6 +289,44 @@ const RETRYABLE_PROXY_ATTEMPTS = 2;
 let backendWakePromise: Promise<void> | null = null;
 const rawCsvTextCache = new Map<string, string>();
 const rawCsvPromiseCache = new Map<string, Promise<string>>();
+
+const SESSION_CACHE_PREFIX = 'autosol_csv_cache_';
+const SESSION_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutos
+
+const getCachedCsv = (sheetKey: string): string | null => {
+    const memory = rawCsvTextCache.get(sheetKey);
+    if (memory) return memory;
+
+    if (typeof window !== 'undefined' && window.sessionStorage) {
+        try {
+            const stored = window.sessionStorage.getItem(`${SESSION_CACHE_PREFIX}${sheetKey}`);
+            if (stored) {
+                const parsed = JSON.parse(stored);
+                if (Date.now() - parsed.ts < SESSION_CACHE_TTL_MS && typeof parsed.data === 'string') {
+                    rawCsvTextCache.set(sheetKey, parsed.data);
+                    return parsed.data;
+                }
+            }
+        } catch {
+            // Ignorar errores de acceso a sessionStorage
+        }
+    }
+    return null;
+};
+
+const setCachedCsv = (sheetKey: string, text: string) => {
+    rawCsvTextCache.set(sheetKey, text);
+    if (typeof window !== 'undefined' && window.sessionStorage) {
+        try {
+            window.sessionStorage.setItem(`${SESSION_CACHE_PREFIX}${sheetKey}`, JSON.stringify({
+                ts: Date.now(),
+                data: text
+            }));
+        } catch {
+            // Ignorar quota exceeded o modo incógnito
+        }
+    }
+};
 
 const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
@@ -587,8 +625,10 @@ export const primeSalesQualityData = async (
 ) => primeSheetData([salesQualityKey, salesClaimsKey, cemOsKey, cemOsSaltaKey]);
 
 const fetchFromProxy = async (sheetKey: string): Promise<string> => {
-
-    const cachedText = rawCsvTextCache.get(sheetKey);
+    // Reclamos cambia durante el día; una copia anterior en la pestaña puede
+    // ocultar meses recién cargados aun después de publicar un frontend nuevo.
+    const useClientCache = sheetKey !== 'sales_claims';
+    const cachedText = useClientCache ? getCachedCsv(sheetKey) : null;
     if (cachedText) {
         return cachedText;
     }
@@ -630,7 +670,7 @@ const fetchFromProxy = async (sheetKey: string): Promise<string> => {
                 }
 
                 const text = await response.text();
-                rawCsvTextCache.set(sheetKey, text);
+                if (useClientCache) setCachedCsv(sheetKey, text);
                 return text;
             } catch (error: any) {
                 clearTimeout(timeoutId);

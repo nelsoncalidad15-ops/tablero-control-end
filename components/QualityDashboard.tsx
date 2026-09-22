@@ -24,8 +24,9 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
   // Filters
   const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
   const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
-  const [selectedMotivo, setSelectedMotivo] = useState<string | null>(null);
+  const [selectedMotivos, setSelectedMotivos] = useState<string[]>([]);
   const [selectedResponsable, setSelectedResponsable] = useState<string | null>(null);
+  const [showAllMotivos, setShowAllMotivos] = useState<boolean>(true);
 
   const [availableBranches, setAvailableBranches] = useState<string[]>([]);
 
@@ -67,10 +68,10 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
   };
 
   const handleMotivoClick = (motivoName: string) => {
-      if (selectedMotivo === motivoName) {
-          setSelectedMotivo(null);
+      if (selectedMotivos.includes(motivoName)) {
+          setSelectedMotivos(selectedMotivos.filter(m => m !== motivoName));
       } else {
-          setSelectedMotivo(motivoName);
+          setSelectedMotivos([...selectedMotivos, motivoName]);
       }
   };
 
@@ -104,14 +105,15 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
 
   const displayData = useMemo(() => {
       return contextData.filter(d => {
-          if (selectedMotivo) {
+          if (selectedMotivos.length > 0) {
              if (!d.motivo) return false;
              const parts = d.motivo.split(/[,;\n\r]+/).map(s => normalizeString(s));
-             if (!parts.includes(selectedMotivo)) return false;
+             const matches = selectedMotivos.some(m => parts.includes(m));
+             if (!matches) return false;
           }
           return true;
       });
-  }, [contextData, selectedMotivo]);
+  }, [contextData, selectedMotivos]);
 
   const motivoChartData = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -135,7 +137,9 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
       .sort((a, b) => b.value - a.value);
   }, [contextData]);
 
-  const topMotivoChartData = useMemo(() => motivoChartData.slice(0, 10), [motivoChartData]);
+  const displayedMotivoChartData = useMemo(() => {
+    return showAllMotivos ? motivoChartData : motivoChartData.slice(0, 10);
+  }, [motivoChartData, showAllMotivos]);
 
   const resolutionChartData = useMemo(() => {
     const counts = { Si: 0, No: 0 };
@@ -254,8 +258,8 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
             </h3>
             <div className="relative">
                 <select 
-                    value={selectedMotivo || ''} 
-                    onChange={(e) => setSelectedMotivo(e.target.value || null)}
+                    value={selectedMotivos[0] || ''} 
+                    onChange={(e) => setSelectedMotivos(e.target.value ? [e.target.value] : [])}
                     className="w-full text-[11px] font-black uppercase tracking-widest p-4 rounded-xl border border-slate-100 bg-slate-50 text-slate-600 outline-none focus:ring-4 focus:ring-blue-500/10 focus:border-blue-500 transition-all appearance-none cursor-pointer pr-10"
                 >
                     <option value="">Todos los motivos</option>
@@ -298,7 +302,6 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
         title="Gestión de Reclamos"
         subtitle="Calidad Postventa • Análisis de Satisfacción y Procesos"
         lastUpdated={new Date().toLocaleTimeString()}
-        onExport={() => navigate('/report')}
         isLoading={loadingState === LoadingState.LOADING}
         onBack={onBack}
     >
@@ -327,22 +330,32 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
                             <Icons.MapPin className="w-3.5 h-3.5 text-emerald-600" /> Sucursal
                         </span>
                         <div className="flex flex-wrap gap-1">
-                            {['', ...availableBranches].map((suc) => (
-                                <button
-                                    key={suc}
-                                    onClick={() => {
-                                        if (suc === '') setSelectedBranches([]);
-                                        else setSelectedBranches([suc]);
-                                    }}
-                                    className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all border ${
-                                        (selectedBranches.length === 1 && selectedBranches[0] === suc) || (suc === '' && selectedBranches.length === 0)
-                                            ? 'bg-slate-950 text-white border-slate-950 shadow-sm' 
-                                            : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
-                                    }`}
-                                >
-                                    {suc || 'Todas'}
-                                </button>
-                            ))}
+                            {['', ...availableBranches].map((suc) => {
+                                const isAll = suc === '';
+                                const isSelected = isAll 
+                                    ? selectedBranches.length === 0 
+                                    : selectedBranches.includes(suc);
+                                return (
+                                    <button
+                                        key={suc}
+                                        type="button"
+                                        onClick={() => {
+                                            if (isAll) {
+                                                setSelectedBranches([]);
+                                            } else {
+                                                toggleBranch(suc);
+                                            }
+                                        }}
+                                        className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all border ${
+                                            isSelected
+                                                ? 'bg-slate-950 text-white border-slate-950 shadow-sm' 
+                                                : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                                        }`}
+                                    >
+                                        {suc || 'Todas'}
+                                    </button>
+                                );
+                            })}
                         </div>
                     </div>
 
@@ -366,28 +379,21 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
 
                 {/* Acciones */}
                 <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
-                    {(selectedMonths.length > 0 || selectedBranches.length > 0 || selectedMotivo || selectedResponsable) && (
+                    {(selectedMonths.length > 0 || selectedBranches.length > 0 || selectedMotivos.length > 0 || selectedResponsable) && (
                         <button 
+                            type="button"
                             onClick={() => {
                                 setSelectedMonths([]);
                                 setSelectedBranches([]);
-                                setSelectedMotivo(null);
+                                setSelectedMotivos([]);
                                 setSelectedResponsable(null);
                             }}
-                            className="px-3 py-1.5 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold border border-slate-200 flex items-center gap-1.5 hover:bg-slate-200 transition-all"
+                            className="px-3 py-1.5 bg-slate-100 text-slate-600 rounded-xl text-xs font-bold border border-slate-200 flex items-center gap-1.5 hover:bg-slate-200 transition-all cursor-pointer"
                             title="Limpiar filtros"
                         >
                             <Icons.X className="w-3.5 h-3.5" /> Limpiar
                         </button>
                     )}
-                    <button
-                        type="button"
-                        onClick={() => navigate('/report')}
-                        className="inline-flex items-center gap-2 rounded-xl bg-slate-950 px-3.5 py-1.5 text-xs font-bold uppercase tracking-wider text-white shadow-sm transition hover:bg-slate-800"
-                    >
-                        <Icons.FileText className="h-3.5 w-3.5" />
-                        Generar reporte
-                    </button>
                 </div>
             </div>
 
@@ -551,23 +557,76 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
             {/* Motivos Chart - Full Width */}
             <ChartWrapper 
                 title="Motivos de reclamo"
-                subtitle="Top 10 de incidencias"
+                subtitle={showAllMotivos ? `Listado completo (${motivoChartData.length} incidencias)` : `Top 10 de incidencias (${motivoChartData.length} en total)`}
+                action={
+                    <div className="flex items-center gap-1 bg-slate-100 p-1 rounded-xl">
+                        <button
+                            type="button"
+                            onClick={() => setShowAllMotivos(false)}
+                            className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                                !showAllMotivos 
+                                    ? 'bg-slate-950 text-white shadow-sm' 
+                                    : 'text-slate-600 hover:text-slate-900'
+                            }`}
+                        >
+                            Top 10
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => setShowAllMotivos(true)}
+                            className={`px-3 py-1 rounded-lg text-xs font-bold transition-all cursor-pointer ${
+                                showAllMotivos 
+                                    ? 'bg-slate-950 text-white shadow-sm' 
+                                    : 'text-slate-600 hover:text-slate-900'
+                            }`}
+                        >
+                            Todos ({motivoChartData.length})
+                        </button>
+                    </div>
+                }
             >
-                <div style={{ height: `${Math.max(500, topMotivoChartData.length * 55)}px` }} className="mt-7">
+                {selectedMotivos.length > 0 && (
+                    <div className="flex flex-wrap items-center gap-2 mt-2 p-3 bg-blue-50/70 rounded-xl border border-blue-100">
+                        <span className="text-[11px] font-bold text-blue-900 flex items-center gap-1.5">
+                            <Icons.Filter className="w-3.5 h-3.5 text-blue-600" />
+                            Motivos seleccionados ({selectedMotivos.length}):
+                        </span>
+                        {selectedMotivos.map((m) => (
+                            <button
+                                key={m}
+                                type="button"
+                                onClick={() => handleMotivoClick(m)}
+                                className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold bg-blue-600 text-white shadow-sm hover:bg-blue-700 transition-colors cursor-pointer"
+                                title="Click para quitar de los filtros"
+                            >
+                                {m}
+                                <Icons.X className="w-3 h-3" />
+                            </button>
+                        ))}
+                        <button
+                            type="button"
+                            onClick={() => setSelectedMotivos([])}
+                            className="text-xs font-bold text-blue-700 hover:text-blue-900 underline ml-2 cursor-pointer"
+                        >
+                            Limpiar selección
+                        </button>
+                    </div>
+                )}
+                <div style={{ height: `${Math.max(460, displayedMotivoChartData.length * 44)}px` }} className="mt-5">
                     <ResponsiveContainer width="100%" height="100%">
                         <BarChart 
                             layout="vertical" 
-                            data={topMotivoChartData} 
+                            data={displayedMotivoChartData} 
                             margin={{ top: 10, right: 100, left: 20, bottom: 10 }}
-                            barCategoryGap={10}
+                            barCategoryGap={8}
                         >
                             <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
                             <XAxis type="number" hide />
                             <YAxis 
                                 type="category" 
                                 dataKey="name" 
-                                width={220} 
-                                tick={{fontSize: 11, fill: '#64748b', fontWeight: 900}} 
+                                width={240} 
+                                tick={{fontSize: 11, fill: '#475569', fontWeight: 800}} 
                                 axisLine={false}
                                 tickLine={false}
                                 interval={0} 
@@ -578,18 +637,22 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
                             />
                             <Bar 
                                 dataKey="value" 
-                                barSize={32} 
-                                radius={[0, 16, 16, 0]} 
+                                barSize={28} 
+                                radius={[0, 14, 14, 0]} 
                                 label={{ position: 'right', fill: '#1e293b', fontSize: 12, fontWeight: 900, dx: 15 }}
-                                onClick={(data) => handleMotivoClick(data.name)}
+                                onClick={(data: any) => handleMotivoClick(data.name)}
                                 cursor="pointer"
                             >
-                                {topMotivoChartData.map((entry, index) => (
-                                    <Cell 
-                                        key={`cell-${index}`} 
-                                        fill={selectedMotivo === entry.name ? "#2563EB" : "#0f172a"} 
-                                    />
-                                ))}
+                                {displayedMotivoChartData.map((entry, index) => {
+                                    const isSelected = selectedMotivos.includes(entry.name);
+                                    const hasAnySelection = selectedMotivos.length > 0;
+                                    return (
+                                        <Cell 
+                                            key={`cell-${index}`} 
+                                            fill={isSelected ? "#2563EB" : (hasAnySelection ? "#cbd5e1" : "#0f172a")} 
+                                        />
+                                    );
+                                })}
                             </Bar>
                         </BarChart>
                     </ResponsiveContainer>
@@ -786,16 +849,21 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
                                                         const trimmedTag = normalizeString(tag);
                                                         if (!trimmedTag || ['Motivos Varios', 'Sin Motivo', 'Sin motivo'].includes(trimmedTag)) return null;
                                                         
-                                                        const isSelected = selectedMotivo === trimmedTag;
+                                                        const isSelected = selectedMotivos.includes(trimmedTag);
                                                         
                                                         return (
-                                                            <span key={tIdx} className={`text-[10px] font-semibold tracking-[0.08em] px-4 py-2 rounded-xl border transition-all ${
+                                                            <button 
+                                                                type="button"
+                                                                key={tIdx}
+                                                                onClick={() => handleMotivoClick(trimmedTag)}
+                                                                title="Click para filtrar por este motivo"
+                                                                className={`text-[10px] font-semibold tracking-[0.08em] px-4 py-2 rounded-xl border transition-all cursor-pointer ${
                                                                 isSelected 
                                                                 ? 'bg-blue-600 text-white border-blue-600 shadow-sm' 
-                                                                : 'bg-white text-slate-500 border-slate-200 group-hover:border-slate-300'
+                                                                : 'bg-white text-slate-500 border-slate-200 hover:border-blue-300 hover:text-blue-600'
                                                             }`}>
                                                                 {trimmedTag}
-                                                            </span>
+                                                            </button>
                                                         );
                                                     })}
                                                 </div>

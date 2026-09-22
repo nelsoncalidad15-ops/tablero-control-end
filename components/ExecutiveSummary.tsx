@@ -93,6 +93,40 @@ export const getOsTargetInfo = (months: string[]) => {
     };
 };
 
+export const LVS_TARGETS: Record<'Q1' | 'Q2' | 'Q3' | 'Q4', number> = {
+    Q1: 4.80,
+    Q2: 4.81,
+    Q3: 4.82,
+    Q4: 4.83
+};
+
+export const getLvsTargetInfo = (months: string[]) => {
+    if (!months || months.length === 0) {
+        return {
+            target: 4.815,
+            label: 'Anual'
+        };
+    }
+
+    const quarters = Array.from(new Set(months.map(m => MONTH_TO_QUARTER[m]).filter(Boolean))) as ('Q1' | 'Q2' | 'Q3' | 'Q4')[];
+    
+    if (quarters.length === 1) {
+        const q = quarters[0];
+        return {
+            target: LVS_TARGETS[q],
+            label: q
+        };
+    }
+
+    const total = months.reduce((sum, m) => sum + (LVS_TARGETS[MONTH_TO_QUARTER[m]] || 4.80), 0);
+    const avg = total / months.length;
+    quarters.sort();
+    return {
+        target: avg,
+        label: quarters.join('-')
+    };
+};
+
 const GaugeMetric: React.FC<{ 
     title: string, 
     value: number, 
@@ -585,10 +619,15 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
     };
   }, [filteredData, data.cemOs, data.detailedQuality, data.salesQuality, data.internalPostventa, data.quality, data.salesClaims, selectedYear, selectedMonths, selectedBranches]);
 
-  // Quarterly targets for OS
+  // Quarterly targets for OS (Ventas)
   const osTarget = useMemo(() => getOsTargetInfo(selectedMonths), [selectedMonths]);
   const osInProgressTarget = useMemo(() => getOsTargetInfo(filteredData.inProgressMonths), [filteredData.inProgressMonths]);
   const osClosedTarget = useMemo(() => getOsTargetInfo(filteredData.closedMonths), [filteredData.closedMonths]);
+
+  // Quarterly targets for LVS (Postventa)
+  const lvsTarget = useMemo(() => getLvsTargetInfo(selectedMonths), [selectedMonths]);
+  const lvsInProgressTarget = useMemo(() => getLvsTargetInfo(filteredData.inProgressMonths), [filteredData.inProgressMonths]);
+  const lvsClosedTarget = useMemo(() => getLvsTargetInfo(filteredData.closedMonths), [filteredData.closedMonths]);
 
   return (
     <DashboardFrame 
@@ -684,7 +723,7 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
                                     }}
                                     aria-pressed={isQActive}
                                     className={`executive-filter-button ${isQActive ? 'is-active' : ''}`}
-                                    title={`${q}: ${qMonths.map(m => m.slice(0, 3)).join(', ')} (Obj. OS: ${OS_TARGETS[q].toFixed(2)})`}
+                                    title={`${q}: ${qMonths.map(m => m.slice(0, 3)).join(', ')} (Obj. OS / LVS: ${OS_TARGETS[q].toFixed(2)})`}
                                 >
                                     {q} <span className="opacity-70 text-[9px] font-normal ml-1">({OS_TARGETS[q].toFixed(2)})</span>
                                 </button>
@@ -748,7 +787,10 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
                     value={metrics.avgLVS} 
                     inProgressValue={metrics.inProgressAvgLVS}
                     closedValue={metrics.closedAvgLVS}
-                    target={4.80}
+                    target={lvsTarget.target}
+                    inProgressTarget={lvsInProgressTarget.target}
+                    closedTarget={lvsClosedTarget.target}
+                    targetLabel={lvsTarget.label}
                     icon={<Icons.Settings className="w-6 h-6" />}
                     monthName={selectedMonths.length ? selectedMonths.map(m => m.slice(0, 3)).join(' / ') : 'Anual'}
                     inProgressMonthName={filteredData.inProgressMonthName}
@@ -775,7 +817,10 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
                     value={metrics.avgLVSInternal} 
                     inProgressValue={metrics.inProgressAvgLVSInternal}
                     closedValue={metrics.closedAvgLVSInternal}
-                    target={4.80}
+                    target={lvsTarget.target}
+                    inProgressTarget={lvsInProgressTarget.target}
+                    closedTarget={lvsClosedTarget.target}
+                    targetLabel={lvsTarget.label}
                     icon={<Icons.ShieldCheck className="w-6 h-6" />}
                     monthName={selectedMonths.length ? selectedMonths.map(m => m.slice(0, 3)).join(' / ') : 'Anual'}
                     inProgressMonthName={filteredData.inProgressMonthName}

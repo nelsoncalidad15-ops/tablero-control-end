@@ -339,6 +339,26 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
     const trimmed = str.trim();
     return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).toLowerCase();
   };
+  const normalizeMonthName = (val: string | null | undefined): string => {
+    if (!val) return '';
+    const firstPart = val.split(/[-/ ]/)[0].trim().toLowerCase();
+    const map: Record<string, string> = {
+      ene: 'Enero', 'ene.': 'Enero', enero: 'Enero',
+      feb: 'Febrero', 'feb.': 'Febrero', febrero: 'Febrero',
+      mar: 'Marzo', 'mar.': 'Marzo', marzo: 'Marzo',
+      abr: 'Abril', 'abr.': 'Abril', abril: 'Abril',
+      may: 'Mayo', 'may.': 'Mayo', mayo: 'Mayo',
+      jun: 'Junio', 'jun.': 'Junio', junio: 'Junio',
+      jul: 'Julio', 'jul.': 'Julio', julio: 'Julio',
+      ago: 'Agosto', 'ago.': 'Agosto', agosto: 'Agosto',
+      sep: 'Septiembre', 'sep.': 'Septiembre', sept: 'Septiembre', 'sept.': 'Septiembre', set: 'Septiembre', 'set.': 'Septiembre', septiembre: 'Septiembre',
+      oct: 'Octubre', 'oct.': 'Octubre', octubre: 'Octubre',
+      nov: 'Noviembre', 'nov.': 'Noviembre', noviembre: 'Noviembre',
+      dic: 'Diciembre', 'dic.': 'Diciembre', diciembre: 'Diciembre'
+    };
+    return map[firstPart] || val;
+  };
+
 
   const [data, setData] = useState<{
     detailedQuality: DetailedQualityRecord[];
@@ -365,33 +385,59 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
     const loadAllData = async () => {
       setLoading(LoadingState.LOADING);
       try {
-        const [detailedQualityJujuy, detailedQualitySalta, salesQuality, quality, salesClaims, cemOsJujuy, cemOsSalta, internalPostventa] = await Promise.all([
-          fetchDetailedQualityData(config.sheetUrls.detailed_quality || ''),
-          fetchDetailedQualityData(config.sheetUrls.detailed_quality_salta || ''),
-          fetchSalesQualityData(config.sheetUrls.sales_quality || ''),
-          fetchQualityData(config.sheetUrls.calidad || ''),
-          fetchSalesClaimsData(config.sheetUrls.sales_claims || ''),
-          fetchCemOsData(config.sheetUrls.cem_os || ''),
-          fetchCemOsData(config.sheetUrls.cem_os_salta || ''),
-          fetchInternalPostventaData(config.sheetUrls.internal_postventa || '')
-        ]);
+        const sources = [
+          { key: 'dqJ', label: 'LVS Jujuy', load: () => fetchDetailedQualityData(config.sheetUrls.detailed_quality || '') },
+          { key: 'dqS', label: 'LVS Salta', load: () => fetchDetailedQualityData(config.sheetUrls.detailed_quality_salta || '') },
+          { key: 'sq', label: 'Calidad Ventas', load: () => fetchSalesQualityData(config.sheetUrls.sales_quality || '') },
+          { key: 'q', label: 'Reclamos Postventa', load: () => fetchQualityData(config.sheetUrls.calidad || '') },
+          { key: 'sc', label: 'Reclamos Ventas', load: () => fetchSalesClaimsData(config.sheetUrls.sales_claims || '') },
+          { key: 'coJ', label: 'CEM Ventas Jujuy', load: () => fetchCemOsData(config.sheetUrls.cem_os || '') },
+          { key: 'coS', label: 'CEM Ventas Salta', load: () => fetchCemOsData(config.sheetUrls.cem_os_salta || '') },
+          { key: 'ip', label: 'Postventa Interna', load: () => fetchInternalPostventaData(config.sheetUrls.internal_postventa || '') },
+        ];
+
+        const results = await Promise.allSettled(sources.map(s => s.load()));
+
+        results.forEach((res, i) => {
+          if (res.status === 'rejected') {
+            console.warn(`[ExecutiveSummary] Fuente no disponible temporalmente (${sources[i].label}):`, res.reason);
+          }
+        });
+
+        const pick = <T,>(index: number): T[] => {
+          const res = results[index];
+          return res.status === 'fulfilled' ? (res.value as T[]) : [];
+        };
+
+        const detailedQualityJujuy = pick<DetailedQualityRecord>(0);
+        const detailedQualitySalta = pick<DetailedQualityRecord>(1);
+        const salesQuality = pick<SalesQualityRecord>(2);
+        const quality = pick<QualityRecord>(3);
+        const salesClaims = pick<SalesClaimsRecord>(4);
+        const cemOsJujuy = pick<CemOsRecord>(5);
+        const cemOsSalta = pick<CemOsRecord>(6);
+        const internalPostventa = pick<InternalPostventaRecord>(7);
 
         // Tag data with sucursal and default anio if missing (defaulting to 2026 as per user request)
-        const dqJ = detailedQualityJujuy.map(d => ({ ...d, sucursal: 'JUJUY', anio: d.anio || 2026 }));
-        const dqS = detailedQualitySalta.map(d => ({ ...d, sucursal: 'SALTA', anio: d.anio || 2026 }));
+        const dqJ = detailedQualityJujuy.map(d => ({ ...d, sucursal: 'JUJUY', anio: Number(d.anio) || 2026 }));
+        const dqS = detailedQualitySalta.map(d => ({ ...d, sucursal: 'SALTA', anio: Number(d.anio) || 2026 }));
         
-        const coJ = cemOsJujuy.map(d => ({ ...d, sucursal: 'JUJUY', anio: d.anio || 2026 }));
-        const coS = cemOsSalta.map(d => ({ ...d, sucursal: 'SALTA', anio: d.anio || 2026 }));
+        const coJ = cemOsJujuy.map(d => ({ ...d, sucursal: 'JUJUY', anio: Number(d.anio) || 2026 }));
+        const coS = cemOsSalta.map(d => ({ ...d, sucursal: 'SALTA', anio: Number(d.anio) || 2026 }));
 
         setData({ 
           detailedQuality: [...dqJ, ...dqS], 
-          salesQuality: salesQuality.map(d => ({ ...d, anio: d.anio || 2026, sucursal: d.sucursal ? d.sucursal.toUpperCase().trim() : 'GENERAL' })), 
-          quality: quality.map(d => ({ ...d, anio: d.anio || 2026, sucursal: d.sucursal ? d.sucursal.toUpperCase().trim() : 'GENERAL' })), 
-          salesClaims: salesClaims.map(d => ({ ...d, anio: d.anio || 2026, sucursal: d.sucursal ? d.sucursal.toUpperCase().trim() : 'GENERAL' })),
+          salesQuality: salesQuality.map(d => ({ ...d, anio: Number(d.anio) || 2026, sucursal: d.sucursal ? d.sucursal.toUpperCase().trim() : 'GENERAL' })), 
+          quality: quality.map(d => ({ ...d, anio: Number(d.anio) || 2026, sucursal: d.sucursal ? d.sucursal.toUpperCase().trim() : 'GENERAL' })), 
+          salesClaims: salesClaims.map(d => ({ ...d, anio: Number(d.anio) || 2026, sucursal: d.sucursal ? d.sucursal.toUpperCase().trim() : 'GENERAL' })),
           cemOs: [...coJ, ...coS],
-          internalPostventa: internalPostventa.map(d => ({ ...d, anio: d.anio || 2026 }))
+          internalPostventa: internalPostventa.map(d => ({ ...d, anio: Number(d.anio) || 2026 }))
         });
-        setLoading(LoadingState.SUCCESS);
+
+        const totalRecords = detailedQualityJujuy.length + detailedQualitySalta.length + salesQuality.length +
+          quality.length + salesClaims.length + cemOsJujuy.length + cemOsSalta.length + internalPostventa.length;
+
+        setLoading(totalRecords > 0 ? LoadingState.SUCCESS : LoadingState.ERROR);
       } catch (error) {
         console.error("Error loading executive summary data", error);
         setLoading(LoadingState.ERROR);
@@ -413,8 +459,9 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
   const filteredData = useMemo(() => {
     const filterByYearMonthBranch = (list: any[], months: string[] = []) => {
         return list.filter(d => {
-            const matchYear = !selectedYear || d.anio === selectedYear || (d.fecha_reclamo && d.fecha_reclamo.includes(selectedYear.toString()));
-            const matchMonth = months.length === 0 || months.includes(d.mes);
+            const matchYear = !selectedYear || Number(d.anio) === Number(selectedYear) || (d.fecha_reclamo && String(d.fecha_reclamo).includes(selectedYear.toString())) || (d.fecha_servicio && String(d.fecha_servicio).includes(selectedYear.toString()));
+            const rowMonth = normalizeMonthName(d.mes || d.mes_raw || '');
+            const matchMonth = months.length === 0 || months.includes(d.mes) || months.includes(rowMonth);
             const matchBranch = selectedBranches.length === 0 || selectedBranches.includes(d.sucursal);
             return matchYear && matchMonth && matchBranch;
         });
@@ -547,7 +594,7 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
     // 6. Evolución Anual de Reclamos (Postventa Internal)
     const postventaEvolution = MONTHS.map(m => {
         const count = countUniqueClaims(
-            data.quality.filter(d => d.mes === m && (!selectedYear || d.anio === selectedYear) && (selectedBranches.length === 0 || selectedBranches.includes(d.sucursal))),
+            data.quality.filter(d => d.mes === m && (!selectedYear || Number(d.anio) === Number(selectedYear)) && (selectedBranches.length === 0 || selectedBranches.includes(d.sucursal))),
             row => row.orden
         );
         return { name: m, value: count };
@@ -586,7 +633,7 @@ const ExecutiveSummary: React.FC<ExecutiveSummaryProps> = ({ config, onBack }) =
     // 9. Volumen Anual de Reclamos (Sales Internal)
     const salesClaimsEvolution = MONTHS.map(m => {
         const count = countUniqueClaims(
-            data.salesClaims.filter(d => d.mes === m && (!selectedYear || d.anio === selectedYear) && (selectedBranches.length === 0 || selectedBranches.includes(d.sucursal))),
+            data.salesClaims.filter(d => d.mes === m && (!selectedYear || Number(d.anio) === Number(selectedYear)) && (selectedBranches.length === 0 || selectedBranches.includes(d.sucursal))),
             row => row.nro_r
         );
         return { name: m, value: count };

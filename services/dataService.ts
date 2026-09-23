@@ -625,6 +625,19 @@ export const primeSalesQualityData = async (
 ) => primeSheetData([salesQualityKey, salesClaimsKey, cemOsKey, cemOsSaltaKey]);
 
 const fetchFromProxy = async (sheetKey: string): Promise<string> => {
+    if (!sheetKey) return '';
+
+    if (sheetKey.startsWith('http://') || sheetKey.startsWith('https://')) {
+        try {
+            const response = await fetch(sheetKey);
+            if (response.ok) {
+                return await response.text();
+            }
+        } catch (directErr) {
+            console.warn(`[DataService] Error en fetch directo para ${sheetKey}:`, directErr);
+        }
+    }
+
     // Reclamos cambia durante el día; una copia anterior en la pestaña puede
     // ocultar meses recién cargados aun después de publicar un frontend nuevo.
     const useClientCache = sheetKey !== 'sales_claims';
@@ -772,7 +785,19 @@ export const fetchDetailedQualityData = async (sheetKey: string): Promise<Detail
       const text = await fetchFromProxy(sheetKey);
       return parseDetailedQualityCSV(text);
     } catch (error) {
-      console.error("Error loading detailed quality data", error);
+      if (sheetKey === 'detailed_quality_salta' || sheetKey.includes('salta')) {
+        try {
+          const fallbackUrl = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRI_ojcN_sH7fk2qQM3KfZs1Sy4xE7AXRgXVbgYAagleUwiXZhPD5WjQROkh0PbzsHD_XDbGtB-5fX_/pub?gid=1644111701&single=true&output=csv';
+          const res = await fetch(fallbackUrl);
+          if (res.ok) {
+            const text = await res.text();
+            return parseDetailedQualityCSV(text);
+          }
+        } catch (fbError) {
+          console.error("Fallback detailed quality salta failed", fbError);
+        }
+      }
+      console.error("Error loading detailed quality data for " + sheetKey, error);
       throw error;
     }
 };

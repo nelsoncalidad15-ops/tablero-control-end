@@ -311,9 +311,13 @@ const CemOsDashboard: React.FC<CemOsDashboardProps> = ({
           avg: stats.count > 0 ? stats.totalScore / stats.count : 0
         };
       })
-      .filter(s => s.declared > 0)
-      .sort((a, b) => b.effectiveness - a.effectiveness || b.count - a.count || a.name.localeCompare(b.name, 'es'));
+      .filter(s => s.count > 0)
+      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'es'));
   }, [data, selectedMonths, selectedCodigo, selectedZona, selectedCanal]);
+
+  const shareRankingStats = useMemo(() => [...detailedRankingStats]
+    .sort((a, b) => b.effectiveness - a.effectiveness || b.count - a.count || a.name.localeCompare(b.name, 'es')),
+  [detailedRankingStats]);
 
   const rankingScope = [
     selectedMonths.length > 0 ? selectedMonths.join(', ') : 'Anual',
@@ -323,35 +327,76 @@ const CemOsDashboard: React.FC<CemOsDashboardProps> = ({
   ].join(' · ');
 
   const copyRanking = async () => {
-    const rows = detailedRankingStats.map((advisor, index) =>
-      `${index + 1}. ${advisor.name} — ${advisor.effectiveness.toFixed(1).replace('.', ',')}% (${advisor.count}/${advisor.declared})`
+    const rows = shareRankingStats.map((advisor, index) =>
+      `${index + 1}. ${advisor.name} | Activas: ${advisor.declared} | Ingresadas: ${advisor.count} | Efectividad: ${advisor.effectiveness.toFixed(1).replace('.', ',')}%`
     );
-    const content = [`*Ranking de asesores · CEM OS*`, rankingScope, 'Efectividad = respondidas / declaradas', '', ...rows].join('\n');
+    const content = [`*Ranking de asesores · CEM OS*`, rankingScope, 'Ordenado por efectividad, de mayor a menor', '', ...rows].join('\n');
     try {
       await navigator.clipboard.writeText(content);
       setShareStatus('Ranking copiado. Ya podés pegarlo en WhatsApp.');
     } catch {
-      setShareStatus('No se pudo copiar. Probá descargar la tabla.');
+      setShareStatus('No se pudo copiar. Probá descargar la imagen.');
     }
   };
 
   const downloadRanking = () => {
-    const escapeCsv = (value: string | number) => `"${String(value).replace(/"/g, '""')}"`;
-    const rows = [
-      ['Posición', 'Asesor', 'Efectividad (%)', 'Respondidas', 'Declaradas', 'Promedio OS'],
-      ...detailedRankingStats.map((advisor, index) => [
-        index + 1, advisor.name, advisor.effectiveness.toFixed(1).replace('.', ','),
-        advisor.count, advisor.declared, advisor.avg.toFixed(2).replace('.', ',')
-      ])
-    ];
-    const csv = '\uFEFF' + rows.map(row => row.map(escapeCsv).join(';')).join('\r\n');
-    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const width = 1120;
+    const rowHeight = 46;
+    const height = 184 + shareRankingStats.length * rowHeight + 34;
+    const canvas = document.createElement('canvas');
+    canvas.width = width * 2;
+    canvas.height = height * 2;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) {
+      setShareStatus('No se pudo generar la imagen.');
+      return;
+    }
+    ctx.scale(2, 2);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(0, 0, width, height);
+    ctx.fillStyle = '#001e50';
+    ctx.fillRect(0, 0, width, 12);
+    ctx.font = 'bold 27px Arial, sans-serif';
+    ctx.fillText('RANKING DE ASESORES · CEM OS', 48, 60);
+    ctx.fillStyle = '#475569';
+    ctx.font = '16px Arial, sans-serif';
+    ctx.fillText(rankingScope, 48, 91, width - 96);
+    ctx.fillText('Ordenado por efectividad, de mayor a menor', 48, 118);
+    ctx.fillStyle = '#eaf0f7';
+    ctx.fillRect(40, 139, width - 80, 45);
+    ctx.fillStyle = '#001e50';
+    ctx.font = 'bold 15px Arial, sans-serif';
+    ctx.fillText('#', 55, 168);
+    ctx.fillText('Asesor', 105, 168);
+    ctx.textAlign = 'center';
+    ctx.fillText('Activas', 710, 168);
+    ctx.fillText('Ingresadas', 850, 168);
+    ctx.fillText('Efectividad', 1005, 168);
+    shareRankingStats.forEach((advisor, index) => {
+      const y = 184 + index * rowHeight;
+      ctx.fillStyle = index % 2 === 0 ? '#ffffff' : '#f8fafc';
+      ctx.fillRect(40, y, width - 80, rowHeight);
+      ctx.fillStyle = '#1e293b';
+      ctx.font = '15px Arial, sans-serif';
+      ctx.textAlign = 'left';
+      ctx.fillText(String(index + 1), 55, y + 29);
+      ctx.fillText(advisor.name, 105, y + 29, 510);
+      ctx.textAlign = 'center';
+      ctx.fillText(String(advisor.declared), 710, y + 29);
+      ctx.fillText(String(advisor.count), 850, y + 29);
+      ctx.fillStyle = '#047857';
+      ctx.font = 'bold 15px Arial, sans-serif';
+      ctx.fillText(`${advisor.effectiveness.toFixed(1).replace('.', ',')}%`, 1005, y + 29);
+    });
+    ctx.textAlign = 'left';
+    ctx.fillStyle = '#64748b';
+    ctx.font = '13px Arial, sans-serif';
+    ctx.fillText('Efectividad = encuestas ingresadas / activas', 48, height - 12);
     const link = document.createElement('a');
-    link.href = url;
-    link.download = 'ranking-asesores-cem-os.csv';
+    link.href = canvas.toDataURL('image/png');
+    link.download = 'ranking-asesores-cem-os.png';
     link.click();
-    URL.revokeObjectURL(url);
-    setShareStatus('Tabla descargada.');
+    setShareStatus('Imagen descargada.');
   };
 
   const COLORS_CHART = ['#001E50', '#00B0F0', '#10b981', '#64748b', '#ef4444', '#334155'];
@@ -649,7 +694,7 @@ const CemOsDashboard: React.FC<CemOsDashboardProps> = ({
           </div>
           <div className="flex flex-wrap items-center gap-2 mb-6">
             <button type="button" onClick={copyRanking} disabled={detailedRankingStats.length === 0} className="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-700 disabled:opacity-40">Copiar para WhatsApp</button>
-            <button type="button" onClick={downloadRanking} disabled={detailedRankingStats.length === 0} className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50 disabled:opacity-40">Descargar tabla CSV</button>
+            <button type="button" onClick={downloadRanking} disabled={detailedRankingStats.length === 0} className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50 disabled:opacity-40">Descargar imagen</button>
             <span role="status" className="text-xs text-slate-500">{shareStatus}</span>
           </div>
           <div style={{ height: Math.max(520, detailedRankingStats.length * 34) }}>

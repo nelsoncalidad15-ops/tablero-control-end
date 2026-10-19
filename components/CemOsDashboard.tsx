@@ -90,6 +90,7 @@ const CemOsDashboard: React.FC<CemOsDashboardProps> = ({
   setSelectedZona
 }) => {
   const [activeView, setActiveView] = useState<'general' | 'ranking'>('general');
+  const [shareStatus, setShareStatus] = useState('');
 
   // Available filters (kept for chart logic)
   const availableMonths = useMemo(() => {
@@ -310,9 +311,48 @@ const CemOsDashboard: React.FC<CemOsDashboardProps> = ({
           avg: stats.count > 0 ? stats.totalScore / stats.count : 0
         };
       })
-      .filter(s => s.count > 0)
-      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'es'));
+      .filter(s => s.declared > 0)
+      .sort((a, b) => b.effectiveness - a.effectiveness || b.count - a.count || a.name.localeCompare(b.name, 'es'));
   }, [data, selectedMonths, selectedCodigo, selectedZona, selectedCanal]);
+
+  const rankingScope = [
+    selectedMonths.length > 0 ? selectedMonths.join(', ') : 'Anual',
+    selectedCodigo || 'Todas las sucursales',
+    selectedZona || 'Todas las zonas',
+    selectedCanal || 'Todos los canales'
+  ].join(' · ');
+
+  const copyRanking = async () => {
+    const rows = detailedRankingStats.map((advisor, index) =>
+      `${index + 1}. ${advisor.name} — ${advisor.effectiveness.toFixed(1).replace('.', ',')}% (${advisor.count}/${advisor.declared})`
+    );
+    const content = [`*Ranking de asesores · CEM OS*`, rankingScope, 'Efectividad = respondidas / declaradas', '', ...rows].join('\n');
+    try {
+      await navigator.clipboard.writeText(content);
+      setShareStatus('Ranking copiado. Ya podés pegarlo en WhatsApp.');
+    } catch {
+      setShareStatus('No se pudo copiar. Probá descargar la tabla.');
+    }
+  };
+
+  const downloadRanking = () => {
+    const escapeCsv = (value: string | number) => `"${String(value).replace(/"/g, '""')}"`;
+    const rows = [
+      ['Posición', 'Asesor', 'Efectividad (%)', 'Respondidas', 'Declaradas', 'Promedio OS'],
+      ...detailedRankingStats.map((advisor, index) => [
+        index + 1, advisor.name, advisor.effectiveness.toFixed(1).replace('.', ','),
+        advisor.count, advisor.declared, advisor.avg.toFixed(2).replace('.', ',')
+      ])
+    ];
+    const csv = '\uFEFF' + rows.map(row => row.map(escapeCsv).join(';')).join('\r\n');
+    const url = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8' }));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'ranking-asesores-cem-os.csv';
+    link.click();
+    URL.revokeObjectURL(url);
+    setShareStatus('Tabla descargada.');
+  };
 
   const COLORS_CHART = ['#001E50', '#00B0F0', '#10b981', '#64748b', '#ef4444', '#334155'];
 
@@ -607,6 +647,11 @@ const CemOsDashboard: React.FC<CemOsDashboardProps> = ({
               <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">{detailedRankingStats.length} asesores</span>
             </div>
           </div>
+          <div className="flex flex-wrap items-center gap-2 mb-6">
+            <button type="button" onClick={copyRanking} disabled={detailedRankingStats.length === 0} className="px-4 py-2 rounded-xl bg-slate-900 text-white text-xs font-bold hover:bg-slate-700 disabled:opacity-40">Copiar para WhatsApp</button>
+            <button type="button" onClick={downloadRanking} disabled={detailedRankingStats.length === 0} className="px-4 py-2 rounded-xl border border-slate-200 text-slate-700 text-xs font-bold hover:bg-slate-50 disabled:opacity-40">Descargar tabla CSV</button>
+            <span role="status" className="text-xs text-slate-500">{shareStatus}</span>
+          </div>
           <div style={{ height: Math.max(520, detailedRankingStats.length * 34) }}>
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={detailedRankingStats} layout="vertical" margin={{ left: 20, right: 230 }}>
@@ -742,3 +787,4 @@ const CemOsDashboard: React.FC<CemOsDashboardProps> = ({
 };
 
 export default CemOsDashboard;
+

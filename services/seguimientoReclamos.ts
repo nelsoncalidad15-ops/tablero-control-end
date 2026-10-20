@@ -102,7 +102,7 @@ const normalizeBranch = (value: unknown) => {
   if (clean.includes('jujuy') || clean === '3059') return 'Jujuy';
   if (clean.includes('salta') || clean === '3087' || clean === '3089') return 'Salta';
   if (clean.includes('express')) return 'Express';
-  if (clean.includes('movil')) return 'Taller MÃ³vil';
+  if (clean.includes('movil')) return 'Taller Móvil';
   return String(value).trim().replace(/\s+/g, ' ');
 };
 
@@ -116,7 +116,7 @@ const canonicalSector = (value: unknown) => {
   const known: Record<string, string> = {
     'servicio prestado': 'Servicio Prestado',
     'trato personal': 'Trato Personal',
-    organizacion: 'OrganizaciÃ³n',
+    organizacion: 'Organización',
     'trabajo del taller': 'Trabajo del taller',
     lavado: 'Lavado',
   };
@@ -179,7 +179,7 @@ const EXPECTED_INDEXES: Record<string, number> = {
 };
 
 export const parseReclamosRows = (values: unknown[][]) => {
-  if (!values.length) throw new Error('La pestaÃ±a Reclamos no contiene filas.');
+  if (!values.length) throw new Error('La pestaña Reclamos no contiene filas.');
   const headers = values[0].map(normalizeHeader);
   const indexes: Record<string, number | undefined> = {};
   for (const [field, aliases] of Object.entries(HEADER_ALIASES)) {
@@ -367,4 +367,3 @@ export const buildSeguimientoSummary = (
     },
   };
 };
-

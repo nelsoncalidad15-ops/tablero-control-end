@@ -42,7 +42,7 @@ const preloadModule = (loader: () => Promise<any>) => {
   void loader();
 };
 
-// â”€â”€â”€ Shared header for portal-style selection screens â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Shared header for portal-style selection screens ────────────────────────
 const SelectionHeader = ({
   area,
   onBack,
@@ -86,7 +86,7 @@ const SelectionHeader = ({
   </header>
 );
 
-// â”€â”€â”€ Shared card for portal-style selection screens â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// ─── Shared card for portal-style selection screens ───────────────────────────
 const SelectionCard = ({
   name,
   desc,
@@ -214,7 +214,7 @@ function App() {
     </motion.div>
   );
 
-  const RouteLoader = ({ label = 'Cargando mÃ³dulo...' }: { label?: string }) => (
+  const RouteLoader = ({ label = 'Cargando módulo...' }: { label?: string }) => (
     <div className="flex min-h-[50vh] items-center justify-center px-6">
       <div className="rounded-[2rem] border border-slate-200/80 bg-white/85 px-8 py-7 text-center shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur-xl">
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950 text-white shadow-[0_14px_34px_rgba(15,23,42,0.24)]">
@@ -242,7 +242,7 @@ function App() {
             <div className="w-12 h-12 bg-slate-950 rounded-2xl flex items-center justify-center text-white font-black text-xl tracking-tighter italic shadow-2xl shadow-slate-900/20">VW</div>
             <div>
               <h1 className="text-2xl font-black text-slate-950 uppercase tracking-tighter italic leading-none">{title}</h1>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] mt-2">Autosol Intelligence System â€¢ v2.5</p>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] mt-2">Autosol Intelligence System • v2.5</p>
             </div>
           </div>
         </div>
@@ -260,7 +260,7 @@ function App() {
     </header>
   );
 
-  // â”€â”€ Pantalla de selecciÃ³n: Calidad â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Pantalla de selección: Calidad ──────────────────────────────────────────
   const QualitySelection = () => (
     <PageWrapper>
       <div className="min-h-screen bg-[#f7f9fc] font-sans text-[#001e50]">
@@ -276,9 +276,9 @@ function App() {
               <span className="inline-block h-0.5 w-7 bg-[#008bc5]" />
               Centro de Calidad
             </p>
-            <h2 className="mt-3 text-[2rem] font-bold tracking-tight text-[#001e50] md:text-[2.8rem]">ElegÃ­ un mÃ³dulo</h2>
+            <h2 className="mt-3 text-[2rem] font-bold tracking-tight text-[#001e50] md:text-[2.8rem]">Elegí un módulo</h2>
             <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-[#4a6078]">
-              AccedÃ© a los mÃ³dulos de anÃ¡lisis para revisar rendimiento, satisfacciÃ³n y desvÃ­os.
+              Accedé a los módulos de análisis para revisar rendimiento, satisfacción y desvíos.
             </p>
           </motion.div>
 
@@ -289,11 +289,11 @@ function App() {
             className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
           >
             {[
-              { id: 'ventas',      path: '/calidad/ventas',               name: 'Ventas',         icon: Icons.BarChart,       iconBg: 'bg-orange-50 text-orange-600',  desc: 'SatisfacciÃ³n en salÃ³n y procesos comerciales' },
-              { id: 'postventa',   path: '/calidad/postventa_selection',  name: 'Postventa',      icon: Icons.Wrench,         iconBg: 'bg-[#edf4ff] text-[#2866b2]',  desc: 'GestiÃ³n de reclamos, taller y servicios' },
-              { id: 'pcgc',        path: '/calidad/pcgc',                 name: 'PCGC',           icon: Icons.ClipboardList,  iconBg: 'bg-indigo-50 text-indigo-600',  desc: 'Programa de Calidad de GestiÃ³n y AuditorÃ­a' },
+              { id: 'ventas',      path: '/calidad/ventas',               name: 'Ventas',         icon: Icons.BarChart,       iconBg: 'bg-orange-50 text-orange-600',  desc: 'Satisfacción en salón y procesos comerciales' },
+              { id: 'postventa',   path: '/calidad/postventa_selection',  name: 'Postventa',      icon: Icons.Wrench,         iconBg: 'bg-[#edf4ff] text-[#2866b2]',  desc: 'Gestión de reclamos, taller y servicios' },
+              { id: 'pcgc',        path: '/calidad/pcgc',                 name: 'PCGC',           icon: Icons.ClipboardList,  iconBg: 'bg-indigo-50 text-indigo-600',  desc: 'Programa de Calidad de Gestión y Auditoría' },
               { id: 'objetivos',   path: '/calidad/objetivos',            name: 'Objetivos',      icon: Icons.Target,         iconBg: 'bg-[#eaf7f0] text-[#217749]',  desc: 'Ventas y postventa desde Google Sheets' },
-              { id: 'plan_accion', path: '/calidad/plan_accion',          name: 'Plan de AcciÃ³n', icon: Icons.ClipboardCheck, iconBg: 'bg-[#eaf7f0] text-[#217749]',  desc: 'Control y verificaciÃ³n de desvÃ­os' },
+              { id: 'plan_accion', path: '/calidad/plan_accion',          name: 'Plan de Acción', icon: Icons.ClipboardCheck, iconBg: 'bg-[#eaf7f0] text-[#217749]',  desc: 'Control y verificación de desvíos' },
               { id: 'ssi_csi',     path: '/calidad/ssi-csi',              name: 'SSI / CSI',      icon: Icons.Heart,          iconBg: 'bg-indigo-50 text-indigo-600',  desc: 'Encuestas de ventas y postventa' },
             ].map((item) => (
               <SelectionCard key={item.id} name={item.name} desc={item.desc} icon={item.icon} iconBg={item.iconBg} onClick={() => navigate(item.path)} />
@@ -304,7 +304,7 @@ function App() {
     </PageWrapper>
   );
 
-  // â”€â”€ Pantalla de selecciÃ³n: Postventa â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Pantalla de selección: Postventa ────────────────────────────────────────
   const PostventaSelection = () => (
     <PageWrapper>
       <div className="min-h-screen bg-[#f7f9fc] font-sans text-[#001e50]">
@@ -313,11 +313,11 @@ function App() {
           <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} className="text-center">
             <p className="flex items-center justify-center gap-3 text-[10px] font-bold uppercase tracking-[0.22em] text-[#316487]">
               <span className="inline-block h-0.5 w-7 bg-[#008bc5]" />
-              Ãrea de Postventa
+              Área de Postventa
             </p>
             <h2 className="mt-3 text-[2rem] font-bold tracking-tight text-[#001e50] md:text-[2.8rem]">Control Postventa</h2>
             <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-[#4a6078]">
-              GestiÃ³n de taller, indicadores y facturaciÃ³n con una navegaciÃ³n clara y compacta.
+              Gestión de taller, indicadores y facturación con una navegación clara y compacta.
             </p>
           </motion.div>
 
@@ -328,11 +328,11 @@ function App() {
             className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5"
           >
             {([
-              { id: 'operativo',    path: '/postventa/operativo',    name: 'Control Operativo', icon: Icons.Wrench,      iconBg: 'bg-[#edf4ff] text-[#2866b2]', desc: 'GestiÃ³n de taller' },
-              { id: 'gestion_kpis', path: '/postventa/kpis',         name: 'GestiÃ³n KPIs',      icon: Icons.BarChart,    iconBg: 'bg-indigo-50 text-indigo-600', desc: 'Indicadores clave' },
-              { id: 'facturacion',  path: '/postventa/facturacion',  name: 'FacturaciÃ³n',       icon: Icons.Banknote,    iconBg: 'bg-amber-50  text-amber-600',   desc: 'Avance de ventas' },
-              { id: 'garantia',     path: '/postventa/garantia',     name: 'GarantÃ­a',          icon: Icons.ShieldCheck, iconBg: 'bg-[#eaf7f0] text-[#217749]',  desc: 'Lote vs PPT' },
-              { id: 'ocupacion_pvt',path: '/postventa/ocupacion-pvt',name: 'OcupaciÃ³n PVT',     icon: Icons.Users,       iconBg: 'bg-indigo-50 text-indigo-600', desc: 'OcupaciÃ³n y productividad por tÃ©cnico' },
+              { id: 'operativo',    path: '/postventa/operativo',    name: 'Control Operativo', icon: Icons.Wrench,      iconBg: 'bg-[#edf4ff] text-[#2866b2]', desc: 'Gestión de taller' },
+              { id: 'gestion_kpis', path: '/postventa/kpis',         name: 'Gestión KPIs',      icon: Icons.BarChart,    iconBg: 'bg-indigo-50 text-indigo-600', desc: 'Indicadores clave' },
+              { id: 'facturacion',  path: '/postventa/facturacion',  name: 'Facturación',       icon: Icons.Banknote,    iconBg: 'bg-amber-50  text-amber-600',   desc: 'Avance de ventas' },
+              { id: 'garantia',     path: '/postventa/garantia',     name: 'Garantía',          icon: Icons.ShieldCheck, iconBg: 'bg-[#eaf7f0] text-[#217749]',  desc: 'Lote vs PPT' },
+              { id: 'ocupacion_pvt',path: '/postventa/ocupacion-pvt',name: 'Ocupación PVT',     icon: Icons.Users,       iconBg: 'bg-indigo-50 text-indigo-600', desc: 'Ocupación y productividad por técnico' },
             ] as const).map((item) => (
               <SelectionCard key={item.id} name={item.name} desc={item.desc} icon={item.icon} iconBg={item.iconBg} onClick={() => navigate(item.path)} />
             ))}
@@ -342,20 +342,20 @@ function App() {
     </PageWrapper>
   );
 
-  // â”€â”€ Pantalla de selecciÃ³n: Calidad Postventa â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Pantalla de selección: Calidad Postventa ────────────────────────────────
   const PostventaQualitySelection = () => (
     <PageWrapper>
       <div className="min-h-screen bg-[#f7f9fc] font-sans text-[#001e50]">
-        <SelectionHeader area="Calidad Â· Postventa" onBack={() => navigate('/calidad')} backLabel="Volver a Calidad" />
+        <SelectionHeader area="Calidad · Postventa" onBack={() => navigate('/calidad')} backLabel="Volver a Calidad" />
         <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-6 px-[clamp(24px,4vw,72px)] py-8">
           <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} className="text-center">
             <p className="flex items-center justify-center gap-3 text-[10px] font-bold uppercase tracking-[0.22em] text-[#316487]">
               <span className="inline-block h-0.5 w-7 bg-[#008bc5]" />
               Calidad Postventa
             </p>
-            <h2 className="mt-3 text-[2rem] font-bold tracking-tight text-[#001e50] md:text-[2.8rem]">GestiÃ³n de Calidad</h2>
+            <h2 className="mt-3 text-[2rem] font-bold tracking-tight text-[#001e50] md:text-[2.8rem]">Gestión de Calidad</h2>
             <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-[#4a6078]">
-              Seguimiento de reclamos, refuerzo e instancias internas con presentaciÃ³n limpia y profesional.
+              Seguimiento de reclamos, refuerzo e instancias internas con presentación limpia y profesional.
             </p>
           </motion.div>
 
@@ -366,9 +366,9 @@ function App() {
             className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
           >
             {([
-              { id: 'claims',   path: '/calidad/postventa/claims',           name: 'GestiÃ³n de Reclamos', icon: Icons.AlertCircle,    iconBg: 'bg-[#edf4ff] text-[#2866b2]', desc: 'Seguimiento de quejas' },
-              { id: 'refuerzo', path: '/calidad/refuerzo',                   name: 'Refuerzo',            icon: Icons.Activity,       iconBg: 'bg-indigo-50 text-indigo-600', desc: 'AnÃ¡lisis detallado' },
-              { id: 'internal', path: '/calidad/postventa/internal_surveys', name: 'Encuesta Interna',    icon: Icons.ClipboardCheck, iconBg: 'bg-[#edf4ff] text-[#2866b2]', desc: 'SatisfacciÃ³n post-servicio' },
+              { id: 'claims',   path: '/calidad/postventa/claims',           name: 'Gestión de Reclamos', icon: Icons.AlertCircle,    iconBg: 'bg-[#edf4ff] text-[#2866b2]', desc: 'Seguimiento de quejas' },
+              { id: 'refuerzo', path: '/calidad/refuerzo',                   name: 'Refuerzo',            icon: Icons.Activity,       iconBg: 'bg-indigo-50 text-indigo-600', desc: 'Análisis detallado' },
+              { id: 'internal', path: '/calidad/postventa/internal_surveys', name: 'Encuesta Interna',    icon: Icons.ClipboardCheck, iconBg: 'bg-[#edf4ff] text-[#2866b2]', desc: 'Satisfacción post-servicio' },
               { id: 'seguimiento-reclamos', path: '/calidad/postventa/seguimiento-reclamos', name: 'Seguimiento de Reclamos', icon: Icons.PieChart, iconBg: 'bg-blue-50 text-blue-700', desc: 'Indicadores agregados, gestiones y pendientes' },
             ] as const).map((item) => (
               <SelectionCard key={item.id} name={item.name} desc={item.desc} icon={item.icon} iconBg={item.iconBg} onClick={() => navigate(item.path)} />
@@ -379,11 +379,11 @@ function App() {
     </PageWrapper>
   );
 
-  // â”€â”€ Pantalla de selecciÃ³n: Ventas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+  // ── Pantalla de selección: Ventas ───────────────────────────────────────────
   const VentasSelection = () => (
     <PageWrapper>
       <div className="min-h-screen bg-[#f7f9fc] font-sans text-[#001e50]">
-        <SelectionHeader area="Calidad Â· Ventas" onBack={() => navigate('/calidad')} backLabel="Volver a Calidad" />
+        <SelectionHeader area="Calidad · Ventas" onBack={() => navigate('/calidad')} backLabel="Volver a Calidad" />
         <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-6 px-[clamp(24px,4vw,72px)] py-8">
           <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} className="text-center">
             <p className="flex items-center justify-center gap-3 text-[10px] font-bold uppercase tracking-[0.22em] text-[#316487]">
@@ -392,7 +392,7 @@ function App() {
             </p>
             <h2 className="mt-3 text-[2rem] font-bold tracking-tight text-[#001e50] md:text-[2.8rem]">Control de Ventas</h2>
             <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-[#4a6078]">
-              Encuestas, reclamos, CEM OS y scoring de Planes de Ahorro en una navegaciÃ³n clara.
+              Encuestas, reclamos, CEM OS y scoring de Planes de Ahorro en una navegación clara.
             </p>
           </motion.div>
 
@@ -403,9 +403,9 @@ function App() {
             className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
           >
             {([
-              { id: 'surveys', path: '/calidad/ventas/surveys', name: 'Encuestas Internas',  icon: Icons.ClipboardCheck, iconBg: 'bg-[#edf4ff] text-[#2866b2]', desc: 'SatisfacciÃ³n en salÃ³n' },
-              { id: 'claims',  path: '/calidad/ventas/claims',  name: 'GestiÃ³n de Reclamos', icon: Icons.AlertCircle,    iconBg: 'bg-orange-50 text-orange-600', desc: 'Seguimiento de quejas' },
-              { id: 'cem_os',  path: '/calidad/ventas/cem_os',  name: 'CEM OS',              icon: Icons.BarChart,       iconBg: 'bg-indigo-50 text-indigo-600', desc: 'AnÃ¡lisis de satisfacciÃ³n general' },
+              { id: 'surveys', path: '/calidad/ventas/surveys', name: 'Encuestas Internas',  icon: Icons.ClipboardCheck, iconBg: 'bg-[#edf4ff] text-[#2866b2]', desc: 'Satisfacción en salón' },
+              { id: 'claims',  path: '/calidad/ventas/claims',  name: 'Gestión de Reclamos', icon: Icons.AlertCircle,    iconBg: 'bg-orange-50 text-orange-600', desc: 'Seguimiento de quejas' },
+              { id: 'cem_os',  path: '/calidad/ventas/cem_os',  name: 'CEM OS',              icon: Icons.BarChart,       iconBg: 'bg-indigo-50 text-indigo-600', desc: 'Análisis de satisfacción general' },
               { id: 'scoring', path: '/calidad/ventas/scoring', name: 'Scoring',             icon: Icons.Target,         iconBg: 'bg-[#edf4ff] text-[#2866b2]', desc: 'Planes de ahorro y recontactos' },
             ] as const).map((item) => (
               <SelectionCard key={item.id} name={item.name} desc={item.desc} icon={item.icon} iconBg={item.iconBg} onClick={() => navigate(item.path)} />
@@ -537,7 +537,7 @@ function App() {
       dashboardContent = (
         <div className="flex flex-col items-center justify-center min-h-[60vh] text-slate-400">
           <Icons.AlertTriangle className="w-12 h-12 mb-4 opacity-20" />
-          <p className="text-sm font-black uppercase tracking-widest">Ãrea no encontrada</p>
+          <p className="text-sm font-black uppercase tracking-widest">Área no encontrada</p>
           <button onClick={handleBackToPortal} className="mt-6 text-blue-600 font-black uppercase text-[10px] tracking-widest">Volver al Portal</button>
         </div>
       );
@@ -633,4 +633,3 @@ function App() {
 }
 
 export default App;
-

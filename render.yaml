@@ -78,4 +78,3 @@ services:
         sync: false
       - key: LINK_CONSUMOS_AMBIENTE
         sync: false
-

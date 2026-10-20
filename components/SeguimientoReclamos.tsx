@@ -4,24 +4,26 @@ import { Icons } from './Icon';
 import { DashboardFrame } from './DashboardUI';
 import { buildApiUrl } from '../services/apiConfig';
 
-type Filters = { year: number | null; month: number | null; branch: string; managementState: string; type: string };
+type Filters = { year: number | null; month: number | null; branch: string; advisor: string; managementState: string; type: string };
 type SummaryPayload = {
   privacyMode: 'aggregate-only';
-  options: { years: number[]; months: Array<{ number: number; name: string }>; monthsByYear: Record<number, number[]>; branches: string[]; managementStates: string[]; types: string[] };
+  options: { years: number[]; months: Array<{ number: number; name: string }>; monthsByYear: Record<number, number[]>; branches: string[]; advisors: Array<{ key: string; name: string }>; managementStates: string[]; types: string[] };
   filters: Filters;
   summary: { records: number; uniqueOrders: number; complete: number; pendingToComplete: number; observed: number; correctComplete: number; resolved: number; advisorCount: number; completionRate: number; states: { pendiente: number; incompleta: number; completa: number } };
   trends: Array<{ month: number; name: string; records: number; uniqueOrders: number; complete: number }>;
   managementByBranch: Array<{ name: string; records: number; completionRate: number; states: { pendiente: number; incompleta: number; completa: number } }>;
+  advisorBreakdown: Array<{ key: string; name: string; records: number; uniqueOrders: number; complete: number; pendingToComplete: number; observed: number; completionRate: number; states: { pendiente: number; incompleta: number; completa: number } }>;
   sectors: Array<{ name: string; value: number }>;
   reasons: Array<{ name: string; value: number }>;
   matrix: Array<{ branch: string; months: Array<{ month: number; records: number; uniqueOrders: number; pendingToComplete: number; completionRate: number }> }>;
+  advisorMatrix: Array<{ advisorKey: string; advisorName: string; months: Array<{ month: number; records: number; uniqueOrders: number; pendingToComplete: number; completionRate: number }> }>;
   aggregateTable: Array<{ year: number; month: number; branch: string; sector: string; type: string; state: string; count: number }>;
   dataQuality: { sourceRows: number; blankRows: number; invalidIdentityRows: number; invalidDateRows: number; rowsExcludedFromTimeAnalysis: number };
   availableData: { defaultYear: number | null; defaultMonth: number | null };
 };
 
 const MONTH_LABELS = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-const EMPTY_FILTERS: Filters = { year: null, month: null, branch: 'all', managementState: 'all', type: 'all' };
+const EMPTY_FILTERS: Filters = { year: null, month: null, branch: 'all', advisor: 'all', managementState: 'all', type: 'all' };
 const formatNumber = (value: number) => new Intl.NumberFormat('es-AR').format(value || 0);
 
 const SeguimientoReclamos: React.FC<{ onBack: () => void }> = ({ onBack }) => {
@@ -51,6 +53,7 @@ const SeguimientoReclamos: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         if (filters.year) query.set('year', String(filters.year));
         if (filters.month) query.set('month', String(filters.month));
         if (filters.branch !== 'all') query.set('branch', filters.branch);
+        if (filters.advisor !== 'all') query.set('advisor', filters.advisor);
         if (filters.managementState !== 'all') query.set('managementState', filters.managementState);
         if (filters.type !== 'all') query.set('type', filters.type);
         if (forceRefresh) query.set('refresh', '1');
@@ -97,10 +100,10 @@ const SeguimientoReclamos: React.FC<{ onBack: () => void }> = ({ onBack }) => {
     month: payload?.availableData.defaultMonth ?? null,
   });
 
-  const branchChart = useMemo(() => {
-    const rows = [...(payload?.managementByBranch || [])];
+  const advisorChart = useMemo(() => {
+    const rows = [...(payload?.advisorBreakdown || [])];
     return rows.sort((a, b) => branchSort === 'pending'
-      ? (b.states.pendiente + b.states.incompleta) - (a.states.pendiente + a.states.incompleta)
+      ? b.pendingToComplete - a.pendingToComplete
       : branchSort === 'completion'
         ? b.completionRate - a.completionRate
         : b.records - a.records);
@@ -119,7 +122,7 @@ const SeguimientoReclamos: React.FC<{ onBack: () => void }> = ({ onBack }) => {
       <div className="mb-3 flex items-center gap-2 text-xs font-black uppercase tracking-widest text-[#001e50]">
         <Icons.Filter className="h-4 w-4 text-blue-600" /> Filtros
       </div>
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
         <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Año
           <select value={filters.year ?? ''} onChange={event => updateFilter('year', event.target.value)} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800">
             <option value="">Todos</option>{payload?.options.years.map(year => <option key={year} value={year}>{year}</option>)}
@@ -133,6 +136,11 @@ const SeguimientoReclamos: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Sucursal
           <select value={filters.branch} onChange={event => updateFilter('branch', event.target.value)} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800">
             <option value="all">Todas</option>{payload?.options.branches.map(branch => <option key={branch} value={branch}>{branch}</option>)}
+          </select>
+        </label>
+        <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Asesor asignado
+          <select value={filters.advisor} onChange={event => updateFilter('advisor', event.target.value)} className="mt-1.5 w-full rounded-xl border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800">
+            <option value="all">Todos</option>{payload?.options.advisors.map(advisor => <option key={advisor.key} value={advisor.key}>{advisor.name}</option>)}
           </select>
         </label>
         <label className="text-[10px] font-bold uppercase tracking-wider text-slate-500">Estado de gestión
@@ -161,7 +169,7 @@ const SeguimientoReclamos: React.FC<{ onBack: () => void }> = ({ onBack }) => {
         {filtersPanel}
         <div className="flex gap-3 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-950">
           <Icons.Info className="mt-0.5 h-4 w-4 shrink-0" />
-          <p><strong>Vista agregada.</strong> Este servicio no cuenta con autenticación de usuarios. Por seguridad, no muestra asesores, órdenes, clientes, notas ni detalle de reclamos.</p>
+          <p><strong>Panel público.</strong> Nombres y resultados agregados por asesor son visibles para cualquiera con el enlace. No se muestran órdenes, clientes, notas ni detalle individual de reclamos.</p>
         </div>
 
         {error && <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-rose-200 bg-rose-50 p-4 text-sm text-rose-800"><span>{error}</span><button onClick={refresh} className="rounded-lg bg-rose-700 px-3 py-2 font-bold text-white">Reintentar</button></div>}
@@ -190,15 +198,15 @@ const SeguimientoReclamos: React.FC<{ onBack: () => void }> = ({ onBack }) => {
 
           <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
             <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-              <div className="mb-2 flex flex-wrap items-center justify-between gap-2"><div><h2 className="text-sm font-black text-[#001e50]">Gestión por sucursal</h2><p className="text-xs text-slate-500">Vista agregada; el detalle por asesor requiere autenticación</p></div>
+              <div className="mb-2 flex flex-wrap items-center justify-between gap-2"><div><h2 className="text-sm font-black text-[#001e50]">Gestión por asesor</h2><p className="text-xs text-slate-500">Registros por estado, porcentaje de completitud y observaciones de Calidad</p></div>
                 <select value={branchSort} onChange={event => setBranchSort(event.target.value as typeof branchSort)} className="rounded-lg border border-slate-200 px-2 py-1.5 text-xs"><option value="records">Ordenar: registros</option><option value="pending">Ordenar: pendientes</option><option value="completion">Ordenar: completitud</option></select>
               </div>
-              <div className="h-64">
-                {branchChart.length ? <ResponsiveContainer width="100%" height="100%"><BarChart data={branchChart} layout="vertical" margin={{ left: 8, right: 20, top: 6, bottom: 0 }}>
-                  <CartesianGrid strokeDasharray="3 3" horizontal={false} /><XAxis type="number" allowDecimals={false} /><YAxis type="category" dataKey="name" width={105} tick={{ fontSize: 11 }} /><Tooltip /><Legend />
+              <div className="max-h-[560px] overflow-y-auto"><div style={{ height: Math.max(260, advisorChart.length * 32) }}>
+                {advisorChart.length ? <ResponsiveContainer width="100%" height="100%"><BarChart data={advisorChart} layout="vertical" margin={{ left: 8, right: 20, top: 6, bottom: 0 }}>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={false} /><XAxis type="number" allowDecimals={false} /><YAxis type="category" dataKey="name" width={145} tick={{ fontSize: 10 }} /><Tooltip formatter={(value: number, name: string, item: any) => [`${formatNumber(value)} · ${item.payload.completionRate}% completo · ${item.payload.observed} observadas`, name]} /><Legend />
                   <Bar dataKey="states.completa" name="Completa" stackId="a" fill="#15966b" /><Bar dataKey="states.incompleta" name="Incompleta" stackId="a" fill="#e9a23b" /><Bar dataKey="states.pendiente" name="Pendiente" stackId="a" fill="#94a3b8" />
                 </BarChart></ResponsiveContainer> : <p className="pt-20 text-center text-sm text-slate-400">Sin registros para este filtro.</p>}
-              </div>
+              </div></div>
             </section>
 
             <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
@@ -221,15 +229,15 @@ const SeguimientoReclamos: React.FC<{ onBack: () => void }> = ({ onBack }) => {
           </div>
 
           <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm">
-            <div className="mb-3 flex flex-wrap items-end justify-between gap-3"><div><h2 className="text-sm font-black text-[#001e50]">Sucursal × Mes</h2><p className="text-xs text-slate-500">Seleccioná una celda para aplicar sus filtros y actualizar los indicadores.</p></div>
+            <div className="mb-3 flex flex-wrap items-end justify-between gap-3"><div><h2 className="text-sm font-black text-[#001e50]">Asesor × Mes</h2><p className="text-xs text-slate-500">Seleccioná una celda para filtrar por asesor y mes.</p></div>
               <select value={matrixMetric} onChange={event => setMatrixMetric(event.target.value as typeof matrixMetric)} className="rounded-lg border border-slate-200 px-3 py-2 text-xs font-semibold"><option value="records">Registros de reclamos</option><option value="uniqueOrders">OR únicas</option><option value="pendingToComplete">Pendientes de completar</option><option value="completionRate">% gestiones completas</option></select>
             </div>
             <div className="overflow-x-auto"><table className="min-w-[760px] border-separate border-spacing-1 text-xs"><thead><tr><th className="px-3 py-2 text-left text-slate-500">Sucursal</th>{MONTH_LABELS.map((name, index) => <th key={name} className="px-2 py-2 text-center text-slate-500">{name}</th>)}</tr></thead>
-              <tbody>{payload.matrix.map(row => <tr key={row.branch}><th className="whitespace-nowrap px-3 py-2 text-left font-bold text-[#001e50]">{row.branch}</th>{MONTH_LABELS.map((name, index) => {
+              <tbody>{payload.advisorMatrix.map(row => <tr key={row.advisorKey}><th className="whitespace-nowrap px-3 py-2 text-left font-bold text-[#001e50]">{row.advisorName}</th>{MONTH_LABELS.map((name, index) => {
                 const value = row.months.find(item => item.month === index + 1);
                 const metric = value?.[matrixMetric] ?? 0;
                 const alpha = matrixMetric === 'completionRate' ? Math.max(0.08, Number(metric) / 100) : Math.min(0.78, Number(metric) / Math.max(1, payload.summary.records) * 3);
-                return <td key={name}><button onClick={() => { if (!value) return; setPage(0); setFilters(current => ({ ...current, year: current.year ?? payload.availableData.defaultYear, month: index + 1, branch: row.branch })); }} title={`${row.branch}, ${name}: ${metric}`} className="h-9 w-full rounded-md border border-blue-100 text-center font-bold text-[#001e50] hover:ring-2 hover:ring-blue-400" style={{ backgroundColor: `rgba(37,99,235,${alpha})` }}>{value ? `${metric}${matrixMetric === 'completionRate' ? '%' : ''}` : '—'}</button></td>;
+                return <td key={name}><button onClick={() => { if (!value) return; setPage(0); setFilters(current => ({ ...current, year: current.year ?? payload.availableData.defaultYear, month: index + 1, advisor: row.advisorKey })); }} title={`${row.advisorName}, ${name}: ${metric}`} className="h-9 w-full rounded-md border border-blue-100 text-center font-bold text-[#001e50] hover:ring-2 hover:ring-blue-400" style={{ backgroundColor: `rgba(37,99,235,${alpha})` }}>{value ? `${metric}${matrixMetric === 'completionRate' ? '%' : ''}` : '—'}</button></td>;
               })}</tr>)}</tbody></table></div>
           </section>
 

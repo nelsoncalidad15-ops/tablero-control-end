@@ -75,9 +75,19 @@ test('aplica filtros combinados y no mezcla ejercicios', () => {
   assert.equal(nextYear.summary.uniqueOrders, 1);
 });
 
-test('la respuesta agregada no incluye nombres, órdenes ni textos de clientes', () => {
-  const response = JSON.stringify(buildSeguimientoSummary(sample, { year: 2025, month: 9 }));
-  for (const privateValue of ['CLIENTE PRIVADO', 'OTRO CLIENTE', 'ASESOR CONFIDENCIAL', '254351', 'TEXTO PRIVADO']) {
+test('muestra métricas agregadas por asesor y permite filtrar sin exponer filas personales', () => {
+  const summary = buildSeguimientoSummary(sample, { year: 2025, month: 9, advisor: 'asesor confidencial' });
+  assert.equal(summary.summary.records, 2);
+  assert.equal(summary.summary.uniqueOrders, 1);
+  assert.equal(summary.summary.complete, 1);
+  assert.equal(summary.summary.pendingToComplete, 1);
+  assert.equal(summary.advisorBreakdown.length, 1);
+  assert.equal(summary.advisorBreakdown[0].name, 'ASESOR CONFIDENCIAL');
+  assert.equal(summary.advisorBreakdown[0].records, 2);
+  assert.ok(summary.advisorMatrix.some(item => item.advisorKey === 'asesor confidencial'));
+
+  const response = JSON.stringify(summary);
+  for (const privateValue of ['CLIENTE PRIVADO', 'OTRO CLIENTE', '254351', 'TEXTO PRIVADO', 'Causa', 'Contención']) {
     assert.equal(response.includes(privateValue), false);
   }
 });

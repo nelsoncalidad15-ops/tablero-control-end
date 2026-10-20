@@ -359,6 +359,7 @@ async function startServer() {
         year: parseNumberParam(req.query.year),
         month: parseNumberParam(req.query.month),
         branch: typeof req.query.branch === "string" ? req.query.branch : undefined,
+        advisor: typeof req.query.advisor === "string" ? req.query.advisor : undefined,
         managementState: typeof req.query.managementState === "string" ? req.query.managementState as any : undefined,
         type: typeof req.query.type === "string" ? req.query.type as any : undefined,
       });

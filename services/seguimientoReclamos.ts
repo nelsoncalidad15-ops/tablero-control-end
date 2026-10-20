@@ -8,6 +8,7 @@ export type SeguimientoFilters = {
   year?: number;
   month?: number;
   branch?: string;
+  advisor?: string;
   managementState?: ManagementState | '';
   type?: 'RECLAMO' | 'QUEJA' | '';
 };
@@ -25,6 +26,7 @@ export type ReclamoRecord = {
   qualityState: 'OBSERVADA' | 'CORRECTA' | 'SIN VALIDAR';
   resolved: boolean;
   advisorKey: string;
+  advisorName: string;
 };
 
 const MONTHS = [
@@ -216,6 +218,7 @@ export const parseReclamosRows = (values: unknown[][]) => {
     }
     const date = parseArgentinaDate(cell(row, indexes.date)) || parseArgentinaDate(cell(row, indexes.month));
     if (!date) invalidDateRows++;
+    const advisorName = cell(row, indexes.advisor).replace(/\s+/g, ' ').trim().slice(0, 100);
     const managementFields = [
       cell(row, indexes.cause), cell(row, indexes.containment),
       cell(row, indexes.corrective), cell(row, indexes.solutionOwner),
@@ -238,7 +241,8 @@ export const parseReclamosRows = (values: unknown[][]) => {
       managementState,
       qualityState: qualityState(cell(row, indexes.quality)),
       resolved: yesValue(cell(row, indexes.resolved)),
-      advisorKey: normalizeText(cell(row, indexes.advisor)),
+      advisorKey: normalizeText(advisorName) || '__sin_asesor__',
+      advisorName: advisorName || 'Sin asesor asignado',
     });
   }
   return {
@@ -251,6 +255,7 @@ type AnalyticsFilters = {
   year: number | null;
   month: number | null;
   branch: string;
+  advisor: string;
   managementState: string;
   type: string;
 };
@@ -259,6 +264,7 @@ const matches = (record: ReclamoRecord, filters: AnalyticsFilters, skip: Array<k
   (skip.includes('year') || filters.year === null || record.year === filters.year) &&
   (skip.includes('month') || filters.month === null || record.month === filters.month) &&
   (skip.includes('branch') || filters.branch === 'all' || record.branch === filters.branch) &&
+  (skip.includes('advisor') || filters.advisor === 'all' || record.advisorKey === filters.advisor) &&
   (skip.includes('managementState') || filters.managementState === 'all' || record.managementState === filters.managementState) &&
   (skip.includes('type') || filters.type === 'all' || record.type === filters.type);
 
@@ -273,7 +279,7 @@ const countMetrics = (records: ReclamoRecord[]) => {
     observed: records.filter(record => record.qualityState === 'OBSERVADA').length,
     correctComplete: records.filter(record => record.managementState === 'COMPLETA' && record.qualityState === 'CORRECTA').length,
     resolved: records.filter(record => record.resolved).length,
-    advisorCount: new Set(records.map(record => record.advisorKey).filter(Boolean)).size,
+    advisorCount: new Set(records.map(record => record.advisorKey).filter(key => key && key !== '__sin_asesor__')).size,
     completionRate: records.length ? Math.round((complete / records.length) * 1000) / 10 : 0,
     states: {
       pendiente: records.filter(record => record.managementState === 'PENDIENTE').length,
@@ -306,16 +312,20 @@ export const buildSeguimientoSummary = (
   const month = Number.isInteger(requestedMonth) && requestedMonth >= 1 && requestedMonth <= 12 ? requestedMonth : null;
   const branches = [...new Set(all.map(record => record.branch))].sort((a, b) => a.localeCompare(b));
   const branch = filterInput.branch && branches.includes(filterInput.branch) ? filterInput.branch : 'all';
+  const advisors = [...new Map(all.map(record => [record.advisorKey, { key: record.advisorKey, name: record.advisorName }])).values()]
+    .sort((a, b) => a.name.localeCompare(b.name, 'es-AR'));
+  const advisor = filterInput.advisor && advisors.some(item => item.key === filterInput.advisor) ? filterInput.advisor : 'all';
   const allowedStates = ['PENDIENTE', 'INCOMPLETA', 'COMPLETA'];
   const managementState = allowedStates.includes(String(filterInput.managementState)) ? String(filterInput.managementState) : 'all';
   const type = ['RECLAMO', 'QUEJA'].includes(String(filterInput.type)) ? String(filterInput.type) : 'all';
-  const filters: AnalyticsFilters = { year, month, branch, managementState, type };
+  const filters: AnalyticsFilters = { year, month, branch, advisor, managementState, type };
   const selected = all.filter(record => matches(record, filters));
   const trendYear = (year ?? Math.max(...years, 0)) || null;
   const trendFilters = { ...filters, year: trendYear };
   const trendRecords = all.filter(record => matches(record, trendFilters, ['month']));
   const branchRecords = all.filter(record => matches(record, filters, ['branch']));
   const matrixRecords = all.filter(record => matches(record, trendFilters, ['month']));
+  const advisorMatrixRecords = all.filter(record => matches(record, trendFilters, ['advisor', 'month']));
 
   const matrix = branches.filter(name => branch === 'all' || name === branch).map(branchName => ({
     branch: branchName,
@@ -324,6 +334,21 @@ export const buildSeguimientoSummary = (
       return { month: monthNumber, ...countMetrics(group) };
     }),
   }));
+
+  const advisorBreakdown = countBy(selected, record => record.advisorKey).map(item => {
+    const group = selected.filter(record => record.advisorKey === item.name);
+    return { key: item.name, name: group[0]?.advisorName || 'Sin asesor asignado', ...countMetrics(group) };
+  });
+  const advisorMatrix = advisors
+    .filter(item => advisorMatrixRecords.some(record => record.advisorKey === item.key))
+    .map(item => ({
+      advisorKey: item.key,
+      advisorName: item.name,
+      months: (monthsByYear[trendYear ?? Math.max(...years, 0)] || []).map(monthNumber => {
+        const group = advisorMatrixRecords.filter(record => record.advisorKey === item.key && record.month === monthNumber);
+        return { month: monthNumber, ...countMetrics(group) };
+      }),
+    }));
 
   const sectorCounts = countBy(selected, record => record.sector);
   const reasonCounts = countBy(selected.flatMap(record => record.reasons.map(reason => ({ ...record, reason }))), record => (record as ReclamoRecord & { reason: string }).reason);
@@ -337,8 +362,8 @@ export const buildSeguimientoSummary = (
 
   return {
     privacyMode: 'aggregate-only' as const,
-    filters: { year, month, branch, managementState, type },
-    options: { years, months, monthsByYear, branches, managementStates: [...MANAGEMENT_STATES], types: ['RECLAMO', 'QUEJA'] },
+    filters: { year, month, branch, advisor, managementState, type },
+    options: { years, months, monthsByYear, branches, advisors, managementStates: [...MANAGEMENT_STATES], types: ['RECLAMO', 'QUEJA'] },
     summary: countMetrics(selected),
     trends: MONTHS.map((name, index) => ({
       month: index + 1,
@@ -349,6 +374,8 @@ export const buildSeguimientoSummary = (
       name,
       ...countMetrics(branchRecords.filter(record => record.branch === name)),
     })),
+    advisorBreakdown,
+    advisorMatrix,
     sectors: sectorCounts,
     reasons: reasonCounts,
     matrix,

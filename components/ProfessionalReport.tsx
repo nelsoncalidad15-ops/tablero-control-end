@@ -288,26 +288,6 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
     const avgInternalAses = averageSalesQualityScore('cem_asesoramiento');
     const avgInternalVehiculo = averageSalesQualityScore('estado_vehiculo');
 
-    // Adherencia a Procesos (Internal Ventas)
-    const calculateProcessMetric = (data: any[], key: string) => {
-        let yes = 0;
-        let no = 0;
-        data.forEach(d => {
-            const val = String(d[key] || '').toLowerCase().trim();
-            if (val === 'si' || val === 'sí') yes++;
-            else if (val === 'no') no++;
-        });
-        const total = yes + no;
-        return total > 0 ? (yes / total) * 100 : null;
-    };
-
-    const processMetrics = [
-        { name: 'Prueba Manejo', value: calculateProcessMetric(internalVentasData, 'prueba_manejo') },
-        { name: 'Financiación', value: calculateProcessMetric(internalVentasData, 'ofrecimiento_financiacion') },
-        { name: 'Toma Usados', value: calculateProcessMetric(internalVentasData, 'toma_usados') },
-        { name: 'App Mi VW', value: calculateProcessMetric(internalVentasData, 'app_mi_vw') }
-    ];
-
     // 3. Reclamos Ventas - Month - 1
     const claimsVentasData = data.salesClaims.filter(d => d.mes === reportMonths.mMinus1 && branchFilter(d));
     const totalClaimsVentas = claimsVentasData.length;
@@ -442,8 +422,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
             avgTrato: avgInternalTrato,
             avgOrg: avgInternalOrg,
             avgAses: avgInternalAses,
-            avgVehiculo: avgInternalVehiculo,
-            processMetrics
+            avgVehiculo: avgInternalVehiculo
         },
         claimsVentas: {
             total: totalClaimsVentas,
@@ -853,7 +832,7 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                     <div className="px-6 py-2 bg-amber-600 text-white text-xs font-black uppercase tracking-widest rounded-full shadow-xl shadow-amber-600/20">AUDITORÍA INTERNA</div>
                 </div>
 
-                <div className="flex flex-1 flex-col gap-5 min-h-0">
+                <div className="flex flex-1 flex-col justify-center min-h-0">
                     <div className="grid grid-cols-6 gap-3">
                         <div className="col-span-2 flex items-center justify-between rounded-2xl bg-[#001e50] px-6 py-5 text-white shadow-lg shadow-[#001e50]/15">
                             <div>
@@ -878,52 +857,6 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
                         ))}
                     </div>
 
-                    <div className="grid flex-1 min-h-0 grid-cols-[1.35fr_.65fr] gap-5">
-                        <div className="flex min-h-0 flex-col rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-                            <div className="flex items-start justify-between">
-                                <div>
-                                    <p className="text-[8px] font-bold uppercase tracking-[.22em] text-blue-600">Adherencia comercial</p>
-                                    <h3 className="mt-1 text-lg font-bold tracking-tight text-[#001e50]">Cumplimiento de procesos clave</h3>
-                                </div>
-                                <span className="rounded-full bg-blue-50 px-3 py-1.5 text-[8px] font-bold uppercase tracking-wider text-blue-700">{reportMonths.mMinus1}</span>
-                            </div>
-                            <div className="mt-3 flex-1 min-h-0">
-                                {filteredMetrics.internalVentas.processMetrics.every(metric => metric.value === null) ? (
-                                    <div className="flex h-full items-center justify-center text-sm text-slate-500">Sin respuestas sobre procesos en este período</div>
-                                ) : (
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <BarChart data={filteredMetrics.internalVentas.processMetrics} layout="vertical" margin={{ top: 4, right: 35, left: 20, bottom: 0 }}>
-                                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e2e8f0" />
-                                        <XAxis type="number" domain={[0, 100]} axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#64748b' }} />
-                                        <YAxis type="category" dataKey="name" width={110} axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 700, fill: '#334155' }} />
-                                        <Tooltip formatter={(value: number) => [`${value.toFixed(1)}%`, 'Cumplimiento']} />
-                                        <Bar dataKey="value" fill="#2563eb" radius={[0, 7, 7, 0]} barSize={20}>
-                                            <LabelList dataKey="value" position="right" formatter={(value: number) => `${value.toFixed(0)}%`} style={{ fill: '#001e50', fontSize: 10, fontWeight: 800 }} />
-                                        </Bar>
-                                    </BarChart>
-                                </ResponsiveContainer>
-                                )}
-                            </div>
-                        </div>
-
-                        <div className="flex flex-col rounded-2xl bg-slate-50 p-5 ring-1 ring-slate-200">
-                            <p className="text-[8px] font-bold uppercase tracking-[.22em] text-slate-400">Lectura ejecutiva</p>
-                            <h3 className="mt-2 text-xl font-bold text-[#001e50]">{filteredMetrics.internalVentas.total > 0 ? 'Resultados del período' : 'Sin respuestas'}</h3>
-                            <p className="mt-3 text-xs leading-5 text-slate-600">{filteredMetrics.internalVentas.total > 0
-                                ? `Respuestas con calificaciones: ${filteredMetrics.internalVentas.total}. Satisfacción general: ${formatSurveyScore(filteredMetrics.internalVentas.avgOS)}${filteredMetrics.internalVentas.avgOS > 0 ? ' sobre 5' : ''}.`
-                                : 'No hay respuestas con calificaciones para el período y la sucursal seleccionados.'}</p>
-                            <div className="mt-auto grid grid-cols-2 gap-3">
-                                <div className="rounded-xl bg-white p-4 ring-1 ring-slate-200">
-                                    <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Respuestas</p>
-                                    <p className="mt-1 text-2xl font-black text-[#001e50]">{filteredMetrics.internalVentas.total}</p>
-                                </div>
-                                <div className="rounded-xl bg-white p-4 ring-1 ring-slate-200">
-                                    <p className="text-[8px] font-bold uppercase tracking-wider text-slate-400">Período</p>
-                                    <p className="mt-1 text-sm font-black uppercase text-[#001e50]">{reportMonths.mMinus1} {closedMonthYear}</p>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
                 </div>
             </div>
 
@@ -1330,4 +1263,5 @@ const ProfessionalReport: React.FC<ProfessionalReportProps> = ({ config, onBack 
 };
 
 export default ProfessionalReport;
+
 

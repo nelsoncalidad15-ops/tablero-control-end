@@ -4,6 +4,7 @@ import cors from "cors";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
+import { createHmac, createHash, timingSafeEqual } from "crypto";
 import { google } from "googleapis";
 import { buildSeguimientoSummary, parseReclamosRows, RECLAMOS_SHEET_TITLE, SEGUIMIENTO_RECLAMOS_KEY } from "./services/seguimientoReclamos.js";
 
@@ -19,6 +20,8 @@ const DATA_MAX_REQUESTS_PER_MINUTE = Math.min(
   Math.max(Number(process.env.DATA_MAX_REQUESTS_PER_MINUTE) || 180, 30),
   600
 );
+const AUTH_SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const AUTH_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 
 type CachedSheetMetadata = {
   title: string;
@@ -39,6 +42,7 @@ type RateLimitEntry = {
 
 async function startServer() {
   const app = express();
+  app.use(express.json({ limit: "2kb" }));
   const sheetCache = new Map<string, CachedSheetEntry>();
   const sheetMetadataCache = new Map<string, CachedSheetMetadata>();
   const dataRequestAttempts = new Map<string, RateLimitEntry>();
@@ -62,8 +66,8 @@ async function startServer() {
       }
       return callback(new Error(`Origin not allowed by CORS: ${origin}`));
     },
-    methods: ["GET", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "X-Requested-With", "Accept"],
+    methods: ["GET", "POST", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "X-Requested-With", "Accept", "Authorization"],
     credentials: false,
   }));
   app.use((req, res, next) => {
@@ -145,6 +149,65 @@ async function startServer() {
   const hasGoogleCredentials = Boolean(
     process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && process.env.GOOGLE_PRIVATE_KEY
   );
+  const dashboardPassword = process.env.GLOBAL_PASSWORD || "";
+  const passwordProtectionEnabled = process.env.IS_PASSWORD_PROTECTED === "true" && Boolean(dashboardPassword);
+  const authSigningSecret = dashboardPassword;
+  const loginAttempts = new Map<string, RateLimitEntry>();
+  const signSession = (expiresAt: number) => {
+    const payload = Buffer.from(JSON.stringify({ exp: expiresAt })).toString("base64url");
+    const signature = createHmac("sha256", authSigningSecret).update(payload).digest("base64url");
+    return `${payload}.${signature}`;
+  };
+  const isValidSession = (token: string | undefined) => {
+    if (!passwordProtectionEnabled || !token) return !passwordProtectionEnabled;
+    const [payload, suppliedSignature, extra] = token.split(".");
+    if (!payload || !suppliedSignature || extra) return false;
+    const expectedSignature = createHmac("sha256", authSigningSecret).update(payload).digest();
+    let actualSignature: Buffer;
+    try { actualSignature = Buffer.from(suppliedSignature, "base64url"); } catch { return false; }
+    if (actualSignature.length !== expectedSignature.length || !timingSafeEqual(actualSignature, expectedSignature)) return false;
+    try {
+      const parsed = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
+      return Number.isSafeInteger(parsed.exp) && parsed.exp > Date.now();
+    } catch { return false; }
+  };
+  const getBearerToken = (req: express.Request) => {
+    const value = req.header("authorization") || "";
+    return value.startsWith("Bearer ") ? value.slice(7) : undefined;
+  };
+  const requireDashboardAuth: express.RequestHandler = (req, res, next) => {
+    if (!passwordProtectionEnabled || isValidSession(getBearerToken(req))) return next();
+    return res.status(401).json({ error: "La sesiÃ³n venciÃ³. Ingrese nuevamente al tablero.", code: "AUTH_REQUIRED" });
+  };
+
+  app.post("/api/auth/login", (req, res) => {
+    if (!passwordProtectionEnabled) return res.json({ enabled: false });
+    const now = Date.now();
+    const clientKey = getClientKey(req);
+    const existing = loginAttempts.get(clientKey);
+    if (existing && existing.resetAt > now && existing.count >= 10) {
+      res.setHeader("Retry-After", String(Math.ceil((existing.resetAt - now) / 1000)));
+      return res.status(429).json({ error: "Demasiados intentos. Espere unos minutos y vuelva a intentar." });
+    }
+    const attempt = existing && existing.resetAt > now ? existing : { count: 0, resetAt: now + AUTH_RATE_LIMIT_WINDOW_MS };
+    attempt.count += 1;
+    loginAttempts.set(clientKey, attempt);
+    const submittedPassword = typeof req.body?.password === "string" ? req.body.password : "";
+    const expectedHash = createHash("sha256").update(dashboardPassword).digest();
+    const submittedHash = createHash("sha256").update(submittedPassword).digest();
+    if (!timingSafeEqual(expectedHash, submittedHash)) {
+      return res.status(401).json({ error: "La contraseÃ±a no es correcta." });
+    }
+    loginAttempts.delete(clientKey);
+    const expiresAt = now + AUTH_SESSION_TTL_MS;
+    return res.json({ token: signSession(expiresAt), expiresAt });
+  });
+
+  app.get("/api/auth/verify", (req, res) => {
+    if (!passwordProtectionEnabled) return res.json({ enabled: false, valid: true });
+    const valid = isValidSession(getBearerToken(req));
+    return res.status(valid ? 200 : 401).json({ enabled: true, valid });
+  });
 
   const getClientKey = (req: express.Request) => String(req.ip || "unknown").slice(0, 200);
 
@@ -305,15 +368,15 @@ async function startServer() {
 
   // Internal source key: intentionally aggregate-only. It is not included in
   // sheetUrls/allowedSheetNames, so the generic CSV endpoint cannot expose rows.
-  app.get(`/api/data/${SEGUIMIENTO_RECLAMOS_KEY}`, limitDataRequests, async (req, res) => {
+  app.get(`/api/data/${SEGUIMIENTO_RECLAMOS_KEY}`, requireDashboardAuth, limitDataRequests, async (req, res) => {
     if (!seguimientoReclamosSource) {
       return res.status(503).json({ error: "Falta configurar LINK_SEGUIMIENTO_RECLAMOS_PV en el backend." });
     }
     if (!hasGoogleCredentials) {
-      return res.status(503).json({ error: "La conexión segura a Google Sheets no está configurada." });
+      return res.status(503).json({ error: "La conexiÃ³n segura a Google Sheets no estÃ¡ configurada." });
     }
     if (!isSpreadsheetId(seguimientoReclamosSource) && !isAllowedSheetUrl(seguimientoReclamosSource)) {
-      return res.status(400).json({ error: "El enlace configurado para Seguimiento de Reclamos no es válido." });
+      return res.status(400).json({ error: "El enlace configurado para Seguimiento de Reclamos no es vÃ¡lido." });
     }
 
     const sourceInfo = extractSheetInfo(seguimientoReclamosSource);
@@ -338,7 +401,7 @@ async function startServer() {
           item.properties?.title === RECLAMOS_SHEET_TITLE
         );
         if (!targetSheet) {
-          return res.status(404).json({ error: `No existe la pestaña "${RECLAMOS_SHEET_TITLE}" en la planilla configurada.` });
+          return res.status(404).json({ error: `No existe la pestaÃ±a "${RECLAMOS_SHEET_TITLE}" en la planilla configurada.` });
         }
 
         const result: any = await withGoogleTimeout(sheets.spreadsheets.values.get({
@@ -346,7 +409,7 @@ async function startServer() {
           range: `'${RECLAMOS_SHEET_TITLE}'!A:AG`,
         }));
         values = result.data.values || [];
-        if (!values.length) return res.status(502).json({ error: "La pestaña Reclamos está vacía o no se pudo leer." });
+        if (!values.length) return res.status(502).json({ error: "La pestaÃ±a Reclamos estÃ¡ vacÃ­a o no se pudo leer." });
         seguimientoReclamosCache = { source: seguimientoReclamosSource, rows: values, cachedAt: Date.now() };
       }
 
@@ -369,11 +432,11 @@ async function startServer() {
       return res.json(summary);
     } catch (error: any) {
       console.error("[Seguimiento Reclamos] Error leyendo indicadores agregados:", error?.message || error);
-      return res.status(502).json({ error: "No se pudo leer la pestaña Reclamos. Verifique que la cuenta de servicio tenga permiso de lectura y que los encabezados estén completos." });
+      return res.status(502).json({ error: "No se pudo leer la pestaÃ±a Reclamos. Verifique que la cuenta de servicio tenga permiso de lectura y que los encabezados estÃ©n completos." });
     }
   });
 
-  app.get("/api/data/:sheetName", limitDataRequests, async (req, res) => {
+  app.get("/api/data/:sheetName", requireDashboardAuth, limitDataRequests, async (req, res) => {
     const sheetName = String(req.params.sheetName || "");
     let url = sheetUrls[sheetName];
 
@@ -455,7 +518,7 @@ async function startServer() {
       status: "ok", 
       environment: process.env.NODE_ENV || "development",
       time: new Date().toISOString(),
-      passwordProtected: false
+      passwordProtected: passwordProtectionEnabled
     });
   });
 
@@ -490,4 +553,5 @@ async function startServer() {
 startServer().catch(err => {
   console.error("Failed to start server:", err);
 });
+
 

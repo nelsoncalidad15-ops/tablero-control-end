@@ -13,7 +13,9 @@ services:
       - key: ALLOWED_ORIGINS
         value: https://nelsoncalidad15-ops.github.io,http://localhost:3000
       - key: IS_PASSWORD_PROTECTED
-        value: false
+        value: true
+      - key: GLOBAL_PASSWORD
+        sync: false
       - key: GOOGLE_SERVICE_ACCOUNT_EMAIL
         sync: false
       - key: GOOGLE_PRIVATE_KEY
@@ -78,3 +80,4 @@ services:
         sync: false
       - key: LINK_CONSUMOS_AMBIENTE
         sync: false
+

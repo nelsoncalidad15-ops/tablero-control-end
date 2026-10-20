@@ -1,3 +1,6 @@
+Warning: truncated output (original token count: 31062)
+Total output lines: 2803
+
 
 /// <reference types="vite/client" />
 import Papa from 'papaparse';
@@ -5,6 +8,7 @@ import { AutoRecord, QualityRecord, SalesQualityRecord, SalesClaimsRecord, Detai
 import type { EnvironmentalConsumptionRecord } from '../types';
 import { MOCK_DATA } from '../constants';
 import { buildApiUrl } from './apiConfig';
+import { getDashboardToken } from './auth';
 
 // --- Helper Functions ---
 
@@ -323,7 +327,7 @@ const setCachedCsv = (sheetKey: string, text: string) => {
                 data: text
             }));
         } catch {
-            // Ignorar quota exceeded o modo incógnito
+            // Ignorar quota exceeded o modo incÃ³gnito
         }
     }
 };
@@ -521,7 +525,7 @@ const MOCK_INTERNAL_POSTVENTA_DATA: InternalPostventaRecord[] = [
         fecha_fin: '12/02/2026',
         mes: 'Febrero',
         anio: 2026,
-        servicio: 'Diagnóstico',
+        servicio: 'DiagnÃ³stico',
         dominio: 'BB222CC',
         telefono: '3874000002',
         email: 'cliente2@example.com',
@@ -550,21 +554,21 @@ const MOCK_INTERNAL_POSTVENTA_DATA: InternalPostventaRecord[] = [
 ];
 
 const MOCK_HR_GRADES_DATA: CourseGrade[] = [
-    { id: 'hrg-1', unidad: 'Jujuy', colaborador: 'Ana Pérez', area: 'Administración', funcion: 'Analista', icf: 92, courses: { induccion: 85, seguridad: 90 } },
-    { id: 'hrg-2', unidad: 'Jujuy', colaborador: 'Luis Gómez', area: 'Taller', funcion: 'Técnico', icf: 88, courses: { induccion: 82, seguridad: 86 } },
+    { id: 'hrg-1', unidad: 'Jujuy', colaborador: 'Ana PÃ©rez', area: 'AdministraciÃ³n', funcion: 'Analista', icf: 92, courses: { induccion: 85, seguridad: 90 } },
+    { id: 'hrg-2', unidad: 'Jujuy', colaborador: 'Luis GÃ³mez', area: 'Taller', funcion: 'TÃ©cnico', icf: 88, courses: { induccion: 82, seguridad: 86 } },
     { id: 'hrg-3', unidad: 'Salta', colaborador: 'Marta Ruiz', area: 'Comercial', funcion: 'Asesora', icf: 95, courses: { induccion: 92, seguridad: 96 } },
     { id: 'hrg-4', unidad: 'Santa Fe', colaborador: 'Diego Soto', area: 'Posventa', funcion: 'Supervisor', icf: 89, courses: { induccion: 84, seguridad: 88 } },
 ];
 
 const MOCK_HR_RELATORIO_DATA: RelatorioItem[] = [
-    { id: 'rel-1', curso: 'Liderazgo', nombre: 'Ana Pérez', unidad: 'Jujuy', area: 'Administración', fechaRegistro: '2026-03-12', referenciaMeses: 'Marzo', clase: 'Clase 1', claseFecha: '2026-03-20', claseHora: '10:00', modalidad: 'Virtual', linkCurso: '' },
-    { id: 'rel-2', curso: 'Seguridad', nombre: 'Luis Gómez', unidad: 'Jujuy', area: 'Taller', fechaRegistro: '2026-03-14', referenciaMeses: 'Marzo', clase: 'Clase 2', claseFecha: '2026-03-22', claseHora: '14:00', modalidad: 'Presencial', linkCurso: '' },
+    { id: 'rel-1', curso: 'Liderazgo', nombre: 'Ana PÃ©rez', unidad: 'Jujuy', area: 'AdministraciÃ³n', fechaRegistro: '2026-03-12', referenciaMeses: 'Marzo', clase: 'Clase 1', claseFecha: '2026-03-20', claseHora: '10:00', modalidad: 'Virtual', linkCurso: '' },
+    { id: 'rel-2', curso: 'Seguridad', nombre: 'Luis GÃ³mez', unidad: 'Jujuy', area: 'Taller', fechaRegistro: '2026-03-14', referenciaMeses: 'Marzo', clase: 'Clase 2', claseFecha: '2026-03-22', claseHora: '14:00', modalidad: 'Presencial', linkCurso: '' },
     { id: 'rel-3', curso: 'Calidad', nombre: 'Marta Ruiz', unidad: 'Salta', area: 'Comercial', fechaRegistro: '2026-03-18', referenciaMeses: 'Marzo', clase: 'Clase 1', claseFecha: '2026-03-25', claseHora: '09:30', modalidad: 'Virtual', linkCurso: '' },
 ];
 
 const MOCK_HR_CONTACTS_DATA: CollaboratorContact[] = [
-    { nombre: 'Ana Pérez', telefono: '3884000001' },
-    { nombre: 'Luis Gómez', telefono: '3884000002' },
+    { nombre: 'Ana PÃ©rez', telefono: '3884000001' },
+    { nombre: 'Luis GÃ³mez', telefono: '3884000002' },
     { nombre: 'Marta Ruiz', telefono: '3874000003' },
 ];
 
@@ -574,10 +578,14 @@ const MOCK_HR_PHASES_DATA: CoursePhase[] = [
     { curso: 'Calidad', fase: 'Final', modalidad: 'Virtual' },
 ];
 
-const buildRequestHeaders = (): Record<string, string> => ({
-    'Accept': 'application/json',
-    'X-Requested-With': 'XMLHttpRequest',
-});
+const buildRequestHeaders = (): Record<string, string> => {
+    const token = getDashboardToken();
+    return {
+        'Accept': 'application/json',
+        'X-Requested-With': 'XMLHttpRequest',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+};
 
 const wakeBackendIfNeeded = async () => {
     const apiBase = buildApiUrl('');
@@ -638,8 +646,8 @@ const fetchFromProxy = async (sheetKey: string): Promise<string> => {
         }
     }
 
-    // Reclamos cambia durante el día; una copia anterior en la pestaña puede
-    // ocultar meses recién cargados aun después de publicar un frontend nuevo.
+    // Reclamos cambia durante el dÃ­a; una copia anterior en la pestaÃ±a puede
+    // ocultar meses reciÃ©n cargados aun despuÃ©s de publicar un frontend nuevo.
     const useClientCache = sheetKey !== 'sales_claims';
     const cachedText = useClientCache ? getCachedCsv(sheetKey) : null;
     if (cachedText) {
@@ -994,7 +1002,7 @@ const parseAutoCSV = (csvText: string): AutoRecord[] => {
         record.servicios_diarios = parseNumber(value);
       } else if (header.includes('obj') && header.includes('mensual')) {
         record.objetivo_mensual = parseNumber(value);
-      } else if ((header.includes('dia') || header.includes('días')) && header.includes('lab')) {
+      } else if ((header.includes('dia') || header.includes('dÃ­as')) && header.includes('lab')) {
         record.dias_laborables = parseNumber(value);
       }
       record[header] = value;
@@ -1003,1037 +1011,7 @@ const parseAutoCSV = (csvText: string): AutoRecord[] => {
     if (!record.mes) record.mes = 'Unknown';
     else record.mes = normalizeMonth(record.mes);
 
-    if (!record.anio) record.anio = 2026;
-    record.sucursal = normalizeBranch(record.sucursal);
-
-    // Initial Defaults
-    if (record.ppt_diarios === undefined) record.ppt_diarios = 0;
-    if (record.avance_ppt === undefined) record.avance_ppt = 0;
-    if (record.servicios_diarios === undefined) record.servicios_diarios = 0;
-    if (record.servicios_totales === undefined) record.servicios_totales = 0;
-    if (record.objetivo_mensual === undefined) record.objetivo_mensual = 0;
-    if (record.dias_laborables === undefined) record.dias_laborables = 0;
-
-    records.push(record as AutoRecord);
-  }
-  return records;
-};
-
-const parseQualityCSV = (csvText: string): QualityRecord[] => {
-    const rows = parseCSV(csvText);
-    if (rows.length < 2) return [];
-
-    const headers = rows[0].map(cleanHeader);
-    const companyIdx = headers.indexOf('nombre de la compania');
-    const apellidoIdx = headers.indexOf('apellido');
-    const nombreIdx = headers.indexOf('nombre');
-
-    const records: QualityRecord[] = [];
-
-    for (let i = 1; i < rows.length; i++) {
-      const currentLine = rows[i];
-      if (currentLine.length < headers.length - 1) continue;
-
-      const record: any = { id: `q-row-${i}` };
-
-      headers.forEach((header, index) => {
-        const value = currentLine[index] || '';
-
-        // Strict mapping based on user feedback
-        if (header.includes('sucursal') || header.includes('taller')) record.sucursal = value;
-        else if (header.includes('mes')) record.mes = value;
-        else if (header.includes('anio') || header.includes('ano')) record.anio = parseInt(value) || 2026;
-        else if (header === 'cliente') record.cliente = value;
-        else if (header === 'or nombre') record.cliente_nombre = value;
-        else if (header === 'cli telefo') record.telefono = value;
-        else if (header === 'au nombre') record.vehiculo = value;
-        else if (header.includes('sector')) record.sector = value;
-        else if (header.includes('motivos')) record.motivo = value;
-        else if (header.includes('responsable de')) record.responsable = value;
-        else if (header.includes('asesor asignado') || header === 'asesor') record.asesor = value;
-        else if (header === 'op nombre') record.asesor = value;
-        else if (header === 'tecnicos') record.responsable = value;
-        else if (header === 'nota reclamo') record.nota_reclamo = value;
-        else if (header === 'trabajo del taller' && !record.nota_reclamo) record.nota_reclamo = value;
-        else if (header === 'reclamo / observacion' || header === 'reclamo observacion') record.observacion = value;
-        else if (header === 'observaciones' && !record.observacion) record.observacion = value;
-        else if (header === 'observacion de resolucion') record.observacion_resolucion = value;
-        else if (header.includes('observación') || header.includes('observacion')) {
-            if (!header.includes('resolucion') && !record.observacion && value) {
-                record.observacion = value;
-            }
-        }
-        else if (header.includes('estado')) record.estado = value;
-        else if (header === 'orden' || header === 'nro' || header === 'or') record.orden = value;
-        else if (header === 'or codigo') record.orden = value;
-
-        else if (header.includes('resuelto')) record.resuelto = value;
-        else if (header.includes('resolucion') || header.includes('resolución')) record.observacion_resolucion = value;
-        else if (header.includes('categorizacion')) record.categorizacion = value;
-        else if (header.includes('causa raiz')) record.causa_raiz = value;
-        else if (header.includes('accion contencion')) record.accion_contencion = value;
-        else if (header.includes('accion correctiva')) record.accion_correctiva = value;
-
-        record[header] = value;
-      });
-
-      // Client name construction
-      if (!record.cliente) {
-          const company = companyIdx !== -1 ? currentLine[companyIdx] : '';
-          const ape = apellidoIdx !== -1 ? currentLine[apellidoIdx] : '';
-          const nom = nombreIdx !== -1 ? currentLine[nombreIdx] : '';
-
-          if (company && company.trim() !== '') {
-              record.cliente = company.trim();
-          } else if (ape || nom) {
-              record.cliente = `${ape} ${nom}`.trim();
-          } else if (record.cliente_nombre || record.telefono || record.vehiculo) {
-              record.cliente = [record.cliente_nombre, record.telefono, record.vehiculo].filter(Boolean).join(' | ');
-          } else {
-              record.cliente = 'Cliente Desconocido';
-          }
-      }
-
-      if (!record.observacion && record['reclamo / observación']) record.observacion = record['reclamo / observación'];
-
-      if (!record.observacion && record.observaciones) record.observacion = record.observaciones;
-
-      if (!record.sector) {
-          const sectorFallbacks = [
-              { label: 'Servicio prestado', observation: record.obs_servicio_prestado, score: record['servicio prestado'] },
-              { label: 'Trato personal', observation: record.obs_trato_personal, score: record['trato personal'] },
-              { label: 'Organizacion', observation: record.obs_organizacion, score: record.organizacion },
-              { label: 'Trabajo del taller', observation: record.obs_trabajo_taller, score: record.nota_reclamo || record['trabajo del taller'] },
-              { label: 'Lavado', observation: record.obs_lavado, score: record.lavado },
-          ];
-
-          const observedSector = sectorFallbacks.find(item => String(item.observation || '').trim() !== '');
-          const scoredSector = sectorFallbacks.find(item => {
-              const score = parseNumber(String(item.score || ''));
-              return score > 0 && score < 5;
-          });
-
-          record.sector = observedSector?.label || scoredSector?.label || record.sector;
-      }
-
-      if (!record.sucursal) record.sucursal = 'General';
-      else record.sucursal = normalizeBranch(record.sucursal);
-
-      if (!record.mes) record.mes = pickFirstValidMonth(record['fecha reclamo/ queja'], record['or fecfin'], record['or fecini'], record['created at']);
-      if (!record.mes) record.mes = 'Unknown';
-      else record.mes = normalizeMonth(record.mes); 
-
-      if (!record.anio) record.anio = 2026; 
-      if (!record.sector) record.sector = 'Sin Sector';
-      if (!record.motivo) record.motivo = 'Sin Motivo';
-
-      if (record.orden) record.orden = record.orden.toString().trim();
-
-      records.push(record as QualityRecord);
-    }
-    return records;
-  };
-
-const parseSatisfactionSurveyCSV = (csvText: string): SatisfactionSurveyRecord[] => {
-    const rows = parseCSV(csvText);
-    if (rows.length < 2) return [];
-
-    const headers = rows[0].map(cleanHeader);
-    const records: SatisfactionSurveyRecord[] = [];
-
-    for (let index = 1; index < rows.length; index++) {
-      const row = rows[index];
-      if (row.every(value => !String(value || '').trim())) continue;
-
-      const record: any = { id: `satisfaction-row-${index}` };
-      headers.forEach((header, columnIndex) => {
-        const value = String(row[columnIndex] || '').trim();
-        record[header] = value;
-
-        if (header === 'ano' || header === 'anio') record.anio = parseInt(value, 10) || 0;
-        else if (header.includes('provincia')) record.provincia = value;
-        else if (header.includes('semestre')) record.semestre = value;
-        else if (header === 'codid' || header === 'cod id' || header.includes('codigo id')) record.cod_id = value;
-        else if (header === 'ce' || header.includes('codigo conces')) record.ce = value;
-        else if (header === 'ola') record.ola = value;
-        else if (header.includes('satis') && header.includes('general')) record.satisfaccion_general = parseScore(value);
-        else if (header.startsWith('recom') || header.includes('recomendacion')) record.recomendacion = parseScore(value);
-        else if (header.includes('principales motivos') || header.includes('motivo') && header.includes('calificacion')) record.motivo_calificacion = value;
-        else if (header === 'vin' || header.includes('chasis')) record.vin = value;
-        else if (header === 'nombre' || header.includes('cliente')) record.nombre = value;
-        else if (header.includes('modelo')) record.modelo = value;
-        else if (header.includes('fecha venta') || header.includes('fecha de venta')) record.fecha_venta = value;
-        else if (header.includes('canal') && header.includes('venta')) record.canal_venta = value;
-        else if (header.includes('categorizacion')) record.categorizacion = value;
-        else if (header.includes('causa raiz')) record.causa_raiz = value;
-        else if (header.includes('accion correctiva')) record.accion_correctiva = value;
-        else if (header.includes('accion preventiva')) record.accion_preventiva = value;
-      });
-
-      if (!record.anio) record.anio = 0;
-      record.satisfaccion_general = record.satisfaccion_general ?? parseScore(record['satis. general'] || record['satisfaccion general'] || '');
-      record.recomendacion = record.recomendacion ?? parseScore(record['recom.'] || record['recom'] || '');
-      if (!record.provincia) record.provincia = 'Sin provincia';
-      if (!record.semestre) record.semestre = 'Sin semestre';
-      if (!record.ola) record.ola = 'Sin ola';
-      if (!record.modelo) record.modelo = 'Sin modelo';
-      if (!record.canal_venta) record.canal_venta = 'Sin canal';
-      if (!record.categorizacion) record.categorizacion = 'Sin categorizar';
-      records.push(record as SatisfactionSurveyRecord);
-    }
-
-    return records;
-};
-
-const parseSalesQualityCSV = (csvText: string): SalesQualityRecord[] => {
-    const rows = parseCSV(csvText);
-    if (rows.length < 2) return [];
-
-    const headers = rows[0].map(cleanHeader);
-    const records: SalesQualityRecord[] = [];
-
-    for (let i = 1; i < rows.length; i++) {
-      const currentLine = rows[i];
-      if (currentLine.length < 3) continue;
-
-      const record: any = { id: `sq-row-${i}` };
-      let followUpCommentIndex = 0;
-
-      headers.forEach((header, index) => {
-        const value = currentLine[index] || '';
-
-        if (!record.mes && index === 0 && isKnownMonth(value)) {
-            record.mes = value;
-        }
-
-        if (header.includes('tipo de venta') || header === 'canal' || header === 'origen') {
-            record.tipo_venta = value;
-        }
-
-        if (header.includes('fecha de entrega') || (header.includes('fecha') && header.includes('entrega'))) record.fecha_entrega = value;
-        else if (header.includes('fecha limite de contacto')) record.fecha_limite_contacto = value;
-        else if (header.includes('fecha 1') || header.includes('1º llamado')) record.fecha_1_llamado = value;
-        else if (header.includes('fecha 2') || header.includes('2º llamado')) record.fecha_2_llamado = value;
-        else if (header.includes('fecha 3') || header.includes('3º llamado')) record.fecha_3_llamado = value;
-        else if (header.includes('contacto efectivo')) record.fecha_contacto_efectivo = value;
-        else if (header.includes('recontacto')) record.fecha_recontacto = value;
-        else if ((header.includes('envio') || header.includes('env�o')) && header.includes('mensaje') && (header.includes('wpp') || header.includes('wsp') || header.includes('whatsapp'))) record.fecha_envio_wpp = value;
-        else if (header.includes('respuesta mensaje')) record.fecha_respuesta_wpp = value;
-
-        else if (header.includes('mes de entrega') || header === 'mes') record.mes = value;
-        else if (header.includes('anio') || header.includes('ano')) record.anio = parseInt(value) || 2026;
-        else if (header.includes('codigo de conc') || header.includes('codigo de conces')) {
-            record.codigo = value.trim();
-            record.sucursal = normalizeBranch(value);
-        }
-        else if (header.includes('nombre del taller')) {
-            record.sucursal = normalizeBranch(value);
-        }
-        else if (header.includes('sucursal')) record.sucursal = value;
-        else if (header.includes('asesor contact center')) record.asesor_contact_center = value;
-        else if (header.includes('administrativo')) record.administrativo = value;
-        else if (header.includes('modelo')) record.modelo = value;
-        else if (header.includes('vendedor')) record.vendedor = value;
-        else if (header.includes('nombre de cliente') || header === 'cliente') record.cliente = value;
-        else if (header.includes('telefono')) record.telefono = value;
-        else if (header.includes('validacion de mails')) record.validacion_mails = value;
-        else if (header === 'mails' || header.includes('mail cliente') || header.includes('e mail')) record.mails = value;
-        else if (header.includes('estado mail')) record.estado_mail = value;
-        else if ((header.includes('vin') || header.includes('chasis')) && !header.includes('coment')) record.vin = value;
-        else if (header.includes('enviar wpp')) record.enviar_wpp = value;
-        else if (header.includes('categorizacion del cliente')) record.categorizacion_cliente = value;
-        else if (header.includes('sector responsable enviar')) record.sector_responsable_enviar = value;
-
-        else if (header === 'estado') record.estado = value; 
-
-        else if (header.includes('recomiendes') || header.includes('recomendarias') || header.includes('recomendaras') || header.includes('recomendar�as')) record.nps = parseScore(value);
-
-        else if (header.includes('comentarios') || header.includes('seguimiento')) {
-             if (!record.comentarios && value) record.comentarios = value;
-             const followUpCommentField = [
-                'comentario_asesoramiento',
-                'comentario_organizacion',
-                'comentario_trato',
-                'comentario_general',
-                'comentario_estado_vehiculo',
-                'comentario_experiencia'
-             ][followUpCommentIndex];
-             if (followUpCommentField && !record[followUpCommentField]) {
-                record[followUpCommentField] = value;
-             }
-             followUpCommentIndex += 1;
-        }
-
-        else if (header.includes('asesoramiento') && header.includes('cem')) record.cem_asesoramiento = parseScore(value);
-        else if (header.includes('organizacion') && header.includes('cem')) record.cem_organizacion = parseScore(value);
-        else if (header.includes('trato') && header.includes('cem')) record.cem_trato = parseScore(value);
-        else if (header.includes('satisfaccion general') && header.includes('cem')) record.cem_general = parseScore(value);
-
-        else if (header.includes('prueba de manejo')) record.prueba_manejo = value;
-        else if (header.includes('financiar') || header.includes('financiacion')) record.ofrecimiento_financiacion = value;
-        else if (header.includes('usado') && header.includes('parte de pago')) record.toma_usados = value;
-        else if (header.includes('contacto') && header.includes('despues de la entrega')) record.contacto_entrega = value;
-
-        else if (header.includes('tramites') && header.includes('explicacion')) record.explicacion_tramites = parseScore(value); 
-        else if (header.includes('plazo de entrega')) record.plazo_entrega = parseScore(value);
-        else if (
-            header.includes('cual es su nivel de satisfaccion con el estado del vehiculo en la entrega') ||
-            header.includes('entrega cual es su nivel de satisfaccion con el estado del vehiculo en la entrega') ||
-            header.includes('satisfaccion con el estado del vehiculo en la entrega') ||
-            header.includes('estado del vehiculo en la entrega')
-        ) record.estado_vehiculo = parseScore(value);
-        else if (header.includes('segun tu experiencia') || header.includes('que aspectos te gustaron mas') || header.includes('que nos recomendarias mejorar')) record.experiencia_mejoras = value;
-        else if (header.includes('explicacion') && header.includes('funcionamiento')) record.explicacion_entrega = parseScore(value);
-        else if (header.includes('seguro')) record.ofrecimiento_seguro = value;
-        else if (header.includes('app') && header.includes('vw')) record.app_mi_vw = value;
-
-        record[header] = value;
-      });
-
-      const estadoVehiculoAQ = currentLine[42];
-      const estadoVehiculoAQScore = parseScore(estadoVehiculoAQ);
-      if (estadoVehiculoAQScore !== null) {
-        record.estado_vehiculo = estadoVehiculoAQScore;
-      }
-
-      if (!record.mes || normalizeMonth(record.mes) === 'Unknown') {
-        record.mes = pickFirstValidMonth(
-          record.mes,
-          record.fecha_entrega,
-          record.fecha_contacto_efectivo,
-          record.fecha_1_llamado
-        );
-      }
-
-      if (!record.mes || record.mes === 'Unknown') record.mes = 'Unknown';
-      else record.mes = normalizeMonth(record.mes);
-
-      record.sucursal = normalizeBranch(record.sucursal);
-      record.anio = 2026; 
-
-      if (!record.tipo_venta) record.tipo_venta = 'Otro';
-
-      if (record.vin && record.vin.trim() !== "" && record.vin !== "0") {
-        records.push(record as SalesQualityRecord);
-      }
-    }
-    return records;
-};
-
-const parseSalesClaimsCSV = (csvText: string): SalesClaimsRecord[] => {
-    const rows = parseCSV(csvText);
-    if (rows.length < 2) return [];
-
-    const headers = rows[0].map(cleanHeader);
-    const records: SalesClaimsRecord[] = [];
-    let lastKnownMonth = '';
-
-    for (let i = 1; i < rows.length; i++) {
-      const currentLine = rows[i];
-      if (!currentLine || currentLine.every(cell => !String(cell || '').trim())) continue;
-
-      const record: any = { id: `sc-row-${i}` };
-
-      headers.forEach((header, index) => {
-        const value = currentLine[index] || '';
-
-        if (!record.mes && index === 0 && isKnownMonth(value)) {
-            record.mes = value;
-        }
-
-        if (header === 'nro de r') record.nro_r = value;
-        else if (header === 'numero de vin' || header === 'vin') record.vin = value;
-        else if (header === 'receptor') record.receptor = value;
-        else if (header === 'fecha reclamo/ queja' || header === 'fecha reclamo') record.fecha_reclamo = value;
-        else if (header === 'fecha de finalizacion' || (header.includes('fecha') && header.includes('finalización'))) record.fecha_finalizacion = value;
-        else if (header === 'mes de entrega') record.mes = value;
-        else if (header === 'anio' || header === 'ano') record.anio = parseInt(value) || 2026;
-        else if (header === 'tipo de venta') record.tipo_venta = value;
-        else if (header === 'cliente') record.cliente = value;
-        else if (header === 'sucursal') record.sucursal = value;
-        else if (header === 'categorizacion del cliente' || header.includes('categorización')) record.categoria_cliente = value;
-        else if (header === 'reclamo / observacion' || header === 'reclamo / observación' || header === 'observacion') record.reclamo = value;
-        else if (header === 'sector resp.' || header === 'sector resp') record.sector = value;
-        else if (header === 'responsable del tratamiento') record.responsable = value;
-        else if (header === 'identificacion del problema') record.identificacion_problema = value;
-        else if (header === 'analisis de causa') record.analisis_causa = value;
-        else if (header === 'accion contencion') record.accion_contencion = value;
-        else if (header === 'accion preventiva') record.accion_preventiva = value;
-        else if (header === 'accion efectiva (1: si - 0: no)' || header.includes('acción efectiva')) record.accion_efectiva = value;
-        else if (header === 'evidencia de efectividad / comentarios del cliente' || header.includes('evidencia') || header.includes('comentarios del cliente')) record.evidencia = value;
-        else if (header === 'dias de demora') record.dias_demora = parseNumber(value);
-        else if (header === 'estado de analisis') record.estado_analisis = value;
-        else if (header === 'motivos de reclamo') record.motivo = value;
-        else if (header === 'estado de reclamo' || header === 'estado') record.estado = value;
-
-        record[header] = value;
-      });
-
-      if ((!record.mes || normalizeMonth(record.mes) === 'Unknown') && lastKnownMonth) {
-        record.mes = lastKnownMonth;
-      }
-
-      if (!record.mes || normalizeMonth(record.mes) === 'Unknown') {
-        record.mes = pickFirstValidMonth(record.mes, record.fecha_reclamo, record.fecha_finalizacion);
-      }
-
-      if (!record.mes || record.mes === 'Unknown') record.mes = 'Unknown';
-      else {
-        record.mes = normalizeMonth(record.mes);
-        lastKnownMonth = record.mes;
-      }
-
-      record.sucursal = normalizeBranch(record.sucursal);
-
-      // Filter by VIN: Only records with a valid VIN are counted as real claims
-      if (record.vin && record.vin.trim() !== "" && record.vin !== "0") {
-        records.push(record as SalesClaimsRecord);
-      }
-    }
-    return records;
-};
-
-const parseDetailedQualityCSV = (csvText: string): DetailedQualityRecord[] => {
-    const rows = parseCSV(csvText);
-    if (rows.length < 2) return [];
-
-    const headers = rows[0].map(cleanHeader);
-    const isCompactSaltaFormat = headers.includes('clave f') && headers.includes('concat t ac');
-    const isFlatSaltaFormat =
-        headers.includes('concesionario') &&
-        headers.includes('codigo id asesor de servicio') &&
-        headers.includes('orden de reparacion');
-    const companyIdx = headers.indexOf('nombre de la compania');
-    const apellidoIdx = headers.indexOf('apellido');
-    const nombreIdx = headers.indexOf('nombre');
-
-    const records: DetailedQualityRecord[] = [];
-
-    const cleanAsesorName = (name: string) => {
-        if (!name) return 'Sin Asesor';
-        // Remove numbers and extra spaces
-        return name.replace(/\d+/g, '').replace(/\s+/g, ' ').trim();
-    };
-
-    const parseCompactScores = (value: string) => {
-        const matches = value.match(/\b[1-5]\b/g) || [];
-        const numericScores = matches.map(match => parseInt(match, 10)).filter(score => score >= 1 && score <= 5);
-        return {
-            q1: numericScores[0] ?? null,
-            q2: numericScores[1] ?? null,
-            q3: numericScores[2] ?? null,
-            q4: numericScores[3] ?? numericScores[numericScores.length - 1] ?? null,
-            q6: numericScores[4] ?? null
-        };
-    };
-
-    if (isCompactSaltaFormat) {
-        const idxClave = headers.indexOf('clave f');
-        const idxEstado = headers.indexOf('estado r');
-        const idxConcat = headers.indexOf('concat t ac');
-
-        for (let i = 1; i < rows.length; i++) {
-            const currentLine = rows[i];
-            if (currentLine.length === 0) continue;
-
-            const codId = idxClave !== -1 ? (currentLine[idxClave] || '').trim() : '';
-            if (!codId) continue;
-
-            const concatValue = idxConcat !== -1 ? (currentLine[idxConcat] || '').trim() : '';
-            const scores = parseCompactScores(concatValue);
-
-            const record: DetailedQualityRecord = {
-                id: `dq-row-${i}`,
-                sucursal: 'SALTA',
-                mes: 'Unknown',
-                cod_id: codId,
-                fecha_servicio: '',
-                vin: '',
-                modelo: '',
-                cliente: `Registro ${codId}`,
-                orden: codId,
-                asesor: 'Sin Asesor',
-                q1_score: scores.q1,
-                q1_comment: '',
-                q2_score: scores.q2,
-                q2_comment: '',
-                q3_score: scores.q3,
-                q3_comment: '',
-                q4_score: scores.q4,
-                q4_comment: concatValue,
-                q6_score: null,
-                q7_score: null,
-                q8_val: '',
-                comentario_cliente: concatValue,
-                estado_cliente: idxEstado !== -1 ? (currentLine[idxEstado] || '').trim() : '',
-                categorizacion: '',
-            };
-
-            records.push(record);
-        }
-
-        return records;
-    }
-
-    for (let i = 1; i < rows.length; i++) {
-      const currentLine = rows[i];
-      if (currentLine.length < 5) continue; 
-
-      const record: any = { id: `dq-row-${i}` };
-      record.mes_raw = currentLine[0] || '';
-
-      headers.forEach((header, index) => {
-        const value = currentLine[index] || '';
-        // Store all raw values but don't let them overwrite our mapped fields easily
-        if (!record[header]) record[header] = value; 
-
-        // Map by exact cleaned header name
-        if (header.includes('mes')) record.mes = normalizeMonth(value);
-        else if (header === 'concesionario') record.sucursal = normalizeBranch(value);
-        else if (header.includes('codid') || header.includes('cod id')) record.cod_id = value.trim();
-        else if (header.includes('codigo id asesor de servicio')) record.cod_id = value.trim();
-        else if (header.includes('fecha de servicio') || header.includes('fecha servicio')) record.fecha_servicio = value;
-        else if (header.includes('vin') || header.includes('chasis')) record.vin = value;
-        else if (header.includes('modelo')) record.modelo = value;
-        else if (
-          header === 'or' ||
-          header === 'orden' ||
-          header === 'orden de reparacion' ||
-          header === 'orden de reparaciÃ³n' ||
-          header === 'nro or' ||
-          header === 'nro de or' ||
-          header === 'numero de or'
-        ) {
-          record.orden = value;
-        }
-        else if (header.includes('asesor')) record.asesor = cleanAsesorName(value);
-        else if (header.includes('apellido asesor de servicio')) record.asesor_apellido = value.trim();
-        else if (header.includes('nombre asesor de servicio')) record.asesor_nombre = value.trim();
-
-        // Scores - Matching the user's specific header structure
-        else if (header.includes('trato personal') && header.includes('(q1)')) record.q1_score = parseScore(value);
-        else if (header === 'comentario 1') record.q1_comment = value;
-
-        else if (header.includes('organizacion') && header.includes('(q2)')) record.q2_score = parseScore(value);
-        else if (header === 'comentario 2') record.q2_comment = value;
-
-        else if (header.includes('calidad de reparacion') && header.includes('(q3)')) record.q3_score = parseScore(value);
-        else if (header === 'comentario 3') record.q3_comment = value;
-
-        else if (header.includes('lvs') && header.includes('(q4)')) record.q4_score = parseScore(value);
-        else if (header === 'comentario 4') record.q4_comment = value;
-
-        else if (header === 'q6') record.q6_score = parseScoreInRange(value, 1, 5);
-        else if (header === 'q7') record.q7_score = parseScore(value);
-        else if (header === 'q8') record.q8_val = value;
-
-        else if (header === 'comentario del cliente') record.comentario_cliente = value;
-        else if (header === 'estado cliente') record.estado_cliente = value;
-        else if (header === 'categorizacion') record.categorizacion = value;
-        else if (header.includes('comentario interna')) record.comentario_interno = value;
-        else if (header === 'estado') record.estado_cliente = value;
-      });
-
-      // Client name construction using the FIRST occurrence of these headers
-      const company = companyIdx !== -1 ? currentLine[companyIdx] : '';
-      const ape = apellidoIdx !== -1 ? currentLine[apellidoIdx] : '';
-      const nom = nombreIdx !== -1 ? currentLine[nombreIdx] : '';
-
-      if (company && company.trim() !== '') {
-          record.cliente = company.trim();
-      } else if (ape || nom) {
-          record.cliente = `${ape} ${nom}`.trim();
-      } else {
-          record.cliente = 'Cliente Desconocido';
-      }
-
-      if ((!record.asesor || record.asesor === 'Sin Asesor') && (record.asesor_apellido || record.asesor_nombre)) {
-          record.asesor = cleanAsesorName(`${record.asesor_apellido || ''} ${record.asesor_nombre || ''}`.trim());
-      }
-
-      if (isFlatSaltaFormat) {
-          const internalComment = String(record.comentario_interno || '').trim();
-          const parsedScores = parseCompactScores(internalComment);
-
-          if (record.q1_score == null) record.q1_score = parsedScores.q1;
-          if (record.q2_score == null) record.q2_score = parsedScores.q2;
-          if (record.q3_score == null) record.q3_score = parsedScores.q3;
-          if (record.q4_score == null) record.q4_score = parsedScores.q4;
-          if (record.q6_score == null) record.q6_score = parsedScores.q6;
-
-          if (!record.q1_comment) record.q1_comment = internalComment;
-          if (!record.q2_comment) record.q2_comment = internalComment;
-          if (!record.q3_comment) record.q3_comment = internalComment;
-          if (!record.q4_comment) record.q4_comment = internalComment;
-          if (!record.comentario_cliente) record.comentario_cliente = internalComment;
-      }
-
-      // Ensure mandatory fields have defaults
-      if (!record.mes || record.mes === 'Unknown') record.mes = normalizeMonth(record.mes_raw);
-      if (!record.mes || record.mes === 'Unknown') record.mes = pickFirstValidMonth(record.fecha_servicio, record.mes);
-      if (!record.sucursal && isFlatSaltaFormat) record.sucursal = 'SALTA';
-      if (!record.asesor) record.asesor = 'Sin Asesor';
-      if (!record.orden) record.orden = '—';
-
-      records.push(record as DetailedQualityRecord);
-    }
-    // Filter out records without a valid CodID or VIN
-    return records.filter(r => (r.cod_id && r.cod_id.trim() !== "" && r.cod_id !== "0") || (r.vin && r.vin.trim() !== "" && r.vin !== "0"));
-};
-
-const parsePostventaKpiCSV = (csvText: string): PostventaKpiRecord[] => {
-    const rows = parseCSV(csvText);
-    if (rows.length < 2) return [];
-
-    const headers = rows[0].map(cleanHeader);
-    const records: PostventaKpiRecord[] = [];
-
-    for (let i = 1; i < rows.length; i++) {
-        const currentLine = rows[i];
-        if (currentLine.length < 2) continue;
-
-        const record: any = { id: `pkpi-row-${i}` };
-
-        headers.forEach((header, index) => {
-            const value = currentLine[index] || '';
-
-            if (header.includes('sucursal') || header.includes('unidad')) record.sucursal = normalizeBranch(value);
-            else if (header.includes('mes')) record.mes = normalizeMonth(value);
-            else if (header.includes('anio') || header.includes('ano')) record.anio = parseInt(value) || 2026;
-            else if (header.includes('lvs')) record.lvs = parseNumber(value);
-            else if (header.includes('email validos')) record.email_validos = parseNumber(value);
-            else if (header.includes('tasa de repuesta') || header.includes('tasa de respuesta')) record.tasa_respuesta = parseNumber(value);
-            else if (header.includes('dac')) record.dac = parseNumber(value);
-            else if (header.includes('contrato mantenimiento')) record.contrato_mantenimiento = parseNumber(value);
-            else if (header.includes('reporte tecnico')) record.reporte_tecnico = parseNumber(value);
-            else if (header.includes('reporte garantia')) record.reporte_garantia = parseNumber(value);
-            else if (header.includes('ampliacion de trabajo')) record.ampliacion_trabajo = parseNumber(value);
-            else if (header.includes('ppt diario')) record.ppt_diario = parseNumber(value);
-            else if (header.includes('conversion ppt vs serv')) record.conversion_ppt_serv = parseNumber(value);
-            else if (header.includes('oudi servicios')) record.oudi_servicios = parseNumber(value);
-            else if (header.includes('costos controlables')) record.costos_controlables = parseNumber(value);
-            else if (header.includes('costo sueldos')) record.costo_sueldos = parseNumber(value);
-            else if (header.includes('stock muerto')) record.stock_muerto = parseNumber(value);
-            else if (header.includes('meses de stock')) record.meses_stock = parseNumber(value);
-            else if (header.includes('cotizacion seguros')) record.cotizacion_seguros = parseNumber(value);
-            else if (header.includes('uodi repuestos')) record.uodi_repuestos = parseNumber(value);
-            else if (header.includes('uodi posventa')) record.uodi_posventa = parseNumber(value);
-            else if (header.includes('incentivo calidad')) record.incentivo_calidad = parseNumber(value);
-            else if (header.includes('plan incentivo posventa')) record.plan_incentivo_posventa = parseNumber(value);
-            else if (header.includes('plan incentivo repuestos')) record.plan_incentivo_repuestos = parseNumber(value);
-            else if (header.includes('uops total')) record.uops_total = parseNumber(value);
-
-            record[header] = value;
-        });
-
-        if (record.mes && record.mes !== 'Unknown') {
-            records.push(record as PostventaKpiRecord);
-        }
-    }
-    return records;
-};
-
-const parsePvtOccupationCSV = (csvText: string): PvtOccupationRecord[] => {
-    const rows = parseCSV(csvText);
-    if (rows.length === 0) return [];
-
-    const isHeaderRow = (row: string[]) =>
-      normalizeKey(row[0] || '') === 'mes' &&
-      normalizeKey(row[1] || '') === 'tecnico';
-
-    const records: PvtOccupationRecord[] = [];
-
-    rows.forEach((row, index) => {
-      const values = row.map(cell => String(cell || '').trim());
-      const firstCell = values.find(Boolean) || '';
-
-      if (!firstCell) return;
-      if (isHeaderRow(values)) return;
-      if (normalizeKey(firstCell).includes('cuadrotaller')) return;
-
-      const mes = normalizeMonth(values[0] || '');
-      const tecnico = values[1] || '';
-
-      if (!SPANISH_MONTHS.includes(mes) || !tecnico || normalizeKey(tecnico) === 'total') {
-        return;
-      }
-
-      records.push({
-        id: `pvt-${index}-${normalizeKey(tecnico)}`,
-        mes,
-        tecnico,
-        horas_disponibles: parseNumber(values[2] || ''),
-        hs_trabajadas: parseNumber(values[3] || ''),
-        horas_productivas_tracking: parseNumber(values[4] || ''),
-        horas_no_productivas_tracking: parseNumber(values[5] || ''),
-        horas_pauta_trabajadas: parseNumber(values[6] || ''),
-        horas_vendidas_siac: parseNumber(values[7] || ''),
-        grado_ocupacion: parseNumber(values[8] || ''),
-        grado_ocupacion_productiva: parseNumber(values[9] || ''),
-        productividad: parseNumber(values[10] || ''),
-        productividad_siac: parseNumber(values[11] || ''),
-      });
-    });
-
-    return records;
-};
-
-const parsePostventaBillingCSV = (csvText: string): BillingRecord[] => {
-    const rows = parseCSV(csvText);
-    if (rows.length < 2) return [];
-
-    const headers = rows[0].map(cleanHeader);
-    const records: BillingRecord[] = [];
-
-    for (let i = 1; i < rows.length; i++) {
-        const currentLine = rows[i];
-        if (currentLine.length < 2) continue;
-
-        const record: any = { id: `billing-row-${i}` };
-
-        headers.forEach((header, index) => {
-            const value = currentLine[index] || '';
-
-            if (header.includes('nro mes')) record.nro_mes = parseInt(value) || 0;
-            else if (header.includes('mes')) record.mes = normalizeMonth(value);
-            else if (header.includes('anio') || header.includes('ano')) record.anio = parseInt(value) || 2026;
-            else if (header.includes('sucursal') || header.includes('unidad')) record.sucursal = normalizeBranch(value);
-            else if (header.includes('area')) record.area = value;
-            else if (header.includes('objetivo mensual')) record.objetivo_mensual = parseNumber(value);
-            else if (header.includes('avance a fecha') || header.includes('avance fecha')) record.avance_fecha = parseNumber(value);
-            else if (header.includes('cumplimiento a la fecha') || header.includes('cumplimiento fecha')) record.cumplimiento_fecha_pct = parseNumber(value);
-            else if (header.includes('cumplimiento a cierre mes') || header.includes('cumplimiento cierre')) record.cumplimiento_cierre_pct = parseNumber(value);
-            else if (header.includes('objetivo diario')) record.objetivo_diario = parseNumber(value);
-            else if (header.includes('prom. diario') || header.includes('promedio diario')) record.promedio_diario = parseNumber(value);
-            else if (header.includes('desvio a fecha') || header.includes('desvio fecha')) record.desvio_fecha = parseNumber(value);
-            else if (header.includes('dif. dias de operación')) record.dif_dias_operacion = parseInt(value) || 0;
-
-            record[header] = value;
-        });
-
-        if (record.mes && record.mes !== 'Unknown') {
-            records.push(record as BillingRecord);
-        }
-    }
-    return records;
-};
-
-const parseWarrantyCSV = (csvText: string): WarrantyRecord[] => {
-    const rows = parseCSV(csvText);
-    if (rows.length < 2) return [];
-
-    const headers = rows[0].map(cleanHeader);
-    const records: WarrantyRecord[] = [];
-
-    const getValue = (line: string[], index: number) => (line[index] || '').trim();
-
-    for (let i = 1; i < rows.length; i++) {
-        const currentLine = rows[i];
-        if (!currentLine || currentLine.every(cell => !String(cell || '').trim())) continue;
-
-        const record: any = { id: `warranty-row-${i}` };
-
-        headers.forEach((header, index) => {
-            const value = currentLine[index] || '';
-
-            if (header === 'mes') record.mes = value;
-            else if (header === 'no' || header === 'no.' || header === 'nro' || header === 'numero') record.numero = value;
-            else if (header === 'claim' || header.includes('claim')) record.claim = value;
-            else if (header === 'tipo') record.tipo = value;
-            else if (header === 'vin') record.vin = value;
-            else if (header === 'work') record.work = parseNumber(value);
-            else if (header === 'e work' || header === 'e.work' || header === 'ework') record.e_work = parseNumber(value);
-            else if (header === 'material') record.material = parseNumber(value);
-            else if (header === 'e material' || header === 'e.material' || header === 'ematerial') record.e_material = parseNumber(value);
-            else if (header === 'total') record.total = parseNumber(value);
-            else if (header === 'fecha') record.fecha = value;
-            else if (header.includes('cargo ipsos')) record.cargo_ipsos = value;
-            else if (header === 'cargo') record.cargo = value;
-            else if (header.includes('control')) record.control = value;
-            else if (header.includes('coincidencia')) record.coincidencia = value;
-            else if (header.includes('justificacion')) record.justificacion = value;
-
-            record[header] = value;
-        });
-
-        // The warranty sheet is position-stable. Use fixed indexes as a second
-        // pass so decimal commas or shifted header parsing do not zero out values.
-        const fixedMes = getValue(currentLine, 0);
-        const fixedNumero = getValue(currentLine, 1);
-        const fixedClaim = getValue(currentLine, 2);
-        const fixedTipo = getValue(currentLine, 3);
-        const fixedVin = getValue(currentLine, 4);
-        const fixedWork = getValue(currentLine, 5);
-        const fixedMaterial = getValue(currentLine, 6);
-        const fixedEWork = getValue(currentLine, 7);
-        const fixedEMaterial = getValue(currentLine, 8);
-        const fixedTotal = getValue(currentLine, 9);
-        const fixedFecha = getValue(currentLine, 10);
-        const fixedCargo = getValue(currentLine, 11);
-        const fixedControl = getValue(currentLine, 12);
-        const fixedCoincidencia = getValue(currentLine, 13);
-        const fixedCargoIpsos = getValue(currentLine, 14);
-        const fixedJustificacion = currentLine.slice(15).map(cell => String(cell || '').trim()).filter(Boolean).join(' ');
-
-        record.mes = record.mes || fixedMes;
-        record.numero = record.numero || fixedNumero;
-        record.claim = record.claim || fixedClaim;
-        record.tipo = record.tipo || fixedTipo;
-        record.vin = record.vin || fixedVin;
-        record.work = Number(record.work || parseNumber(fixedWork));
-        record.material = Number(record.material || parseNumber(fixedMaterial));
-        record.e_work = Number(record.e_work || parseNumber(fixedEWork));
-        record.e_material = Number(record.e_material || parseNumber(fixedEMaterial));
-        record.total = Number(record.total || parseNumber(fixedTotal));
-        record.fecha = record.fecha || fixedFecha;
-        record.cargo = record.cargo || fixedCargo;
-        record.control = record.control || fixedControl;
-        record.coincidencia = record.coincidencia || fixedCoincidencia;
-        record.cargo_ipsos = record.cargo_ipsos || fixedCargoIpsos;
-        record.justificacion = record.justificacion || fixedJustificacion;
-
-        if (!record.mes || normalizeMonth(record.mes) === 'Unknown') {
-            record.mes = pickFirstValidMonth(record.mes, record.fecha);
-        }
-        if (!record.mes || record.mes === 'Unknown') record.mes = 'Unknown';
-        else record.mes = normalizeMonth(record.mes);
-
-        record.lote = normalizeWarrantyLot(record.fecha);
-
-        record.work = Number(record.work || 0);
-        record.e_work = Number(record.e_work || 0);
-        record.material = Number(record.material || 0);
-        record.e_material = Number(record.e_material || 0);
-        record.total = Number(record.total || (record.work + record.e_work + record.material + record.e_material));
-        record.tipo = record.tipo || 'Sin Tipo';
-        record.claim = record.claim || record.numero || `Claim ${i}`;
-
-        if (record.claim && String(record.claim).trim() !== '') {
-            records.push(record as WarrantyRecord);
-        }
-    }
-    return records;
-};
-
-const parsePCGCCSV = (csvText: string): PCGCRecord[] => {
-    const rows = parseCSV(csvText);
-    if (rows.length < 1) return [];
-
-    // Find the header row (the one containing "Requerimiento" or "Modulo")
-    let headerIndex = -1;
-    for (let i = 0; i < Math.min(rows.length, 10); i++) {
-        const row = rows[i].map(cleanHeader);
-        if (row.some(h => h.includes('requerimiento') || h.includes('modulo'))) {
-            headerIndex = i;
-            break;
-        }
-    }
-
-    if (headerIndex === -1) {
-        // Fallback to first row if not found, but maybe it's just empty
-        if (rows.length < 2) return [];
-        headerIndex = 0;
-    }
-
-    const headers = rows[headerIndex].map(cleanHeader);
-    const records: PCGCRecord[] = [];
-
-    for (let i = headerIndex + 1; i < rows.length; i++) {
-        const currentLine = rows[i];
-        if (currentLine.length < 3) continue; // Minimum columns to be valid
-
-        const record: any = { id: `pcgc-row-${i}` };
-
-        headers.forEach((header, index) => {
-            const value = currentLine[index] || '';
-
-            if (header.includes('modulo')) record.modulo = value;
-            else if (header.includes('seccion')) record.seccion = value;
-            else if (header.includes('sub-seccion') || header.includes('subseccion')) record.subseccion = value;
-            else if (header.includes('sector')) record.sector = value;
-            else if (header.includes('requerimiento')) record.requerimiento = value;
-            else if (header.includes('observaciones')) record.observaciones = value;
-            else if (header.includes('metodo')) record.metodo = value;
-            else if (header.includes('criticidad')) record.criticidad = value;
-
-            record[header] = value;
-        });
-
-        if (record.requerimiento && record.requerimiento.trim() !== "" && record.requerimiento.toLowerCase() !== 'requerimiento') {
-            records.push(record as PCGCRecord);
-        }
-    }
-    return records;
-};
-
-const parseQualityObjectivesCSV = (csvText: string): QualityObjectiveRecord[] => {
-    const rows = parseCSV(csvText);
-    if (rows.length < 2) return [];
-
-    const headers = rows[0].map(cleanHeader);
-
-    return rows.slice(1)
-      .filter(row => row.some(cell => String(cell || '').trim() !== ''))
-      .map((row, index) => {
-        const record: QualityObjectiveRecord = {
-          id: `quality-objective-${index + 1}`,
-          area: '',
-          tipo_registro: '',
-          anio: 0,
-          periodo: '',
-          vigencia_desde: '',
-          vigencia_hasta: '',
-          indicador: '',
-          requisito_mostrar: '',
-          escala: '',
-          desde: null,
-          hasta: null,
-          rango_mostrar: '',
-          impacto_mostrar: '',
-          impacto_tipo: '',
-        };
-
-        headers.forEach((header, colIndex) => {
-          const value = String(row[colIndex] || '').trim();
-
-          if (header === 'area') record.area = value;
-          else if (header === 'tipo registro') record.tipo_registro = value.toLowerCase();
-          else if (header === 'anio' || header === 'ano') record.anio = parseInt(value, 10) || 0;
-          else if (header === 'periodo') record.periodo = value;
-          else if (header === 'vigencia desde') record.vigencia_desde = value;
-          else if (header === 'vigencia hasta') record.vigencia_hasta = value;
-          else if (header === 'indicador') record.indicador = value;
-          else if (header === 'requisito mostrar') record.requisito_mostrar = value;
-          else if (header === 'escala') record.escala = value;
-          else if (header === 'desde') record.desde = value ? parseNumber(value) : null;
-          else if (header === 'hasta') record.hasta = value ? parseNumber(value) : null;
-          else if (header === 'rango mostrar') record.rango_mostrar = value;
-          else if (header === 'impacto mostrar') record.impacto_mostrar = value;
-          else if (header === 'impacto tipo') record.impacto_tipo = value.toLowerCase();
-        });
-
-        return record;
-      });
-};
-
-const parseBooleanFlag = (value: string) => {
-    const normalized = cleanHeader(value);
-    return ['si', 'sí', 'true', '1', 'yes'].includes(normalized);
-};
-
-const parseQualityObjectivesSummaryCSV = (csvText: string): QualityObjectiveSummaryRecord[] => {
-    const rows = parseCSV(csvText);
-    if (rows.length < 2) return [];
-
-    const headers = rows[0].map(cleanHeader);
-
-    return rows.slice(1)
-      .filter(row => row.some(cell => String(cell || '').trim() !== ''))
-      .map((row, index) => {
-        const record: QualityObjectiveSummaryRecord = {
-          id: `quality-objective-summary-${index + 1}`,
-          area: '',
-          indicador: '',
-          periodo: '',
-          anio: 0,
-          vigencia_desde: '',
-          vigencia_hasta: '',
-          tipo_input: 'numero',
-          tipo_resultado: 'requisito',
-          tipo_objetivo: 'requisito',
-          objetivo_texto: '',
-          objetivo_valor: null,
-          unidad: '',
-          orden: index + 1,
-          tiene_escala: false,
-          tiene_bonus: false,
-          activa: true,
-        };
-
-        headers.forEach((header, colIndex) => {
-          const value = String(row[colIndex] || '').trim();
-
-          if (header === 'area') record.area = value;
-          else if (header === 'indicador') record.indicador = value;
-          else if (header === 'periodo') record.periodo = value;
-          else if (header === 'anio' || header === 'ano') record.anio = parseInt(value, 10) || 0;
-          else if (header === 'vigencia desde') record.vigencia_desde = value;
-          else if (header === 'vigencia hasta') record.vigencia_hasta = value;
-          else if (header === 'tipo input') record.tipo_input = value.toLowerCase() || 'numero';
-          else if (header === 'tipo resultado') record.tipo_resultado = value.toLowerCase() || 'requisito';
-          else if (header === 'tipo objetivo') record.tipo_objetivo = value.toLowerCase() || 'requisito';
-          else if (header === 'objetivo texto') record.objetivo_texto = value;
-          else if (header === 'objetivo valor') record.objetivo_valor = value ? parseNumber(value) : null;
-          else if (header === 'unidad') record.unidad = value.toLowerCase();
-          else if (header === 'orden') record.orden = parseInt(value, 10) || index + 1;
-          else if (header === 'tiene escala') record.tiene_escala = parseBooleanFlag(value);
-          else if (header === 'tiene bonus') record.tiene_bonus = parseBooleanFlag(value);
-          else if (header === 'activa') record.activa = parseBooleanFlag(value);
-        });
-
-        if (!record.tipo_objetivo) record.tipo_objetivo = record.tipo_resultado || 'requisito';
-
-        return record;
-      });
-};
-
-const parseQualityObjectivesScalesCSV = (csvText: string): QualityObjectiveScaleRecord[] => {
-    const rows = parseCSV(csvText);
-    if (rows.length < 2) return [];
-
-    const headers = rows[0].map(cleanHeader);
-
-    return rows.slice(1)
-      .filter(row => row.some(cell => String(cell || '').trim() !== ''))
-      .map((row, index) => {
-        const record: QualityObjectiveScaleRecord = {
-          id: `quality-objective-scale-${index + 1}`,
-          area: '',
-          indicador: '',
-          periodo: '',
-          anio: 0,
-          vigencia_desde: '',
-          vigencia_hasta: '',
-          escala: '',
-          operador: '',
-          desde_valor: null,
-          hasta_valor: null,
-          rango_mostrar: '',
-          impacto_valor: null,
-          impacto_texto: '',
-          impacto_tipo: '',
-          orden: index + 1,
-        };
-
-        let rawImpactValue = '';
-
-        headers.forEach((header, colIndex) => {
-          const value = String(row[colIndex] || '').trim();
-
-          if (header === 'area') record.area = value;
-          else if (header === 'indicador') record.indicador = value;
-          else if (header === 'periodo') record.periodo = value;
-          else if (header === 'anio' || header === 'ano') record.anio = parseInt(value, 10) || 0;
-          else if (header === 'vigencia desde') record.vigencia_desde = value;
-          else if (header === 'vigencia hasta') record.vigencia_hasta = value;
-          else if (header === 'escala' || header === 'nivel') record.escala = value;
-          else if (header === 'operador') record.operador = value;
-          else if (header === 'desde valor') record.desde_valor = value ? parseNumber(value) : null;
-          else if (header === 'hasta valor') record.hasta_valor = value ? parseNumber(value) : null;
-          else if (header === 'rango mostrar') record.rango_mostrar = value;
-          else if (header === 'impacto valor' || header === 'resultado valor') rawImpactValue = value;
-          else if (header === 'impacto texto' || header === 'resultado texto') record.impacto_texto = value;
-          else if (header === 'impacto tipo' || header === 'resultado tipo') record.impacto_tipo = value.toLowerCase();
-          else if (header === 'orden') record.orden = parseInt(value, 10) || index + 1;
-        });
-
-        record.impacto_valor = parseImpactValue(rawImpactValue, record.impacto_tipo, record.impacto_texto);
-
-        return record;
-      });
-};
-
-const containsAny = (value: string, terms: string[]) => terms.some(term => value.includes(term));
+    if (!record.anio) record.a…13062 tokens truncated…Any = (value: string, terms: string[]) => terms.some(term => value.includes(term));
 
 const findHeaderIndex = (
     headers: string[],
@@ -2091,23 +1069,23 @@ const parseCemOsCSV = (csvText: string): CemOsRecord[] => {
 
     const idxMes = getIdx('mes');
     const idxZona = getIdx('Zona');
-    const idxCodigo = getIdx('Código');
+    const idxCodigo = getIdx('CÃ³digo');
     const idxCanal = getIdx('Canal de Ventas');
     const idxChasis = getIdx('Chasis');
     const idxEntregaFinal = getIdx('Entrega a cliente final');
     const idxEntregaReportada = getIdx('Entrega a cliente reportada');
     const idxVendedor = getIdx('Vendedor');
-    const idxNroCliente = getIdx('Número de cliente');
+    const idxNroCliente = getIdx('NÃºmero de cliente');
     const idxNombre = getIdx('Cliente: Nombre');
     const idxApellido = getIdx('Cliente: Apellido');
-    const idxDni = getIdx('Cliente: Número de identificación');
+    const idxDni = getIdx('Cliente: NÃºmero de identificaciÃ³n');
     const idxCalle = getIdx('Cliente: Calle');
     const idxCiudad = getIdx('Cliente: Ciudad');
-    const idxCp = getIdx('Cliente: Código postal');
+    const idxCp = getIdx('Cliente: CÃ³digo postal');
     const idxEstado = getIdx('Cliente: Estado');
     const idxCelular = getIdx('Customer: MobilePhone');
-    const idxTelCasa = getIdx('Cliente: Teléfono (Casa)');
-    const idxTelOficina = getIdx('Cliente: Teléfono (Oficina)');
+    const idxTelCasa = getIdx('Cliente: TelÃ©fono (Casa)');
+    const idxTelOficina = getIdx('Cliente: TelÃ©fono (Oficina)');
     const idxEmail = getIdx('Cliente: E-mail');
     const idxFechaDominio = getIdx('Fecha Dominio');
     const idxDominio = getIdx('Dominio');
@@ -2120,7 +1098,7 @@ const parseCemOsCSV = (csvText: string): CemOsRecord[] => {
     const idxFechaLinkCaduca = getIdx('Fecha en que caduca el link');
     const idxEstadoUnidad = getIdx('Estado de la unidad');
     const idxContactado = getIdx('CONTACTADO?');
-    const idxGestionado = getIdx('¿GESTIONADO?');
+    const idxGestionado = getIdx('Â¿GESTIONADO?');
     const idxComentarioInterna = getIdx('COMENTARIO/ RECLAMO interna');
     const idxComentarioCem = getIdx('COMENTARIO/ RECLAMO CEM');
 
@@ -2200,7 +1178,7 @@ const parseActionPlanCSV = (csvText: string): ActionPlanRecord[] => {
     let headers: string[] = [];
     for (let i = 0; i < Math.min(rows.length, 20); i++) {
         const row = rows[i];
-        if (row.some(cell => cell?.toLowerCase().includes('nº')) && 
+        if (row.some(cell => cell?.toLowerCase().includes('nÂº')) && 
             row.some(cell => cell?.toLowerCase().includes('mes')) &&
             row.some(cell => cell?.toLowerCase().includes('kpi'))) {
             headerIndex = i;
@@ -2211,11 +1189,11 @@ const parseActionPlanCSV = (csvText: string): ActionPlanRecord[] => {
 
     const getIdx = (name: string) => headers.findIndex(h => h.includes(name.toLowerCase()));
 
-    const idxNro = getIdx('nº');
+    const idxNro = getIdx('nÂº');
     const idxMes = getIdx('mes');
     const idxFechaAlta = getIdx('fecha alta') !== -1 ? getIdx('fecha alta') : getIdx('alta');
     const idxProvincia = getIdx('provincia') !== -1 ? getIdx('provincia') : getIdx('sucursal');
-    const idxCaracter = getIdx('carácter');
+    const idxCaracter = getIdx('carÃ¡cter');
     const idxSector = getIdx('sector');
     const idxOrigen = getIdx('origen');
     const idxNorma = getIdx('norma');
@@ -2223,24 +1201,24 @@ const parseActionPlanCSV = (csvText: string): ActionPlanRecord[] => {
     const idxNombreKpi = getIdx('nombre kpi') !== -1 ? getIdx('nombre kpi') : getIdx('kpi');
     const idxObjCuant = getIdx('objetivo kpi cuantitativo');
     const idxObjCual = getIdx('objetivo kpi cualitativo');
-    const idxSitCuant = getIdx('situación actual cuantitativo');
-    const idxSitCual = getIdx('situación actual cualitativo');
-    const idxEnviarDesvio = getIdx('enviar desvío');
+    const idxSitCuant = getIdx('situaciÃ³n actual cuantitativo');
+    const idxSitCual = getIdx('situaciÃ³n actual cualitativo');
+    const idxEnviarDesvio = getIdx('enviar desvÃ­o');
     const idxEstado = getIdx('estado');
-    const idxCausaRaiz = getIdx('causa raíz');
-    const idxAccionInm = getIdx('acción inmediata');
-    const idxAccionCorr = getIdx('acción correctiva');
+    const idxCausaRaiz = getIdx('causa raÃ­z');
+    const idxAccionInm = getIdx('acciÃ³n inmediata');
+    const idxAccionCorr = getIdx('acciÃ³n correctiva');
     const idxResponsable = getIdx('responsable');
     const idxIndEficacia = getIdx('indicador de eficiencia');
     const idxObjInd = getIdx('objetivo indicador');
     const idxFechaIniEst = getIdx('fecha inicio est');
-    const idxDurEst = getIdx('duración est');
+    const idxDurEst = getIdx('duraciÃ³n est');
     const idxIniReal = getIdx('inicio real');
-    const idxFinReal = getIdx('finalización real');
-    const idxDurReal = getIdx('duración real');
+    const idxFinReal = getIdx('finalizaciÃ³n real');
+    const idxDurReal = getIdx('duraciÃ³n real');
     const idxEstadoFinal = getIdx('estado final');
-    const idxVerifEficacia = getIdx('verificación eficacia');
-    const idxFechaVerif = getIdx('fecha verificación');
+    const idxVerifEficacia = getIdx('verificaciÃ³n eficacia');
+    const idxFechaVerif = getIdx('fecha verificaciÃ³n');
 
     // Fallback to index 7 if not found
     const startDataIndex = headerIndex !== -1 ? headerIndex + 1 : 7;

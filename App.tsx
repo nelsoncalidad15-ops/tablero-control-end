@@ -7,6 +7,7 @@ import { Icons } from './components/Icon';
 import { AppConfig, AreaConfig } from './types';
 import { DEFAULT_CONFIG, AREAS, SALES_QUALITY_SHEET_KEY, SALES_CLAIMS_SHEET_KEY } from './constants';
 import { primeBackendConnection } from './services/dataService';
+import { clearDashboardSession, getDashboardToken, loginToDashboard, saveDashboardSession, verifyDashboardSession } from './services/auth';
 
 const Dashboard = lazy(() => import('./components/Dashboard'));
 const QualityDashboard = lazy(() => import('./components/QualityDashboard'));
@@ -42,7 +43,55 @@ const preloadModule = (loader: () => Promise<any>) => {
   void loader();
 };
 
-// ─── Shared header for portal-style selection screens ────────────────────────
+const DashboardLogin = ({ onSuccess }: { onSuccess: () => void }) => {
+  const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const submit = async (event: React.FormEvent) => {
+    event.preventDefault();
+    setLoading(true);
+    setError('');
+    try {
+      const result = await loginToDashboard(password);
+      if (result.token && result.expiresAt) saveDashboardSession(result.token, result.expiresAt);
+      onSuccess();
+    } catch (reason) {
+      setError(reason instanceof Error ? reason.message : 'No se pudo iniciar sesiÃ³n.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <main className="grid min-h-screen place-items-center bg-[#f4f7fb] px-5 py-10">
+      <form onSubmit={submit} className="w-full max-w-md rounded-3xl border border-slate-200 bg-white p-8 shadow-xl shadow-slate-900/5">
+        <div className="mb-6 flex h-12 w-12 items-center justify-center rounded-2xl bg-[#001e50] text-white">VW</div>
+        <p className="text-[10px] font-bold uppercase tracking-[0.24em] text-blue-600">Autosol Â· Tablero de control</p>
+        <h1 className="mt-2 text-2xl font-extrabold tracking-tight text-[#001e50]">IngresÃ¡ para continuar</h1>
+        <p className="mt-2 text-sm leading-6 text-slate-500">La portada estÃ¡ disponible. Para consultar los indicadores, ingresÃ¡ la contraseÃ±a del tablero.</p>
+        <label htmlFor="dashboard-password" className="mt-6 block text-xs font-bold text-slate-700">ContraseÃ±a</label>
+        <input
+          id="dashboard-password"
+          type="password"
+          autoComplete="current-password"
+          autoFocus
+          required
+          value={password}
+          onChange={event => setPassword(event.target.value)}
+          className="mt-2 w-full rounded-xl border border-slate-300 px-4 py-3 text-sm outline-none transition focus:border-blue-500 focus:ring-4 focus:ring-blue-100"
+        />
+        {error && <p role="alert" className="mt-3 text-sm font-medium text-red-600">{error}</p>}
+        <button type="submit" disabled={loading} className="mt-5 w-full rounded-xl bg-[#001e50] px-4 py-3 text-sm font-bold text-white transition hover:bg-blue-900 disabled:cursor-wait disabled:opacity-60">
+          {loading ? 'Verificandoâ€¦' : 'Ingresar al tablero'}
+        </button>
+        <p className="mt-4 text-center text-[11px] text-slate-400">El acceso queda guardado en este navegador durante 7 dÃ­as.</p>
+      </form>
+    </main>
+  );
+};
+
+// â”€â”€â”€ Shared header for portal-style selection screens â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const SelectionHeader = ({
   area,
   onBack,
@@ -86,7 +135,7 @@ const SelectionHeader = ({
   </header>
 );
 
-// ─── Shared card for portal-style selection screens ───────────────────────────
+// â”€â”€â”€ Shared card for portal-style selection screens â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 const SelectionCard = ({
   name,
   desc,
@@ -124,6 +173,23 @@ function App() {
   const [config, setConfig] = useState<AppConfig>(DEFAULT_CONFIG);
   const [printReportLocation, setPrintReportLocation] = useState<'JUJUY' | 'SALTA' | null>(null);
   const [reportConfig, setReportConfig] = useState<{ location: 'JUJUY' | 'SALTA', month: string | null, template: any } | null>(null);
+  const [authStatus, setAuthStatus] = useState<'checking' | 'required' | 'authenticated'>('checking');
+
+  useEffect(() => {
+    let active = true;
+    const token = getDashboardToken();
+    void verifyDashboardSession(token).then(result => {
+      if (!active) return;
+      if (!result.enabled || result.valid) setAuthStatus('authenticated');
+      else {
+        clearDashboardSession();
+        setAuthStatus('required');
+      }
+    }).catch(() => {
+      if (active) setAuthStatus(token ? 'checking' : 'required');
+    });
+    return () => { active = false; };
+  }, []);
 
   const handlePrefetchArea = (areaId: string) => {
     if (areaId === 'executive') {
@@ -214,7 +280,7 @@ function App() {
     </motion.div>
   );
 
-  const RouteLoader = ({ label = 'Cargando módulo...' }: { label?: string }) => (
+  const RouteLoader = ({ label = 'Cargando mÃ³dulo...' }: { label?: string }) => (
     <div className="flex min-h-[50vh] items-center justify-center px-6">
       <div className="rounded-[2rem] border border-slate-200/80 bg-white/85 px-8 py-7 text-center shadow-[0_20px_60px_rgba(15,23,42,0.08)] backdrop-blur-xl">
         <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-slate-950 text-white shadow-[0_14px_34px_rgba(15,23,42,0.24)]">
@@ -242,7 +308,7 @@ function App() {
             <div className="w-12 h-12 bg-slate-950 rounded-2xl flex items-center justify-center text-white font-black text-xl tracking-tighter italic shadow-2xl shadow-slate-900/20">VW</div>
             <div>
               <h1 className="text-2xl font-black text-slate-950 uppercase tracking-tighter italic leading-none">{title}</h1>
-              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] mt-2">Autosol Intelligence System • v2.5</p>
+              <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.4em] mt-2">Autosol Intelligence System â€¢ v2.5</p>
             </div>
           </div>
         </div>
@@ -260,7 +326,7 @@ function App() {
     </header>
   );
 
-  // ── Pantalla de selección: Calidad ──────────────────────────────────────────
+  // â”€â”€ Pantalla de selecciÃ³n: Calidad â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const QualitySelection = () => (
     <PageWrapper>
       <div className="min-h-screen bg-[#f7f9fc] font-sans text-[#001e50]">
@@ -276,9 +342,9 @@ function App() {
               <span className="inline-block h-0.5 w-7 bg-[#008bc5]" />
               Centro de Calidad
             </p>
-            <h2 className="mt-3 text-[2rem] font-bold tracking-tight text-[#001e50] md:text-[2.8rem]">Elegí un módulo</h2>
+            <h2 className="mt-3 text-[2rem] font-bold tracking-tight text-[#001e50] md:text-[2.8rem]">ElegÃ­ un mÃ³dulo</h2>
             <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-[#4a6078]">
-              Accedé a los módulos de análisis para revisar rendimiento, satisfacción y desvíos.
+              AccedÃ© a los mÃ³dulos de anÃ¡lisis para revisar rendimiento, satisfacciÃ³n y desvÃ­os.
             </p>
           </motion.div>
 
@@ -289,11 +355,11 @@ function App() {
             className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4"
           >
             {[
-              { id: 'ventas',      path: '/calidad/ventas',               name: 'Ventas',         icon: Icons.BarChart,       iconBg: 'bg-orange-50 text-orange-600',  desc: 'Satisfacción en salón y procesos comerciales' },
-              { id: 'postventa',   path: '/calidad/postventa_selection',  name: 'Postventa',      icon: Icons.Wrench,         iconBg: 'bg-[#edf4ff] text-[#2866b2]',  desc: 'Gestión de reclamos, taller y servicios' },
-              { id: 'pcgc',        path: '/calidad/pcgc',                 name: 'PCGC',           icon: Icons.ClipboardList,  iconBg: 'bg-indigo-50 text-indigo-600',  desc: 'Programa de Calidad de Gestión y Auditoría' },
+              { id: 'ventas',      path: '/calidad/ventas',               name: 'Ventas',         icon: Icons.BarChart,       iconBg: 'bg-orange-50 text-orange-600',  desc: 'SatisfacciÃ³n en salÃ³n y procesos comerciales' },
+              { id: 'postventa',   path: '/calidad/postventa_selection',  name: 'Postventa',      icon: Icons.Wrench,         iconBg: 'bg-[#edf4ff] text-[#2866b2]',  desc: 'GestiÃ³n de reclamos, taller y servicios' },
+              { id: 'pcgc',        path: '/calidad/pcgc',                 name: 'PCGC',           icon: Icons.ClipboardList,  iconBg: 'bg-indigo-50 text-indigo-600',  desc: 'Programa de Calidad de GestiÃ³n y AuditorÃ­a' },
               { id: 'objetivos',   path: '/calidad/objetivos',            name: 'Objetivos',      icon: Icons.Target,         iconBg: 'bg-[#eaf7f0] text-[#217749]',  desc: 'Ventas y postventa desde Google Sheets' },
-              { id: 'plan_accion', path: '/calidad/plan_accion',          name: 'Plan de Acción', icon: Icons.ClipboardCheck, iconBg: 'bg-[#eaf7f0] text-[#217749]',  desc: 'Control y verificación de desvíos' },
+              { id: 'plan_accion', path: '/calidad/plan_accion',          name: 'Plan de AcciÃ³n', icon: Icons.ClipboardCheck, iconBg: 'bg-[#eaf7f0] text-[#217749]',  desc: 'Control y verificaciÃ³n de desvÃ­os' },
               { id: 'ssi_csi',     path: '/calidad/ssi-csi',              name: 'SSI / CSI',      icon: Icons.Heart,          iconBg: 'bg-indigo-50 text-indigo-600',  desc: 'Encuestas de ventas y postventa' },
             ].map((item) => (
               <SelectionCard key={item.id} name={item.name} desc={item.desc} icon={item.icon} iconBg={item.iconBg} onClick={() => navigate(item.path)} />
@@ -304,7 +370,7 @@ function App() {
     </PageWrapper>
   );
 
-  // ── Pantalla de selección: Postventa ────────────────────────────────────────
+  // â”€â”€ Pantalla de selecciÃ³n: Postventa â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const PostventaSelection = () => (
     <PageWrapper>
       <div className="min-h-screen bg-[#f7f9fc] font-sans text-[#001e50]">
@@ -313,11 +379,11 @@ function App() {
           <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} className="text-center">
             <p className="flex items-center justify-center gap-3 text-[10px] font-bold uppercase tracking-[0.22em] text-[#316487]">
               <span className="inline-block h-0.5 w-7 bg-[#008bc5]" />
-              Área de Postventa
+              Ãrea de Postventa
             </p>
             <h2 className="mt-3 text-[2rem] font-bold tracking-tight text-[#001e50] md:text-[2.8rem]">Control Postventa</h2>
             <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-[#4a6078]">
-              Gestión de taller, indicadores y facturación con una navegación clara y compacta.
+              GestiÃ³n de taller, indicadores y facturaciÃ³n con una navegaciÃ³n clara y compacta.
             </p>
           </motion.div>
 
@@ -328,11 +394,11 @@ function App() {
             className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-5"
           >
             {([
-              { id: 'operativo',    path: '/postventa/operativo',    name: 'Control Operativo', icon: Icons.Wrench,      iconBg: 'bg-[#edf4ff] text-[#2866b2]', desc: 'Gestión de taller' },
-              { id: 'gestion_kpis', path: '/postventa/kpis',         name: 'Gestión KPIs',      icon: Icons.BarChart,    iconBg: 'bg-indigo-50 text-indigo-600', desc: 'Indicadores clave' },
-              { id: 'facturacion',  path: '/postventa/facturacion',  name: 'Facturación',       icon: Icons.Banknote,    iconBg: 'bg-amber-50  text-amber-600',   desc: 'Avance de ventas' },
-              { id: 'garantia',     path: '/postventa/garantia',     name: 'Garantía',          icon: Icons.ShieldCheck, iconBg: 'bg-[#eaf7f0] text-[#217749]',  desc: 'Lote vs PPT' },
-              { id: 'ocupacion_pvt',path: '/postventa/ocupacion-pvt',name: 'Ocupación PVT',     icon: Icons.Users,       iconBg: 'bg-indigo-50 text-indigo-600', desc: 'Ocupación y productividad por técnico' },
+              { id: 'operativo',    path: '/postventa/operativo',    name: 'Control Operativo', icon: Icons.Wrench,      iconBg: 'bg-[#edf4ff] text-[#2866b2]', desc: 'GestiÃ³n de taller' },
+              { id: 'gestion_kpis', path: '/postventa/kpis',         name: 'GestiÃ³n KPIs',      icon: Icons.BarChart,    iconBg: 'bg-indigo-50 text-indigo-600', desc: 'Indicadores clave' },
+              { id: 'facturacion',  path: '/postventa/facturacion',  name: 'FacturaciÃ³n',       icon: Icons.Banknote,    iconBg: 'bg-amber-50  text-amber-600',   desc: 'Avance de ventas' },
+              { id: 'garantia',     path: '/postventa/garantia',     name: 'GarantÃ­a',          icon: Icons.ShieldCheck, iconBg: 'bg-[#eaf7f0] text-[#217749]',  desc: 'Lote vs PPT' },
+              { id: 'ocupacion_pvt',path: '/postventa/ocupacion-pvt',name: 'OcupaciÃ³n PVT',     icon: Icons.Users,       iconBg: 'bg-indigo-50 text-indigo-600', desc: 'OcupaciÃ³n y productividad por tÃ©cnico' },
             ] as const).map((item) => (
               <SelectionCard key={item.id} name={item.name} desc={item.desc} icon={item.icon} iconBg={item.iconBg} onClick={() => navigate(item.path)} />
             ))}
@@ -342,20 +408,20 @@ function App() {
     </PageWrapper>
   );
 
-  // ── Pantalla de selección: Calidad Postventa ────────────────────────────────
+  // â”€â”€ Pantalla de selecciÃ³n: Calidad Postventa â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const PostventaQualitySelection = () => (
     <PageWrapper>
       <div className="min-h-screen bg-[#f7f9fc] font-sans text-[#001e50]">
-        <SelectionHeader area="Calidad · Postventa" onBack={() => navigate('/calidad')} backLabel="Volver a Calidad" />
+        <SelectionHeader area="Calidad Â· Postventa" onBack={() => navigate('/calidad')} backLabel="Volver a Calidad" />
         <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-6 px-[clamp(24px,4vw,72px)] py-8">
           <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} className="text-center">
             <p className="flex items-center justify-center gap-3 text-[10px] font-bold uppercase tracking-[0.22em] text-[#316487]">
               <span className="inline-block h-0.5 w-7 bg-[#008bc5]" />
               Calidad Postventa
             </p>
-            <h2 className="mt-3 text-[2rem] font-bold tracking-tight text-[#001e50] md:text-[2.8rem]">Gestión de Calidad</h2>
+            <h2 className="mt-3 text-[2rem] font-bold tracking-tight text-[#001e50] md:text-[2.8rem]">GestiÃ³n de Calidad</h2>
             <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-[#4a6078]">
-              Seguimiento de reclamos, refuerzo e instancias internas con presentación limpia y profesional.
+              Seguimiento de reclamos, refuerzo e instancias internas con presentaciÃ³n limpia y profesional.
             </p>
           </motion.div>
 
@@ -366,9 +432,9 @@ function App() {
             className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
           >
             {([
-              { id: 'claims',   path: '/calidad/postventa/claims',           name: 'Gestión de Reclamos', icon: Icons.AlertCircle,    iconBg: 'bg-[#edf4ff] text-[#2866b2]', desc: 'Seguimiento de quejas' },
-              { id: 'refuerzo', path: '/calidad/refuerzo',                   name: 'Refuerzo',            icon: Icons.Activity,       iconBg: 'bg-indigo-50 text-indigo-600', desc: 'Análisis detallado' },
-              { id: 'internal', path: '/calidad/postventa/internal_surveys', name: 'Encuesta Interna',    icon: Icons.ClipboardCheck, iconBg: 'bg-[#edf4ff] text-[#2866b2]', desc: 'Satisfacción post-servicio' },
+              { id: 'claims',   path: '/calidad/postventa/claims',           name: 'GestiÃ³n de Reclamos', icon: Icons.AlertCircle,    iconBg: 'bg-[#edf4ff] text-[#2866b2]', desc: 'Seguimiento de quejas' },
+              { id: 'refuerzo', path: '/calidad/refuerzo',                   name: 'Refuerzo',            icon: Icons.Activity,       iconBg: 'bg-indigo-50 text-indigo-600', desc: 'AnÃ¡lisis detallado' },
+              { id: 'internal', path: '/calidad/postventa/internal_surveys', name: 'Encuesta Interna',    icon: Icons.ClipboardCheck, iconBg: 'bg-[#edf4ff] text-[#2866b2]', desc: 'SatisfacciÃ³n post-servicio' },
               { id: 'seguimiento-reclamos', path: '/calidad/postventa/seguimiento-reclamos', name: 'Seguimiento de Reclamos', icon: Icons.PieChart, iconBg: 'bg-blue-50 text-blue-700', desc: 'Indicadores agregados, gestiones y pendientes' },
             ] as const).map((item) => (
               <SelectionCard key={item.id} name={item.name} desc={item.desc} icon={item.icon} iconBg={item.iconBg} onClick={() => navigate(item.path)} />
@@ -379,11 +445,11 @@ function App() {
     </PageWrapper>
   );
 
-  // ── Pantalla de selección: Ventas ───────────────────────────────────────────
+  // â”€â”€ Pantalla de selecciÃ³n: Ventas â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
   const VentasSelection = () => (
     <PageWrapper>
       <div className="min-h-screen bg-[#f7f9fc] font-sans text-[#001e50]">
-        <SelectionHeader area="Calidad · Ventas" onBack={() => navigate('/calidad')} backLabel="Volver a Calidad" />
+        <SelectionHeader area="Calidad Â· Ventas" onBack={() => navigate('/calidad')} backLabel="Volver a Calidad" />
         <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-6 px-[clamp(24px,4vw,72px)] py-8">
           <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} className="text-center">
             <p className="flex items-center justify-center gap-3 text-[10px] font-bold uppercase tracking-[0.22em] text-[#316487]">
@@ -392,7 +458,7 @@ function App() {
             </p>
             <h2 className="mt-3 text-[2rem] font-bold tracking-tight text-[#001e50] md:text-[2.8rem]">Control de Ventas</h2>
             <p className="mx-auto mt-3 max-w-xl text-sm leading-7 text-[#4a6078]">
-              Encuestas, reclamos, CEM OS y scoring de Planes de Ahorro en una navegación clara.
+              Encuestas, reclamos, CEM OS y scoring de Planes de Ahorro en una navegaciÃ³n clara.
             </p>
           </motion.div>
 
@@ -403,9 +469,9 @@ function App() {
             className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4"
           >
             {([
-              { id: 'surveys', path: '/calidad/ventas/surveys', name: 'Encuestas Internas',  icon: Icons.ClipboardCheck, iconBg: 'bg-[#edf4ff] text-[#2866b2]', desc: 'Satisfacción en salón' },
-              { id: 'claims',  path: '/calidad/ventas/claims',  name: 'Gestión de Reclamos', icon: Icons.AlertCircle,    iconBg: 'bg-orange-50 text-orange-600', desc: 'Seguimiento de quejas' },
-              { id: 'cem_os',  path: '/calidad/ventas/cem_os',  name: 'CEM OS',              icon: Icons.BarChart,       iconBg: 'bg-indigo-50 text-indigo-600', desc: 'Análisis de satisfacción general' },
+              { id: 'surveys', path: '/calidad/ventas/surveys', name: 'Encuestas Internas',  icon: Icons.ClipboardCheck, iconBg: 'bg-[#edf4ff] text-[#2866b2]', desc: 'SatisfacciÃ³n en salÃ³n' },
+              { id: 'claims',  path: '/calidad/ventas/claims',  name: 'GestiÃ³n de Reclamos', icon: Icons.AlertCircle,    iconBg: 'bg-orange-50 text-orange-600', desc: 'Seguimiento de quejas' },
+              { id: 'cem_os',  path: '/calidad/ventas/cem_os',  name: 'CEM OS',              icon: Icons.BarChart,       iconBg: 'bg-indigo-50 text-indigo-600', desc: 'AnÃ¡lisis de satisfacciÃ³n general' },
               { id: 'scoring', path: '/calidad/ventas/scoring', name: 'Scoring',             icon: Icons.Target,         iconBg: 'bg-[#edf4ff] text-[#2866b2]', desc: 'Planes de ahorro y recontactos' },
             ] as const).map((item) => (
               <SelectionCard key={item.id} name={item.name} desc={item.desc} icon={item.icon} iconBg={item.iconBg} onClick={() => navigate(item.path)} />
@@ -537,7 +603,7 @@ function App() {
       dashboardContent = (
         <div className="flex flex-col items-center justify-center min-h-[60vh] text-slate-400">
           <Icons.AlertTriangle className="w-12 h-12 mb-4 opacity-20" />
-          <p className="text-sm font-black uppercase tracking-widest">Área no encontrada</p>
+          <p className="text-sm font-black uppercase tracking-widest">Ãrea no encontrada</p>
           <button onClick={handleBackToPortal} className="mt-6 text-blue-600 font-black uppercase text-[10px] tracking-widest">Volver al Portal</button>
         </div>
       );
@@ -561,7 +627,10 @@ function App() {
     <>
       <Suspense fallback={<RouteLoader />}>
         <AnimatePresence mode="wait">
-          <Routes location={location} key={location.pathname}>
+          {location.pathname !== '/' && authStatus !== 'authenticated' ? (
+            authStatus === 'checking' ? <RouteLoader label="Verificando accesoâ€¦" /> :
+              <DashboardLogin onSuccess={() => setAuthStatus('authenticated')} />
+          ) : <Routes location={location} key={location.pathname}>
             <Route path="/" element={<PageWrapper><Portal onSelectArea={handleSelectArea} onPrefetchArea={handlePrefetchArea} /></PageWrapper>} />
 
             <Route path="/calidad" element={<QualitySelection />} />
@@ -597,7 +666,7 @@ function App() {
             <Route path="/dashboard/:areaId" element={<DashboardView type="generic" />} />
 
             <Route path="*" element={<Navigate to="/" />} />
-          </Routes>
+          </Routes>}
         </AnimatePresence>
 
         <ReportConfigModal
@@ -633,3 +702,4 @@ function App() {
 }
 
 export default App;
+

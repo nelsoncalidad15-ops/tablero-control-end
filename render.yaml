@@ -22,6 +22,8 @@ services:
         sync: false
       - key: LINK_RECLAMOS_PV
         sync: false
+      - key: LINK_SEGUIMIENTO_RECLAMOS_PV
+        sync: false
       - key: LINK_ENCUESTAS_V
         sync: false
       - key: LINK_ENCUESTAS_SSI
@@ -76,3 +78,4 @@ services:
         sync: false
       - key: LINK_CONSUMOS_AMBIENTE
         sync: false
+

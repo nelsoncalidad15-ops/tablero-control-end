@@ -5,6 +5,7 @@ import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
 import { google } from "googleapis";
+import { buildSeguimientoSummary, parseReclamosRows, RECLAMOS_SHEET_TITLE, SEGUIMIENTO_RECLAMOS_KEY } from "./services/seguimientoReclamos.js";
 
 type CorsOriginCallback = (err: Error | null, allow?: boolean) => void;
 
@@ -41,6 +42,7 @@ async function startServer() {
   const sheetCache = new Map<string, CachedSheetEntry>();
   const sheetMetadataCache = new Map<string, CachedSheetMetadata>();
   const dataRequestAttempts = new Map<string, RateLimitEntry>();
+  let seguimientoReclamosCache: { source: string; rows: unknown[][]; cachedAt: number } | null = null;
   app.set("trust proxy", 1);
   const defaultAllowedOrigins = [
     "http://localhost:3000",
@@ -139,6 +141,7 @@ async function startServer() {
     ambiente: process.env.LINK_CONSUMOS_AMBIENTE || process.env.SHEET_URL_AMBIENTE_CONSUMOS,
   };
   const allowedSheetNames = new Set(Object.keys(sheetUrls));
+  const seguimientoReclamosSource = process.env.LINK_SEGUIMIENTO_RECLAMOS_PV;
   const hasGoogleCredentials = Boolean(
     process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && process.env.GOOGLE_PRIVATE_KEY
   );
@@ -300,6 +303,75 @@ async function startServer() {
     return res.send(csv);
   };
 
+  // Internal source key: intentionally aggregate-only. It is not included in
+  // sheetUrls/allowedSheetNames, so the generic CSV endpoint cannot expose rows.
+  app.get(`/api/data/${SEGUIMIENTO_RECLAMOS_KEY}`, limitDataRequests, async (req, res) => {
+    if (!seguimientoReclamosSource) {
+      return res.status(503).json({ error: "Falta configurar LINK_SEGUIMIENTO_RECLAMOS_PV en el backend." });
+    }
+    if (!hasGoogleCredentials) {
+      return res.status(503).json({ error: "La conexiÃ³n segura a Google Sheets no estÃ¡ configurada." });
+    }
+    if (!isSpreadsheetId(seguimientoReclamosSource) && !isAllowedSheetUrl(seguimientoReclamosSource)) {
+      return res.status(400).json({ error: "El enlace configurado para Seguimiento de Reclamos no es vÃ¡lido." });
+    }
+
+    const sourceInfo = extractSheetInfo(seguimientoReclamosSource);
+    if (!sourceInfo?.spreadsheetId) {
+      return res.status(400).json({ error: "No se pudo identificar el archivo configurado para Seguimiento de Reclamos." });
+    }
+
+    try {
+      const forceRefresh = req.query.refresh === "1";
+      const freshCache = seguimientoReclamosCache &&
+        seguimientoReclamosCache.source === seguimientoReclamosSource &&
+        Date.now() - seguimientoReclamosCache.cachedAt < SHEET_CACHE_TTL_MS;
+      let values: unknown[][];
+      if (freshCache && !forceRefresh) {
+        values = seguimientoReclamosCache!.rows;
+      } else {
+        const spreadsheet: any = await withGoogleTimeout(sheets.spreadsheets.get({
+          spreadsheetId: sourceInfo.spreadsheetId,
+          fields: "sheets(properties(sheetId,index,title))",
+        }));
+        const targetSheet = spreadsheet.data.sheets?.find((item: any) =>
+          item.properties?.title === RECLAMOS_SHEET_TITLE
+        );
+        if (!targetSheet) {
+          return res.status(404).json({ error: `No existe la pestaÃ±a "${RECLAMOS_SHEET_TITLE}" en la planilla configurada.` });
+        }
+
+        const result: any = await withGoogleTimeout(sheets.spreadsheets.values.get({
+          spreadsheetId: sourceInfo.spreadsheetId,
+          range: `'${RECLAMOS_SHEET_TITLE}'!A:AG`,
+        }));
+        values = result.data.values || [];
+        if (!values.length) return res.status(502).json({ error: "La pestaÃ±a Reclamos estÃ¡ vacÃ­a o no se pudo leer." });
+        seguimientoReclamosCache = { source: seguimientoReclamosSource, rows: values, cachedAt: Date.now() };
+      }
+
+      const parsed = parseReclamosRows(values);
+      const parseNumberParam = (value: unknown) => {
+        if (typeof value !== "string" || !/^\d{1,4}$/.test(value)) return undefined;
+        return Number(value);
+      };
+      const summary = buildSeguimientoSummary(parsed, {
+        year: parseNumberParam(req.query.year),
+        month: parseNumberParam(req.query.month),
+        branch: typeof req.query.branch === "string" ? req.query.branch : undefined,
+        managementState: typeof req.query.managementState === "string" ? req.query.managementState as any : undefined,
+        type: typeof req.query.type === "string" ? req.query.type as any : undefined,
+      });
+      res.setHeader("X-Data-Source", "google_api_aggregate");
+      res.setHeader("X-Cache-Status", freshCache && !forceRefresh ? "HIT" : "MISS");
+      res.setHeader("Cache-Control", "no-store, max-age=0");
+      return res.json(summary);
+    } catch (error: any) {
+      console.error("[Seguimiento Reclamos] Error leyendo indicadores agregados:", error?.message || error);
+      return res.status(502).json({ error: "No se pudo leer la pestaÃ±a Reclamos. Verifique que la cuenta de servicio tenga permiso de lectura y que los encabezados estÃ©n completos." });
+    }
+  });
+
   app.get("/api/data/:sheetName", limitDataRequests, async (req, res) => {
     const sheetName = String(req.params.sheetName || "");
     let url = sheetUrls[sheetName];
@@ -417,4 +489,5 @@ async function startServer() {
 startServer().catch(err => {
   console.error("Failed to start server:", err);
 });
+
 

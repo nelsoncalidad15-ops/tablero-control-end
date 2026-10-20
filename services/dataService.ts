@@ -2332,7 +2332,7 @@ export const fetchInternalPostventaData = async (sheetKey: string): Promise<Inte
     }
 };
 
-const parseInternalPostventaCSV = (csvText: string): InternalPostventaRecord[] => {
+export const parseInternalPostventaCSV = (csvText: string): InternalPostventaRecord[] => {
     const rows = parseCSV(csvText);
     if (rows.length < 2) return [];
 
@@ -2389,7 +2389,9 @@ const parseInternalPostventaCSV = (csvText: string): InternalPostventaRecord[] =
             else if (header === 'observaciones') record.observaciones = value;
             else if (header === 'observacion observaciones') record.obs_observaciones = value;
 
-            record[header] = value;
+            // The normalized names for Organizacion and Lavado match their raw
+            // CSV headers. Do not replace parsed numeric scores with strings.
+            if (!(header in record)) record[header] = value;
         });
 
         record.mes = pickFirstValidMonth(record.fecha_fin, record.created_at, record.mes);

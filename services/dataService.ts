@@ -2373,9 +2373,9 @@ const parseInternalPostventaCSV = (csvText: string): InternalPostventaRecord[] =
             // Scores
             else if (header === 'servicio prestado') record.servicio_prestado = parseScore(value);
             else if (header === 'trato personal') record.trato_personal = parseScore(value);
-            else if (header === 'organizacion') record.organizacion = parseScore(value);
+            else if (header.startsWith('organizacion') && !header.includes('observacion')) record.organizacion = parseScoreInRange(value, 1, 5);
             else if (header === 'trabajo del taller') record.trabajo_taller = parseScore(value);
-            else if (header === 'lavado') record.lavado = parseScore(value);
+            else if (header.startsWith('lavado') && !header.includes('observacion')) record.lavado = parseScoreInRange(value, 1, 5);
 
             // Observations
             else if (header === 'observacion servicio prestado') record.obs_servicio_prestado = value;
@@ -2793,3 +2793,4 @@ const parseEnvironmentalConsumptionCSV = (csvText: string): EnvironmentalConsump
 
   return records;
 };
+

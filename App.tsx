@@ -91,6 +91,13 @@ const DashboardLogin = ({ onSuccess }: { onSuccess: () => void }) => {
   );
 };
 
+const RRHHRedirect = () => {
+  useEffect(() => {
+    window.location.replace('https://nelsoncalidad15-ops.github.io/rrhh/');
+  }, []);
+  return <div className="grid min-h-screen place-items-center text-sm font-semibold text-slate-500">Abriendo el módulo de RRHH…</div>;
+};
+
 // ─── Shared header for portal-style selection screens ────────────────────────
 const SelectionHeader = ({
   area,
@@ -246,7 +253,7 @@ function App() {
 
   const handleSelectArea = (area: AreaConfig) => {
     if (area.id === 'rrhh') {
-      window.location.href = 'https://nelsoncalidad15-ops.github.io/rrhh/';
+      navigate('/rrhh');
       return;
     }
     handlePrefetchArea(area.id);
@@ -635,6 +642,7 @@ function App() {
               <DashboardLogin onSuccess={() => setAuthStatus('authenticated')} />
           ) : <Routes location={location} key={location.pathname}>
             <Route path="/" element={<PageWrapper><Portal onSelectArea={handleSelectArea} onPrefetchArea={handlePrefetchArea} /></PageWrapper>} />
+            <Route path="/rrhh" element={<RRHHRedirect />} />
 
             <Route path="/calidad" element={<QualitySelection />} />
             <Route path="/calidad/postventa_selection" element={<PostventaQualitySelection />} />

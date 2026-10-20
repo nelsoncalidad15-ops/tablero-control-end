@@ -60,8 +60,7 @@ async function main() {
     const service = page.locator('.page-break-after-always').filter({ has: page.getByText(/POSTVENTA .*DICIEMBRE 2025/) });
     await page.waitForTimeout(1200);
     assert.match(await sales.innerText(), /DICIEMBRE 2025/);
-    assert.match(await sales.innerText(), /Respuestas con calificaciones: 1\./);
-    assert.match(await sales.innerText(), /Sin respuestas sobre procesos/);
+    assert.doesNotMatch(await sales.innerText(), /Adherencia comercial|Cumplimiento de procesos clave|Lectura ejecutiva|Respuestas con calificaciones/);
     assert.match(await sales.innerText(), /2\.00/);
     assert.match(await service.innerText(), /Satisfacci.n con el servicio: 2\.00/);
     assert.doesNotMatch(await service.innerText(), /niveles de excelencia/);
@@ -75,7 +74,6 @@ async function main() {
     await page.emulateMedia({ media: 'screen' });
     await page.locator('select').nth(0).selectOption({ label: 'Febrero' });
     await page.waitForTimeout(300);
-    assert.match(await sales.innerText(), /Sin respuestas/);
     assert.match(await sales.innerText(), /Sin datos/);
     await page.setViewportSize({ width: 390, height: 844 });
     await page.evaluate(() => window.scrollTo(0, 0));
@@ -90,3 +88,4 @@ async function main() {
 }
 
 main().catch(error => { console.error(error); process.exitCode = 1; });
+

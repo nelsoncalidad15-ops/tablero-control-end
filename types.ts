@@ -176,6 +176,7 @@ export interface ScoringRecord {
 }
 
 export interface DetailedQualityRecord {
+  fecha_fin_encuesta?: string;
   id: string;
   sucursal?: string;
   mes: string;

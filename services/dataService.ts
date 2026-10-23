@@ -1398,7 +1398,7 @@ const parseSalesClaimsCSV = (csvText: string): SalesClaimsRecord[] => {
     return records;
 };
 
-const parseDetailedQualityCSV = (csvText: string): DetailedQualityRecord[] => {
+export const parseDetailedQualityCSV = (csvText: string): DetailedQualityRecord[] => {
     const rows = parseCSV(csvText);
     if (rows.length < 2) return [];
 
@@ -1497,6 +1497,7 @@ const parseDetailedQualityCSV = (csvText: string): DetailedQualityRecord[] => {
         else if (header === 'concesionario') record.sucursal = normalizeBranch(value);
         else if (header.includes('codid') || header.includes('cod id')) record.cod_id = value.trim();
         else if (header.includes('codigo id asesor de servicio')) record.cod_id = value.trim();
+        else if (header.replace(/[^a-z0-9]/g, '') === 'bdencfechafin') record.fecha_fin_encuesta = value;
         else if (header.includes('fecha de servicio') || header.includes('fecha servicio')) record.fecha_servicio = value;
         else if (header.includes('vin') || header.includes('chasis')) record.vin = value;
         else if (header.includes('modelo')) record.modelo = value;

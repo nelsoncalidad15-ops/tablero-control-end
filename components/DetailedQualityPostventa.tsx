@@ -7,6 +7,7 @@ import { Icons } from './Icon';
 import { fetchDetailedQualityData } from '../services/dataService';
 import { DetailedQualityRecord, LoadingState } from '../types';
 import { MONTHS } from '../constants';
+import { matchesQualityDate } from '../services/qualityPeriod';
 import { DashboardFrame, LuxuryKPICard, SkeletonLoader, StatusBadge, InsightCard, DataTable } from './DashboardUI';
 
 interface DetailedQualityPostventaProps {
@@ -21,7 +22,9 @@ const DetailedQualityPostventa: React.FC<DetailedQualityPostventaProps> = ({ she
   const [reloadCount, setReloadCount] = useState(0);
   
   // Filters
-  const [selectedMonth, setSelectedMonth] = useState<string | null>(null);
+  const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
+  const [dateFrom, setDateFrom] = useState('');
+  const [dateTo, setDateTo] = useState('');
   const [selectedAsesor, setSelectedAsesor] = useState<string | null>(null);
   const [selectedLvsScore, setSelectedLvsScore] = useState<number | null>(null);
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
@@ -119,7 +122,7 @@ const DetailedQualityPostventa: React.FC<DetailedQualityPostventaProps> = ({ she
 
       setData(mergedData);
       setSourceErrors(failedSources);
-      setSelectedMonth(null);
+      setSelectedMonths([]);
       setLoadingState(mergedData.length > 0 ? LoadingState.SUCCESS : LoadingState.ERROR);
     };
 
@@ -153,18 +156,21 @@ const DetailedQualityPostventa: React.FC<DetailedQualityPostventaProps> = ({ she
 
   const filteredData = useMemo(() => {
     return uniqueData.filter(item => {
-      const matchMonth = !selectedMonth || selectedMonth === "" ? true : normalizeMonthKey(item.mes || item.mes_raw) === normalizeMonthKey(selectedMonth);
+      const matchMonth = selectedMonths.length === 0 || selectedMonths.includes(normalizeMonthKey(item.mes || item.mes_raw));
+      const matchDate = matchesQualityDate(item.fecha_fin_encuesta, dateFrom, dateTo);
       const matchAsesor = !selectedAsesor || selectedAsesor === "" ? true : normalizeAdvisorName(item.asesor) === selectedAsesor;
       const matchLvs = selectedLvsScore !== null ? item.q4_score === selectedLvsScore : true;
-      const matchCategory = !selectedCategory || selectedCategory === "" ? true : item.categorizacion?.trim() === selectedCategory;
+      const matchCategory = !selectedCategory || selectedCategory === "" ? true : item.categorizacion?.split(',').some(category => category.trim() === selectedCategory);
       const itemSucursal = item.sucursal?.trim().toUpperCase();
       const matchSucursal = !selectedSucursal || selectedSucursal === "" ? true : itemSucursal === selectedSucursal;
-      return matchMonth && matchAsesor && matchLvs && matchCategory && matchSucursal;
+      return matchMonth && matchDate && matchAsesor && matchLvs && matchCategory && matchSucursal;
     });
-  }, [uniqueData, selectedMonth, selectedAsesor, selectedLvsScore, selectedCategory, selectedSucursal]);
+  }, [uniqueData, selectedMonths, dateFrom, dateTo, selectedAsesor, selectedLvsScore, selectedCategory, selectedSucursal]);
 
   const clearFilters = () => {
-    setSelectedMonth(null);
+    setSelectedMonths([]);
+    setDateFrom('');
+    setDateTo('');
     setSelectedAsesor(null);
     setSelectedLvsScore(null);
     setSelectedCategory(null);
@@ -300,15 +306,34 @@ const DetailedQualityPostventa: React.FC<DetailedQualityPostventaProps> = ({ she
               <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
                 <Icons.Calendar className="w-3 h-3 text-blue-600" /> Periodo
               </span>
-              <select 
-                value={selectedMonth || ''} 
-                onChange={(e) => setSelectedMonth(e.target.value || null)}
-                className="text-xs font-bold text-slate-800 bg-slate-50 px-2.5 py-1.5 rounded-xl border border-slate-200 outline-none cursor-pointer hover:border-blue-300 transition-colors"
-              >
-                <option value="">Todos los meses</option>
-                {availableMonths.map(m => <option key={m} value={m}>{m}</option>)}
-              </select>
+              <details className="relative">
+                <summary className="text-xs font-bold text-slate-800 bg-slate-50 px-2.5 py-1.5 rounded-xl border border-slate-200 cursor-pointer">
+                  {selectedMonths.length === 0 ? 'Todos los meses' : selectedMonths.join(', ')}
+                </summary>
+                <div className="absolute left-0 top-full z-30 mt-2 w-52 max-h-72 overflow-auto rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
+                  <button type="button" onClick={() => setSelectedMonths([])} className="mb-2 text-xs font-bold text-blue-600">Todos los meses</button>
+                  {availableMonths.map(month => (
+                    <label key={month} className="flex items-center gap-2 py-1.5 text-xs cursor-pointer">
+                      <input type="checkbox" checked={selectedMonths.includes(month)} onChange={() => setSelectedMonths(current => current.includes(month) ? current.filter(m => m !== month) : [...current, month])} />
+                      {month}
+                    </label>
+                  ))}
+                </div>
+              </details>
             </div>
+
+            <fieldset className="flex flex-wrap gap-2">
+              <legend className="text-[10px] font-bold text-slate-500 uppercase mb-1">Fecha de finalización de encuesta</legend>
+              <label className="text-xs text-slate-500">Desde
+                <input aria-label="Desde" type="date" value={dateFrom} max={dateTo || undefined} onChange={e => setDateFrom(e.target.value)} className="block rounded-xl border border-slate-200 bg-slate-50 px-2 py-1.5 text-slate-800" />
+              </label>
+              <label className="text-xs text-slate-500">Hasta
+                <input aria-label="Hasta" type="date" value={dateTo} min={dateFrom || undefined} onChange={e => setDateTo(e.target.value)} className="block rounded-xl border border-slate-200 bg-slate-50 px-2 py-1.5 text-slate-800" />
+              </label>
+              {(dateFrom || dateTo) && <button type="button" onClick={() => { setDateFrom(''); setDateTo(''); }} className="text-xs text-blue-600">Quitar fechas</button>}
+              {dateFrom && dateTo && dateFrom > dateTo && <p role="alert" className="w-full text-xs text-red-600">La fecha desde debe ser anterior o igual a la fecha hasta.</p>}
+              <p className="w-full text-[10px] text-slate-500">Se combina con los meses seleccionados. Incluye ambos días; excluye encuestas sin fecha al aplicar un rango.</p>
+            </fieldset>
 
             <div className="hidden xl:block h-7 w-px bg-slate-200"></div>
 
@@ -373,7 +398,7 @@ const DetailedQualityPostventa: React.FC<DetailedQualityPostventaProps> = ({ she
             <span className="text-xs font-medium text-slate-500 hidden sm:inline">
               Muestra: <strong className="text-slate-800">{metrics.total}</strong> casos
             </span>
-            {(selectedMonth || selectedAsesor || selectedLvsScore || selectedCategory || selectedSucursal) && (
+            {(selectedMonths.length > 0 || dateFrom || dateTo || selectedAsesor || selectedLvsScore || selectedCategory || selectedSucursal) && (
               <button 
                 onClick={clearFilters}
                 className="px-3 py-1.5 rounded-xl bg-slate-100 text-xs font-bold text-slate-600 hover:bg-slate-200 transition-all flex items-center gap-1.5"

@@ -28,13 +28,20 @@ export const clearDashboardSession = () => {
 };
 
 export const verifyDashboardSession = async (token: string | null) => {
-  const response = await fetch(buildApiUrl('/api/auth/verify'), {
-    headers: token ? { Authorization: `Bearer ${token}` } : {},
-    cache: 'no-store',
-  });
-  if (response.status === 401) return { enabled: true, valid: false };
-  if (!response.ok) throw new Error('No se pudo verificar el acceso al tablero.');
-  return await response.json() as { enabled: boolean; valid: boolean };
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 6000);
+  try {
+    const response = await fetch(buildApiUrl('/api/auth/verify'), {
+      signal: controller.signal,
+      headers: token ? { Authorization: `Bearer ${token}` } : {},
+      cache: 'no-store',
+    });
+    if (response.status === 401) return { enabled: true, valid: false };
+    if (!response.ok) throw new Error('No se pudo verificar el acceso al tablero.');
+    return await response.json() as { enabled: boolean; valid: boolean };
+  } finally {
+    clearTimeout(timeoutId);
+  }
 };
 
 export const loginToDashboard = async (password: string) => {

@@ -656,8 +656,6 @@ const fetchFromProxy = async (sheetKey: string): Promise<string> => {
         return cachedPromise;
     }
 
-    await wakeBackendIfNeeded();
-
     const url = buildApiUrl(`/api/data/${encodeURIComponent(sheetKey)}`);
 
     console.log(`[DataService] Fetching from: ${url}`);

@@ -181,22 +181,31 @@ function App() {
   const [printReportLocation, setPrintReportLocation] = useState<'JUJUY' | 'SALTA' | null>(null);
   const [reportConfig, setReportConfig] = useState<{ location: 'JUJUY' | 'SALTA', month: string | null, template: any } | null>(null);
   const [authStatus, setAuthStatus] = useState<'checking' | 'required' | 'authenticated'>(() =>
-    getDashboardToken() ? 'checking' : 'required'
+    getDashboardToken() ? 'authenticated' : 'checking'
   );
 
   useEffect(() => {
     let active = true;
     const token = getDashboardToken();
-    if (!token) return;
-    void verifyDashboardSession(token).then(result => {
+    if (token) {
+      void verifyDashboardSession(token).then(result => {
+        if (!active) return;
+        if (result.enabled && !result.valid) {
+          clearDashboardSession();
+          setAuthStatus('required');
+        }
+      }).catch(() => {
+        // En caso de fallo temporal de red o Render despertando, se conserva la sesión activa
+      });
+      return () => { active = false; };
+    }
+
+    void verifyDashboardSession(null).then(result => {
       if (!active) return;
-      if (!result.enabled || result.valid) setAuthStatus('authenticated');
-      else {
-        clearDashboardSession();
-        setAuthStatus('required');
-      }
+      if (!result.enabled) setAuthStatus('authenticated');
+      else setAuthStatus('required');
     }).catch(() => {
-      if (active) setAuthStatus(token ? 'checking' : 'required');
+      if (active) setAuthStatus('required');
     });
     return () => { active = false; };
   }, []);

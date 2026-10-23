@@ -177,7 +177,7 @@ async function startServer() {
   };
   const requireDashboardAuth: express.RequestHandler = (req, res, next) => {
     if (!passwordProtectionEnabled || isValidSession(getBearerToken(req))) return next();
-    return res.status(401).json({ error: "La sesiÃ³n venciÃ³. Ingrese nuevamente al tablero.", code: "AUTH_REQUIRED" });
+    return res.status(401).json({ error: "La sesión venció. Ingrese nuevamente al tablero.", code: "AUTH_REQUIRED" });
   };
 
   app.post("/api/auth/login", (req, res) => {
@@ -196,7 +196,7 @@ async function startServer() {
     const expectedHash = createHash("sha256").update(dashboardPassword).digest();
     const submittedHash = createHash("sha256").update(submittedPassword).digest();
     if (!timingSafeEqual(expectedHash, submittedHash)) {
-      return res.status(401).json({ error: "La contraseÃ±a no es correcta." });
+      return res.status(401).json({ error: "La contraseña no es correcta." });
     }
     loginAttempts.delete(clientKey);
     const expiresAt = now + AUTH_SESSION_TTL_MS;
@@ -373,10 +373,10 @@ async function startServer() {
       return res.status(503).json({ error: "Falta configurar LINK_SEGUIMIENTO_RECLAMOS_PV en el backend." });
     }
     if (!hasGoogleCredentials) {
-      return res.status(503).json({ error: "La conexiÃ³n segura a Google Sheets no estÃ¡ configurada." });
+      return res.status(503).json({ error: "La conexión segura a Google Sheets no está configurada." });
     }
     if (!isSpreadsheetId(seguimientoReclamosSource) && !isAllowedSheetUrl(seguimientoReclamosSource)) {
-      return res.status(400).json({ error: "El enlace configurado para Seguimiento de Reclamos no es vÃ¡lido." });
+      return res.status(400).json({ error: "El enlace configurado para Seguimiento de Reclamos no es válido." });
     }
 
     const sourceInfo = extractSheetInfo(seguimientoReclamosSource);
@@ -401,7 +401,7 @@ async function startServer() {
           item.properties?.title === RECLAMOS_SHEET_TITLE
         );
         if (!targetSheet) {
-          return res.status(404).json({ error: `No existe la pestaÃ±a "${RECLAMOS_SHEET_TITLE}" en la planilla configurada.` });
+          return res.status(404).json({ error: `No existe la pestaña "${RECLAMOS_SHEET_TITLE}" en la planilla configurada.` });
         }
 
         const result: any = await withGoogleTimeout(sheets.spreadsheets.values.get({
@@ -409,7 +409,7 @@ async function startServer() {
           range: `'${RECLAMOS_SHEET_TITLE}'!A:AG`,
         }));
         values = result.data.values || [];
-        if (!values.length) return res.status(502).json({ error: "La pestaÃ±a Reclamos estÃ¡ vacÃ­a o no se pudo leer." });
+        if (!values.length) return res.status(502).json({ error: "La pestaña Reclamos está vacía o no se pudo leer." });
         seguimientoReclamosCache = { source: seguimientoReclamosSource, rows: values, cachedAt: Date.now() };
       }
 
@@ -432,7 +432,7 @@ async function startServer() {
       return res.json(summary);
     } catch (error: any) {
       console.error("[Seguimiento Reclamos] Error leyendo indicadores agregados:", error?.message || error);
-      return res.status(502).json({ error: "No se pudo leer la pestaÃ±a Reclamos. Verifique que la cuenta de servicio tenga permiso de lectura y que los encabezados estÃ©n completos." });
+      return res.status(502).json({ error: "No se pudo leer la pestaña Reclamos. Verifique que la cuenta de servicio tenga permiso de lectura y que los encabezados estén completos." });
     }
   });
 
@@ -553,5 +553,4 @@ async function startServer() {
 startServer().catch(err => {
   console.error("Failed to start server:", err);
 });
-
 

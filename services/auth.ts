@@ -44,7 +44,6 @@ export const loginToDashboard = async (password: string) => {
     body: JSON.stringify({ password }),
   });
   const result = await response.json() as { token?: string; expiresAt?: number; enabled?: boolean; error?: string };
-  if (!response.ok) throw new Error(result.error || 'No se pudo iniciar sesiÃ³n.');
+  if (!response.ok) throw new Error(result.error || 'No se pudo iniciar sesión.');
   return result;
 };
-

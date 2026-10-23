@@ -299,16 +299,16 @@ const DetailedQualityPostventa: React.FC<DetailedQualityPostventaProps> = ({ she
         )}
 
         {/* Compact In-Flow Filters Bar - Responsive for all zooms */}
-        <div className="bg-white p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-2.5 sm:gap-4 xl:gap-5">
+        <div className="bg-white p-3 rounded-2xl border border-slate-200 shadow-sm">
+          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 xl:grid-cols-[minmax(130px,1fr)_minmax(260px,1.8fr)_minmax(150px,1.3fr)_minmax(120px,0.9fr)_minmax(180px,1.2fr)] items-end">
             {/* Periodo */}
-            <div className="flex flex-col gap-1">
+            <div className="flex min-w-0 flex-col gap-1">
               <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
                 <Icons.Calendar className="w-3 h-3 text-blue-600" /> Periodo
               </span>
               <details className="relative">
-                <summary className="text-xs font-bold text-slate-800 bg-slate-50 px-2.5 py-1.5 rounded-xl border border-slate-200 cursor-pointer">
-                  {selectedMonths.length === 0 ? 'Todos los meses' : selectedMonths.join(', ')}
+                <summary title={selectedMonths.join(", ")} className="h-8 truncate text-xs font-bold text-slate-800 bg-slate-50 px-2.5 py-1.5 rounded-xl border border-slate-200 cursor-pointer">
+                  {selectedMonths.length === 0 ? 'Todos los meses' : selectedMonths.length === 1 ? selectedMonths[0] : `${selectedMonths.length} meses seleccionados`}
                 </summary>
                 <div className="absolute left-0 top-full z-30 mt-2 w-52 max-h-72 overflow-auto rounded-xl border border-slate-200 bg-white p-3 shadow-lg">
                   <button type="button" onClick={() => setSelectedMonths([])} className="mb-2 text-xs font-bold text-blue-600">Todos los meses</button>
@@ -322,66 +322,67 @@ const DetailedQualityPostventa: React.FC<DetailedQualityPostventaProps> = ({ she
               </details>
             </div>
 
-            <fieldset className="flex flex-wrap gap-2">
-              <legend className="text-[10px] font-bold text-slate-500 uppercase mb-1">Fecha de finalización de encuesta</legend>
-              <label className="text-xs text-slate-500">Desde
-                <input aria-label="Desde" type="date" value={dateFrom} max={dateTo || undefined} onChange={e => setDateFrom(e.target.value)} className="block rounded-xl border border-slate-200 bg-slate-50 px-2 py-1.5 text-slate-800" />
+            <fieldset className="col-span-2 min-w-0 sm:col-span-2 xl:col-span-1" title="BDENCfechaFin: se combina con los meses seleccionados. Incluye ambos extremos del rango y excluye registros sin fecha.">
+              <legend className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider mb-1">Fin de encuesta</legend>
+              <div className="flex items-center gap-1.5">
+              <label className="flex min-w-0 flex-1 items-center gap-1 text-[10px] text-slate-500">Desde
+                <input aria-label="Desde" type="date" value={dateFrom} max={dateTo || undefined} onChange={e => setDateFrom(e.target.value)} className="h-8 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-1.5 text-xs text-slate-800" />
               </label>
-              <label className="text-xs text-slate-500">Hasta
-                <input aria-label="Hasta" type="date" value={dateTo} min={dateFrom || undefined} onChange={e => setDateTo(e.target.value)} className="block rounded-xl border border-slate-200 bg-slate-50 px-2 py-1.5 text-slate-800" />
+              <label className="flex min-w-0 flex-1 items-center gap-1 text-[10px] text-slate-500">Hasta
+                <input aria-label="Hasta" type="date" value={dateTo} min={dateFrom || undefined} onChange={e => setDateTo(e.target.value)} className="h-8 w-full min-w-0 rounded-xl border border-slate-200 bg-slate-50 px-1.5 text-xs text-slate-800" />
               </label>
-              {(dateFrom || dateTo) && <button type="button" onClick={() => { setDateFrom(''); setDateTo(''); }} className="text-xs text-blue-600">Quitar fechas</button>}
+              {(dateFrom || dateTo) && <button type="button" onClick={() => { setDateFrom(''); setDateTo(''); }} aria-label="Quitar fechas" title="Quitar fechas" className="shrink-0 text-slate-400 hover:text-blue-600"><Icons.X className="h-3.5 w-3.5" /></button>}
+              </div>
               {dateFrom && dateTo && dateFrom > dateTo && <p role="alert" className="w-full text-xs text-red-600">La fecha desde debe ser anterior o igual a la fecha hasta.</p>}
-              <p className="w-full text-[10px] text-slate-500">Se combina con los meses seleccionados. Incluye ambos días; excluye encuestas sin fecha al aplicar un rango.</p>
             </fieldset>
 
-            <div className="hidden xl:block h-7 w-px bg-slate-200"></div>
+
 
             {/* Asesor */}
-            <div className="flex flex-col gap-1">
+            <div className="flex min-w-0 flex-col gap-1">
               <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
                 <Icons.Users className="w-3 h-3 text-emerald-600" /> Asesor
               </span>
               <select 
                 value={selectedAsesor || ''} 
                 onChange={(e) => setSelectedAsesor(e.target.value || null)}
-                className="text-xs font-bold text-slate-800 bg-slate-50 px-2.5 py-1.5 rounded-xl border border-slate-200 outline-none cursor-pointer hover:border-blue-300 transition-colors max-w-[150px] sm:max-w-[180px] xl:max-w-[200px]"
+                className="text-xs font-bold text-slate-800 bg-slate-50 px-2.5 py-1.5 rounded-xl border border-slate-200 outline-none cursor-pointer hover:border-blue-300 transition-colors h-8 w-full min-w-0"
               >
                 <option value="">Todos los asesores</option>
                 {asesores.map(a => <option key={a} value={a}>{a}</option>)}
               </select>
             </div>
 
-            <div className="hidden xl:block h-7 w-px bg-slate-200"></div>
+
 
             {/* Calificación LVS */}
-            <div className="flex flex-col gap-1">
+            <div className="flex min-w-0 flex-col gap-1">
               <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
                 <Icons.Star className="w-3 h-3 text-amber-500" /> Nota LVS
               </span>
               <select 
                 value={selectedLvsScore || ''} 
                 onChange={(e) => setSelectedLvsScore(e.target.value ? Number(e.target.value) : null)}
-                className="text-xs font-bold text-slate-800 bg-slate-50 px-2.5 py-1.5 rounded-xl border border-slate-200 outline-none cursor-pointer hover:border-blue-300 transition-colors"
+                className="text-xs font-bold text-slate-800 bg-slate-50 px-2.5 py-1.5 rounded-xl border border-slate-200 outline-none cursor-pointer hover:border-blue-300 transition-colors h-8 w-full min-w-0"
               >
                 <option value="">Todas las notas</option>
                 {[5, 4, 3, 2, 1].map(s => <option key={s} value={s}>Nota {s}</option>)}
               </select>
             </div>
 
-            <div className="hidden xl:block h-7 w-px bg-slate-200"></div>
+
 
             {/* Sucursal */}
-            <div className="flex flex-col gap-1">
+            <div className="flex min-w-0 flex-col gap-1">
               <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
                 <Icons.MapPin className="w-3 h-3 text-rose-500" /> Sucursal
               </span>
-              <div className="flex bg-slate-100 p-0.5 sm:p-1 rounded-xl border border-slate-200">
+              <div className="flex h-8 bg-slate-100 p-0.5 rounded-xl border border-slate-200">
                 {['', 'JUJUY', 'SALTA'].map((suc) => (
                   <button
                     key={suc}
                     onClick={() => setSelectedSucursal(suc || null)}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-bold uppercase transition-all ${
+                    className={`flex-1 px-2 py-1 rounded-lg text-xs font-bold uppercase transition-all ${
                       (selectedSucursal || '') === suc 
                         ? 'bg-white text-blue-600 shadow-sm' 
                         : 'text-slate-500 hover:text-slate-800'
@@ -394,8 +395,8 @@ const DetailedQualityPostventa: React.FC<DetailedQualityPostventaProps> = ({ she
             </div>
           </div>
 
-          <div className="flex items-center gap-2 sm:gap-3 shrink-0">
-            <span className="text-xs font-medium text-slate-500 hidden sm:inline">
+          <div className="mt-2 flex min-h-5 flex-wrap items-center justify-end gap-3">
+            <span className="text-[11px] font-medium text-slate-500">
               Muestra: <strong className="text-slate-800">{metrics.total}</strong> casos
             </span>
             {(selectedMonths.length > 0 || dateFrom || dateTo || selectedAsesor || selectedLvsScore || selectedCategory || selectedSucursal) && (

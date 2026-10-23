@@ -4,7 +4,9 @@ import cors from "cors";
 import path from "path";
 import fs from "fs";
 import { fileURLToPath } from "url";
+import { createHmac, createHash, timingSafeEqual } from "crypto";
 import { google } from "googleapis";
+import { buildSeguimientoSummary, parseReclamosRows, RECLAMOS_SHEET_TITLE, SEGUIMIENTO_RECLAMOS_KEY } from "./services/seguimientoReclamos.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const GOOGLE_FETCH_TIMEOUT_MS = 30000;
@@ -12,11 +14,15 @@ const SHEET_CACHE_TTL_MS = 5 * 60 * 1000;
 const SHEET_METADATA_CACHE_TTL_MS = 6 * 60 * 60 * 1000;
 const DATA_RATE_LIMIT_WINDOW_MS = 60 * 1000;
 const DATA_MAX_REQUESTS_PER_MINUTE = Math.min(Math.max(Number(process.env.DATA_MAX_REQUESTS_PER_MINUTE) || 180, 30), 600);
+const AUTH_SESSION_TTL_MS = 7 * 24 * 60 * 60 * 1000;
+const AUTH_RATE_LIMIT_WINDOW_MS = 15 * 60 * 1000;
 async function startServer() {
     const app = express();
+    app.use(express.json({ limit: "2kb" }));
     const sheetCache = new Map();
     const sheetMetadataCache = new Map();
     const dataRequestAttempts = new Map();
+    let seguimientoReclamosCache = null;
     app.set("trust proxy", 1);
     const defaultAllowedOrigins = [
         "http://localhost:3000",
@@ -35,8 +41,8 @@ async function startServer() {
             }
             return callback(new Error(`Origin not allowed by CORS: ${origin}`));
         },
-        methods: ["GET", "OPTIONS"],
-        allowedHeaders: ["Content-Type", "X-Requested-With", "Accept"],
+        methods: ["GET", "POST", "OPTIONS"],
+        allowedHeaders: ["Content-Type", "X-Requested-With", "Accept", "Authorization"],
         credentials: false,
     }));
     app.use((req, res, next) => {
@@ -104,7 +110,79 @@ async function startServer() {
         ambiente: process.env.LINK_CONSUMOS_AMBIENTE || process.env.SHEET_URL_AMBIENTE_CONSUMOS,
     };
     const allowedSheetNames = new Set(Object.keys(sheetUrls));
+    const seguimientoReclamosSource = process.env.LINK_SEGUIMIENTO_RECLAMOS_PV;
     const hasGoogleCredentials = Boolean(process.env.GOOGLE_SERVICE_ACCOUNT_EMAIL && process.env.GOOGLE_PRIVATE_KEY);
+    const dashboardPassword = process.env.GLOBAL_PASSWORD || "";
+    const passwordProtectionEnabled = process.env.IS_PASSWORD_PROTECTED === "true" && Boolean(dashboardPassword);
+    const authSigningSecret = dashboardPassword;
+    const loginAttempts = new Map();
+    const signSession = (expiresAt) => {
+        const payload = Buffer.from(JSON.stringify({ exp: expiresAt })).toString("base64url");
+        const signature = createHmac("sha256", authSigningSecret).update(payload).digest("base64url");
+        return `${payload}.${signature}`;
+    };
+    const isValidSession = (token) => {
+        if (!passwordProtectionEnabled || !token)
+            return !passwordProtectionEnabled;
+        const [payload, suppliedSignature, extra] = token.split(".");
+        if (!payload || !suppliedSignature || extra)
+            return false;
+        const expectedSignature = createHmac("sha256", authSigningSecret).update(payload).digest();
+        let actualSignature;
+        try {
+            actualSignature = Buffer.from(suppliedSignature, "base64url");
+        }
+        catch {
+            return false;
+        }
+        if (actualSignature.length !== expectedSignature.length || !timingSafeEqual(actualSignature, expectedSignature))
+            return false;
+        try {
+            const parsed = JSON.parse(Buffer.from(payload, "base64url").toString("utf8"));
+            return Number.isSafeInteger(parsed.exp) && parsed.exp > Date.now();
+        }
+        catch {
+            return false;
+        }
+    };
+    const getBearerToken = (req) => {
+        const value = req.header("authorization") || "";
+        return value.startsWith("Bearer ") ? value.slice(7) : undefined;
+    };
+    const requireDashboardAuth = (req, res, next) => {
+        if (!passwordProtectionEnabled || isValidSession(getBearerToken(req)))
+            return next();
+        return res.status(401).json({ error: "La sesión venció. Ingrese nuevamente al tablero.", code: "AUTH_REQUIRED" });
+    };
+    app.post("/api/auth/login", (req, res) => {
+        if (!passwordProtectionEnabled)
+            return res.json({ enabled: false });
+        const now = Date.now();
+        const clientKey = getClientKey(req);
+        const existing = loginAttempts.get(clientKey);
+        if (existing && existing.resetAt > now && existing.count >= 10) {
+            res.setHeader("Retry-After", String(Math.ceil((existing.resetAt - now) / 1000)));
+            return res.status(429).json({ error: "Demasiados intentos. Espere unos minutos y vuelva a intentar." });
+        }
+        const attempt = existing && existing.resetAt > now ? existing : { count: 0, resetAt: now + AUTH_RATE_LIMIT_WINDOW_MS };
+        attempt.count += 1;
+        loginAttempts.set(clientKey, attempt);
+        const submittedPassword = typeof req.body?.password === "string" ? req.body.password : "";
+        const expectedHash = createHash("sha256").update(dashboardPassword).digest();
+        const submittedHash = createHash("sha256").update(submittedPassword).digest();
+        if (!timingSafeEqual(expectedHash, submittedHash)) {
+            return res.status(401).json({ error: "La contraseña no es correcta." });
+        }
+        loginAttempts.delete(clientKey);
+        const expiresAt = now + AUTH_SESSION_TTL_MS;
+        return res.json({ token: signSession(expiresAt), expiresAt });
+    });
+    app.get("/api/auth/verify", (req, res) => {
+        if (!passwordProtectionEnabled)
+            return res.json({ enabled: false, valid: true });
+        const valid = isValidSession(getBearerToken(req));
+        return res.status(valid ? 200 : 401).json({ enabled: true, valid });
+    });
     const getClientKey = (req) => String(req.ip || "unknown").slice(0, 200);
     const getActiveRateLimitEntry = (clientKey, now) => {
         const entry = dataRequestAttempts.get(clientKey);
@@ -231,7 +309,74 @@ async function startServer() {
         res.header("Content-Type", "text/csv; charset=utf-8");
         return res.send(csv);
     };
-    app.get("/api/data/:sheetName", limitDataRequests, async (req, res) => {
+    // Internal source key: intentionally aggregate-only. It is not included in
+    // sheetUrls/allowedSheetNames, so the generic CSV endpoint cannot expose rows.
+    app.get(`/api/data/${SEGUIMIENTO_RECLAMOS_KEY}`, requireDashboardAuth, limitDataRequests, async (req, res) => {
+        if (!seguimientoReclamosSource) {
+            return res.status(503).json({ error: "Falta configurar LINK_SEGUIMIENTO_RECLAMOS_PV en el backend." });
+        }
+        if (!hasGoogleCredentials) {
+            return res.status(503).json({ error: "La conexión segura a Google Sheets no está configurada." });
+        }
+        if (!isSpreadsheetId(seguimientoReclamosSource) && !isAllowedSheetUrl(seguimientoReclamosSource)) {
+            return res.status(400).json({ error: "El enlace configurado para Seguimiento de Reclamos no es válido." });
+        }
+        const sourceInfo = extractSheetInfo(seguimientoReclamosSource);
+        if (!sourceInfo?.spreadsheetId) {
+            return res.status(400).json({ error: "No se pudo identificar el archivo configurado para Seguimiento de Reclamos." });
+        }
+        try {
+            const forceRefresh = req.query.refresh === "1";
+            const freshCache = seguimientoReclamosCache &&
+                seguimientoReclamosCache.source === seguimientoReclamosSource &&
+                Date.now() - seguimientoReclamosCache.cachedAt < SHEET_CACHE_TTL_MS;
+            let values;
+            if (freshCache && !forceRefresh) {
+                values = seguimientoReclamosCache.rows;
+            }
+            else {
+                const spreadsheet = await withGoogleTimeout(sheets.spreadsheets.get({
+                    spreadsheetId: sourceInfo.spreadsheetId,
+                    fields: "sheets(properties(sheetId,index,title))",
+                }));
+                const targetSheet = spreadsheet.data.sheets?.find((item) => item.properties?.title === RECLAMOS_SHEET_TITLE);
+                if (!targetSheet) {
+                    return res.status(404).json({ error: `No existe la pestaña "${RECLAMOS_SHEET_TITLE}" en la planilla configurada.` });
+                }
+                const result = await withGoogleTimeout(sheets.spreadsheets.values.get({
+                    spreadsheetId: sourceInfo.spreadsheetId,
+                    range: `'${RECLAMOS_SHEET_TITLE}'!A:AG`,
+                }));
+                values = result.data.values || [];
+                if (!values.length)
+                    return res.status(502).json({ error: "La pestaña Reclamos está vacía o no se pudo leer." });
+                seguimientoReclamosCache = { source: seguimientoReclamosSource, rows: values, cachedAt: Date.now() };
+            }
+            const parsed = parseReclamosRows(values);
+            const parseNumberParam = (value) => {
+                if (typeof value !== "string" || !/^\d{1,4}$/.test(value))
+                    return undefined;
+                return Number(value);
+            };
+            const summary = buildSeguimientoSummary(parsed, {
+                year: parseNumberParam(req.query.year),
+                month: parseNumberParam(req.query.month),
+                branch: typeof req.query.branch === "string" ? req.query.branch : undefined,
+                advisor: typeof req.query.advisor === "string" ? req.query.advisor : undefined,
+                managementState: typeof req.query.managementState === "string" ? req.query.managementState : undefined,
+                type: typeof req.query.type === "string" ? req.query.type : undefined,
+            });
+            res.setHeader("X-Data-Source", "google_api_aggregate");
+            res.setHeader("X-Cache-Status", freshCache && !forceRefresh ? "HIT" : "MISS");
+            res.setHeader("Cache-Control", "no-store, max-age=0");
+            return res.json(summary);
+        }
+        catch (error) {
+            console.error("[Seguimiento Reclamos] Error leyendo indicadores agregados:", error?.message || error);
+            return res.status(502).json({ error: "No se pudo leer la pestaña Reclamos. Verifique que la cuenta de servicio tenga permiso de lectura y que los encabezados estén completos." });
+        }
+    });
+    app.get("/api/data/:sheetName", requireDashboardAuth, limitDataRequests, async (req, res) => {
         const sheetName = String(req.params.sheetName || "");
         let url = sheetUrls[sheetName];
         console.log(`[Proxy] Request for sheet: ${sheetName}`);
@@ -300,7 +445,7 @@ async function startServer() {
             status: "ok",
             environment: process.env.NODE_ENV || "development",
             time: new Date().toISOString(),
-            passwordProtected: false
+            passwordProtected: passwordProtectionEnabled
         });
     });
     // Vite middleware for development

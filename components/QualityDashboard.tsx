@@ -876,7 +876,7 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
                                             {record.observacion_calidad_ia && record.observacion_calidad_ia.trim() !== '' && record.observacion_calidad_ia.trim() !== '-' && (
                                                 <div className="bg-purple-50/70 p-4 rounded-xl border border-purple-200 relative">
                                                     <span className="text-[10px] text-purple-700 font-bold uppercase tracking-wider block mb-2 flex items-center gap-1.5">
-                                                        <Icons.Sparkles className="w-3.5 h-3.5 text-purple-600" /> Observación Calidad IA
+                                                        <Icons.Sparkles className="w-3.5 h-3.5 text-purple-600" /> Observación Calidad
                                                     </span>
                                                     <p className="text-sm font-medium text-slate-700 leading-6">
                                                         {record.observacion_calidad_ia}

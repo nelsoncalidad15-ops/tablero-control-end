@@ -25,7 +25,9 @@ export interface QualityRecord {
   motivo: string; // "Motivos de Reclamo"
   cliente: string;
   nota_reclamo?: string; // "Nota reclamo"
-  observacion: string; // "Reclamo / Observación"
+  observacion: string;
+  observacion_calidad_ia?: string;
+  fecha_reclamo?: string; // "Reclamo / Observación"
   responsable: string; // "Responsable de Solución"
   asesor?: string; // "Asesor asignado" (Column K)
   estado: string; // "Estado de Reclamo"

@@ -22,6 +22,7 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
   const [loadingState, setLoadingState] = useState<LoadingState>(LoadingState.IDLE);
   
   // Filters
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
   const [selectedMonths, setSelectedMonths] = useState<string[]>([]);
   const [selectedBranches, setSelectedBranches] = useState<string[]>([]);
   const [selectedMotivos, setSelectedMotivos] = useState<string[]>([]);
@@ -29,6 +30,10 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
   const [showAllMotivos, setShowAllMotivos] = useState<boolean>(true);
 
   const [availableBranches, setAvailableBranches] = useState<string[]>([]);
+
+  const availableYears = useMemo(() => {
+    return [...new Set(data.map(d => d.anio).filter(Boolean))].sort((a, b) => b - a);
+  }, [data]);
 
   // Helper: Consistent Normalization
   const normalizeString = (str: string) => {
@@ -87,11 +92,12 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
 
   const baseFilteredData = useMemo(() => {
     return data.filter(item => {
+      const matchYear = selectedYear === null || item.anio === selectedYear;
       const matchMonth = selectedMonths.length === 0 || selectedMonths.includes(item.mes);
       const matchBranch = selectedBranches.length === 0 || selectedBranches.includes(item.sucursal);
-      return matchMonth && matchBranch;
+      return matchYear && matchMonth && matchBranch;
     });
-  }, [data, selectedMonths, selectedBranches]);
+  }, [data, selectedYear, selectedMonths, selectedBranches]);
 
   const contextData = useMemo(() => {
       return baseFilteredData.filter(d => {
@@ -310,6 +316,34 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
             {/* Compact Professional Filters Bar */}
             <div className="bg-white p-3 sm:p-4 rounded-2xl border border-slate-200 shadow-sm flex flex-wrap items-center justify-between gap-3">
                 <div className="flex flex-wrap items-center gap-3 sm:gap-4 xl:gap-6">
+                    {/* Año */}
+                    <div className="flex flex-col gap-1">
+                        <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
+                            <Icons.Calendar className="w-3.5 h-3.5 text-amber-500" /> Año
+                        </span>
+                        <div className="flex flex-wrap gap-1">
+                            {[null, ...availableYears].map((year) => {
+                                const isSelected = selectedYear === year;
+                                return (
+                                    <button
+                                        key={year ?? 'all'}
+                                        type="button"
+                                        onClick={() => setSelectedYear(year)}
+                                        className={`px-2.5 py-1 rounded-xl text-xs font-bold transition-all border ${
+                                            isSelected
+                                                ? 'bg-slate-950 text-white border-slate-950 shadow-sm' 
+                                                : 'bg-slate-50 text-slate-600 border-slate-200 hover:bg-slate-100'
+                                        }`}
+                                    >
+                                        {year ?? 'Todos'}
+                                    </button>
+                                );
+                            })}
+                        </div>
+                    </div>
+
+                    <div className="hidden xl:block h-8 w-px bg-slate-200"></div>
+
                     {/* Periodo */}
                     <div className="flex flex-col gap-1">
                         <span className="text-[10px] sm:text-[11px] font-bold text-slate-500 uppercase tracking-wider flex items-center gap-1.5">
@@ -379,10 +413,11 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
 
                 {/* Acciones */}
                 <div className="flex items-center gap-2 sm:gap-2.5 shrink-0">
-                    {(selectedMonths.length > 0 || selectedBranches.length > 0 || selectedMotivos.length > 0 || selectedResponsable) && (
+                    {(selectedYear !== null || selectedMonths.length > 0 || selectedBranches.length > 0 || selectedMotivos.length > 0 || selectedResponsable) && (
                         <button 
                             type="button"
                             onClick={() => {
+                                setSelectedYear(null);
                                 setSelectedMonths([]);
                                 setSelectedBranches([]);
                                 setSelectedMotivos([]);
@@ -787,6 +822,10 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
                                                 <Icons.MapPin className="w-3 h-3 text-slate-400" />
                                                 {record.sucursal}
                                             </div>
+                                            <div className="flex items-center gap-1.5 bg-slate-50 text-slate-600 px-2.5 py-1 rounded-lg text-[10px] font-bold tracking-wide border border-slate-200">
+                                                <Icons.Calendar className="w-3 h-3 text-slate-400" />
+                                                {record.mes} {record.anio}
+                                            </div>
                                             {record.categorizacion && record.categorizacion !== '-' && (
                                                 <div className="flex items-center gap-1.5 bg-blue-50 text-blue-700 px-2.5 py-1 rounded-lg text-[10px] font-bold tracking-wide border border-blue-100">
                                                     <Icons.Tag className="w-3 h-3" />
@@ -833,6 +872,17 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
                                                     {record.observacion || <span className="italic opacity-40">Sin descripción registrada</span>}
                                                 </p>
                                             </div>
+
+                                            {record.observacion_calidad_ia && record.observacion_calidad_ia.trim() !== '' && record.observacion_calidad_ia.trim() !== '-' && (
+                                                <div className="bg-purple-50/70 p-4 rounded-xl border border-purple-200 relative">
+                                                    <span className="text-[10px] text-purple-700 font-bold uppercase tracking-wider block mb-2 flex items-center gap-1.5">
+                                                        <Icons.Sparkles className="w-3.5 h-3.5 text-purple-600" /> Observación Calidad IA
+                                                    </span>
+                                                    <p className="text-sm font-medium text-slate-700 leading-6">
+                                                        {record.observacion_calidad_ia}
+                                                    </p>
+                                                </div>
+                                            )}
                                             
                                             {record.nota_reclamo && record.nota_reclamo.trim() !== '' && (
                                                 <div className="bg-amber-50/70 p-4 rounded-xl border border-amber-200 relative">

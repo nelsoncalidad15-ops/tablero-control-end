@@ -1022,7 +1022,31 @@ const parseAutoCSV = (csvText: string): AutoRecord[] => {
   return records;
 };
 
-const parseQualityCSV = (csvText: string): QualityRecord[] => {
+const extractYearFromValue = (value: unknown): number | null => {
+    if (!value) return null;
+    if (typeof value === 'number' && value >= 2020 && value <= 2035) return value;
+    const str = String(value).trim();
+    if (!str) return null;
+
+    const yearMatch = str.match(/\b(202[3-9]|203[0-5])\b/);
+    if (yearMatch) return parseInt(yearMatch[1], 10);
+
+    const shortYearMatch = str.match(/(?:^|[-/ ])\d{1,2}[-/](?:[a-z]{3,10}|\d{1,2})[-/](\d{2})(?:[ T]|$)/i);
+    if (shortYearMatch) {
+        const yy = parseInt(shortYearMatch[1], 10);
+        return 2000 + yy;
+    }
+
+    if (/^\d{5}(?:\.\d+)?$/.test(str)) {
+        const d = new Date(Date.UTC(1899, 11, 30) + Math.floor(Number(str)) * 86_400_000);
+        const y = d.getUTCFullYear();
+        if (y >= 2020 && y <= 2035) return y;
+    }
+
+    return null;
+};
+
+export const parseQualityCSV = (csvText: string): QualityRecord[] => {
     const rows = parseCSV(csvText);
     if (rows.length < 2) return [];
 
@@ -1058,14 +1082,20 @@ const parseQualityCSV = (csvText: string): QualityRecord[] => {
         else if (header === 'tecnicos') record.responsable = value;
         else if (header === 'nota reclamo') record.nota_reclamo = value;
         else if (header === 'trabajo del taller' && !record.nota_reclamo) record.nota_reclamo = value;
-        else if (header === 'reclamo / observacion' || header === 'reclamo observacion') record.observacion = value;
+        else if (header.includes('calidad ia') || (header.includes('observacion') && (header.includes('ia') || header.includes('calidad')))) {
+            record.observacion_calidad_ia = value;
+        }
+        else if (header === 'reclamo / observacion' || header === 'reclamo observacion' || header === 'reclamo/observacion' || (header.includes('reclamo') && header.includes('observacion'))) {
+            record.observacion = value;
+        }
         else if (header === 'observaciones' && !record.observacion) record.observacion = value;
         else if (header === 'observacion de resolucion') record.observacion_resolucion = value;
-        else if (header.includes('observación') || header.includes('observacion')) {
-            if (!header.includes('resolucion') && !record.observacion && value) {
+        else if (header.includes('observacion')) {
+            if (!header.includes('resolucion') && !header.includes('ia') && !header.includes('calidad') && !record.observacion && value) {
                 record.observacion = value;
             }
         }
+        else if (header.includes('fecha reclamo') || header.includes('fecha queja')) record.fecha_reclamo = value;
         else if (header.includes('estado')) record.estado = value;
         else if (header === 'orden' || header === 'nro' || header === 'or') record.orden = value;
         else if (header === 'or codigo') record.orden = value;
@@ -1097,8 +1127,11 @@ const parseQualityCSV = (csvText: string): QualityRecord[] => {
           }
       }
 
+      if (!record.observacion && record['reclamo / observacion']) record.observacion = record['reclamo / observacion'];
       if (!record.observacion && record['reclamo / observación']) record.observacion = record['reclamo / observación'];
-
+      if (!record.observacion && record['reclamo observacion']) record.observacion = record['reclamo observacion'];
+      if (!record.observacion && record['reclamo/observacion']) record.observacion = record['reclamo/observacion'];
+      if (!record.observacion && record['requerimiento del cliente']) record.observacion = record['requerimiento del cliente'];
       if (!record.observacion && record.observaciones) record.observacion = record.observaciones;
 
       if (!record.sector) {
@@ -1126,7 +1159,18 @@ const parseQualityCSV = (csvText: string): QualityRecord[] => {
       if (!record.mes) record.mes = 'Unknown';
       else record.mes = normalizeMonth(record.mes); 
 
-      if (!record.anio) record.anio = 2026; 
+      const extractedYear = extractYearFromValue(record.anio) ||
+                           extractYearFromValue(record.fecha_reclamo) ||
+                           extractYearFromValue(record['fecha reclamo/ queja']) ||
+                           extractYearFromValue(record['fecha reclamo queja']) ||
+                           extractYearFromValue(record['fecha reclamo']) ||
+                           extractYearFromValue(record['or fecfin']) ||
+                           extractYearFromValue(record['or fecini']) ||
+                           extractYearFromValue(record['fecha de resolucion']) ||
+                           extractYearFromValue(record['fecha de llamado de contecion a las 24 hs']) ||
+                           extractYearFromValue(record.mes) ||
+                           extractYearFromValue(record['created at']);
+      record.anio = extractedYear || 2026; 
       if (!record.sector) record.sector = 'Sin Sector';
       if (!record.motivo) record.motivo = 'Sin Motivo';
 

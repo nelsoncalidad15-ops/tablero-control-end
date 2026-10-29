@@ -27,6 +27,7 @@ export interface QualityRecord {
   nota_reclamo?: string; // "Nota reclamo"
   observacion: string;
   observacion_calidad_ia?: string;
+  requerimiento_cliente?: string;
   fecha_reclamo?: string; // "Reclamo / Observación"
   responsable: string; // "Responsable de Solución"
   asesor?: string; // "Asesor asignado" (Column K)

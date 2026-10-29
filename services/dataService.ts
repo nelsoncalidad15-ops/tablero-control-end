@@ -1054,6 +1054,14 @@ export const parseQualityCSV = (csvText: string): QualityRecord[] => {
     const companyIdx = headers.indexOf('nombre de la compania');
     const apellidoIdx = headers.indexOf('apellido');
     const nombreIdx = headers.indexOf('nombre');
+    const reclamoObsIdx = headers.findIndex(h =>
+      h === 'reclamo / observacion' ||
+      h === 'reclamo / observación' ||
+      h === 'reclamo observacion' ||
+      h === 'reclamo/observacion' ||
+      (h.includes('reclamo') && h.includes('observacion'))
+    );
+    const reqClienteIdx = headers.findIndex(h => h.includes('requerimiento'));
 
     const records: QualityRecord[] = [];
 
@@ -1062,6 +1070,13 @@ export const parseQualityCSV = (csvText: string): QualityRecord[] => {
       if (currentLine.length < headers.length - 1) continue;
 
       const record: any = { id: `q-row-${i}` };
+
+      if (reclamoObsIdx !== -1) {
+        record.observacion = (currentLine[reclamoObsIdx] || '').trim();
+      }
+      if (reqClienteIdx !== -1) {
+        record.requerimiento_cliente = (currentLine[reqClienteIdx] || '').trim();
+      }
 
       headers.forEach((header, index) => {
         const value = currentLine[index] || '';
@@ -1085,15 +1100,18 @@ export const parseQualityCSV = (csvText: string): QualityRecord[] => {
         else if (header.includes('calidad ia') || (header.includes('observacion') && (header.includes('ia') || header.includes('calidad')))) {
             record.observacion_calidad_ia = value;
         }
-        else if (header === 'reclamo / observacion' || header === 'reclamo observacion' || header === 'reclamo/observacion' || (header.includes('reclamo') && header.includes('observacion'))) {
+        else if (reclamoObsIdx === -1 && (header === 'reclamo / observacion' || header === 'reclamo observacion' || header === 'reclamo/observacion' || (header.includes('reclamo') && header.includes('observacion')))) {
             record.observacion = value;
         }
-        else if (header === 'observaciones' && !record.observacion) record.observacion = value;
+        else if (reclamoObsIdx === -1 && header === 'observaciones' && record.observacion === undefined) record.observacion = value;
         else if (header === 'observacion de resolucion') record.observacion_resolucion = value;
-        else if (header.includes('observacion')) {
-            if (!header.includes('resolucion') && !header.includes('ia') && !header.includes('calidad') && !record.observacion && value) {
+        else if (reclamoObsIdx === -1 && header.includes('observacion')) {
+            if (!header.includes('resolucion') && !header.includes('ia') && !header.includes('calidad') && record.observacion === undefined && value) {
                 record.observacion = value;
             }
+        }
+        else if (header.includes('requerimiento')) {
+            record.requerimiento_cliente = value;
         }
         else if (header.includes('fecha reclamo') || header.includes('fecha queja')) record.fecha_reclamo = value;
         else if (header.includes('estado')) record.estado = value;
@@ -1127,12 +1145,18 @@ export const parseQualityCSV = (csvText: string): QualityRecord[] => {
           }
       }
 
-      if (!record.observacion && record['reclamo / observacion']) record.observacion = record['reclamo / observacion'];
-      if (!record.observacion && record['reclamo / observación']) record.observacion = record['reclamo / observación'];
-      if (!record.observacion && record['reclamo observacion']) record.observacion = record['reclamo observacion'];
-      if (!record.observacion && record['reclamo/observacion']) record.observacion = record['reclamo/observacion'];
-      if (!record.observacion && record['requerimiento del cliente']) record.observacion = record['requerimiento del cliente'];
-      if (!record.observacion && record.observaciones) record.observacion = record.observaciones;
+      if (record.observacion === undefined) {
+        if (record['reclamo / observacion']) record.observacion = record['reclamo / observacion'];
+        else if (record['reclamo / observación']) record.observacion = record['reclamo / observación'];
+        else if (record['reclamo observacion']) record.observacion = record['reclamo observacion'];
+        else if (record['reclamo/observacion']) record.observacion = record['reclamo/observacion'];
+        else if (record.observaciones) record.observacion = record.observaciones;
+        else record.observacion = '';
+      }
+
+      if (!record.requerimiento_cliente && record['requerimiento del cliente']) {
+        record.requerimiento_cliente = record['requerimiento del cliente'];
+      }
 
       if (!record.sector) {
           const sectorFallbacks = [
@@ -1453,6 +1477,14 @@ export const parseDetailedQualityCSV = (csvText: string): DetailedQualityRecord[
     const companyIdx = headers.indexOf('nombre de la compania');
     const apellidoIdx = headers.indexOf('apellido');
     const nombreIdx = headers.indexOf('nombre');
+    const reclamoObsIdx = headers.findIndex(h =>
+      h === 'reclamo / observacion' ||
+      h === 'reclamo / observación' ||
+      h === 'reclamo observacion' ||
+      h === 'reclamo/observacion' ||
+      (h.includes('reclamo') && h.includes('observacion'))
+    );
+    const reqClienteIdx = headers.findIndex(h => h.includes('requerimiento'));
 
     const records: DetailedQualityRecord[] = [];
 

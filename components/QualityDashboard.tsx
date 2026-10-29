@@ -849,6 +849,14 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
                                                     <span>Sector: <strong>{normalizeString(record.sector)}</strong></span>
                                                 </div>
                                             )}
+                                            {record.requerimiento_cliente && record.requerimiento_cliente.trim() !== '' && (
+                                                <div className="flex items-start gap-2.5 text-xs font-medium text-slate-600">
+                                                    <div className="w-6 h-6 rounded-lg bg-slate-100 flex items-center justify-center shrink-0 mt-0.5">
+                                                        <Icons.Wrench className="w-3.5 h-3.5 text-slate-500" />
+                                                    </div>
+                                                    <span>Requerimiento: <strong>{record.requerimiento_cliente}</strong></span>
+                                                </div>
+                                            )}
                                         </div>
 
                                         {(isResolved || isNotResolved) && (
@@ -869,7 +877,11 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
                                             <div className="bg-slate-50/80 p-4 rounded-xl border border-slate-200 relative group-hover:border-blue-100 transition-colors">
                                                 <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block mb-2">Observación del Reclamo</span>
                                                 <p className="text-sm font-medium text-slate-700 leading-6">
-                                                    {record.observacion || <span className="italic opacity-40">Sin descripción registrada</span>}
+                                                    {record.observacion && record.observacion.trim() !== '' ? (
+                                                        record.observacion
+                                                    ) : (
+                                                        <span className="italic opacity-40">Sin descripción registrada</span>
+                                                    )}
                                                 </p>
                                             </div>
 

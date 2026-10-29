@@ -40,3 +40,17 @@ test('extrae años 2025 y 2026 desde diversos formatos de fecha de reclamo', () 
   assert.equal(records[2].anio, 2026);
   assert.equal(records[3].anio, 2026);
 });
+
+
+test('Reclamo sin detalles con Requerimiento del cliente preserva observacion vacia y no toma el requerimiento de taller', () => {
+  const csv = [
+    'Sucursal,Orden,Requerimiento del cliente,Reclamo / Observación,Observación Calidad IA,Nota reclamo,Motivos de Reclamo',
+    'SALTA,5443141,"SERVICIO DE 10.000 KM",,"Se solicita ampliar la información registrada...",3,"Reclamos sin detalles"'
+  ].join('\n');
+
+  const records = parseQualityCSV(csv);
+  assert.equal(records.length, 1);
+  assert.equal(records[0].observacion, '');
+  assert.equal(records[0].requerimiento_cliente, 'SERVICIO DE 10.000 KM');
+  assert.equal(records[0].motivo, 'Reclamos sin detalles');
+});

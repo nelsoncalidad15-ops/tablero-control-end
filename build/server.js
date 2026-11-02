@@ -70,6 +70,7 @@ async function startServer() {
     const resolvedDetailedQualitySaltaUrl = process.env.LINK_REFUERZO_SLA ||
         process.env.SHEET_URL_DETAILED_QUALITY_SALTA;
     const sheetUrls = {
+        club_ssi: process.env.LINK_CLUB_SSI,
         // Quality & Sales Quality
         sales_quality: process.env.LINK_ENCUESTAS_V || process.env.SHEET_URL_SALES_QUALITY,
         sales_claims: process.env.LINK_RECLAMOS_V || process.env.SHEET_URL_SALES_CLAIMS,

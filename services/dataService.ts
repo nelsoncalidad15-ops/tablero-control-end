@@ -1,6 +1,9 @@
 
 /// <reference types="vite/client" />
 import Papa from 'papaparse';
+import { parseClubSsiCsv } from './clubSsi';
+
+export const fetchClubSsiData = async () => parseClubSsiCsv(await fetchFromProxy('club_ssi'));
 import { AutoRecord, QualityRecord, SalesQualityRecord, SalesClaimsRecord, DetailedQualityRecord, PostventaKpiRecord, BillingRecord, PCGCRecord, CemOsRecord, InternalPostventaRecord, ActionPlanRecord, CourseGrade, RelatorioItem, CollaboratorContact, CoursePhase, WarrantyRecord, QualityObjectiveRecord, QualityObjectiveSummaryRecord, QualityObjectiveScaleRecord, PvtOccupationRecord, ScoringRecord, SatisfactionSurveyRecord } from '../types';
 import type { EnvironmentalConsumptionRecord } from '../types';
 import { MOCK_DATA } from '../constants';

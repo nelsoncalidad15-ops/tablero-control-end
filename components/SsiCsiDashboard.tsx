@@ -128,11 +128,9 @@ const fmtPct = (val: number | null) =>
     ? '—'
     : `${val.toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 1 })}%`;
 
-const maskVin = (vin?: string) => {
+const formatVin = (vin?: string) => {
   if (!vin || !vin.trim() || vin.startsWith('Sin ')) return '—';
-  const clean = vin.trim();
-  if (clean.length <= 6) return clean;
-  return `•••${clean.slice(-6)}`;
+  return vin.trim();
 };
 
 const firstNumber = (value: string) => Number(value.match(/\d+/)?.[0] || 0);
@@ -1401,8 +1399,8 @@ const SsiCsiDashboard: React.FC<SsiCsiDashboardProps> = ({ onBack }) => {
                               <span className="font-bold text-slate-800 block leading-tight">
                                 {row.record.modelo || '—'}
                               </span>
-                              <span className="font-mono text-[10px] text-slate-400">
-                                {maskVin(row.record.vin)}
+                              <span className="font-mono text-[10px] text-slate-500 font-semibold select-all">
+                                {formatVin(row.record.vin)}
                               </span>
                             </td>
                             <td className="px-4 py-3 text-slate-600 font-medium">
@@ -1494,7 +1492,7 @@ const SsiCsiDashboard: React.FC<SsiCsiDashboardProps> = ({ onBack }) => {
                                 {[
                                   where && !where.startsWith('Sin ') ? where : '',
                                   row.period,
-                                  maskVin(row.record.vin),
+                                  formatVin(row.record.vin),
                                 ]
                                   .filter(Boolean)
                                   .join(' · ')}

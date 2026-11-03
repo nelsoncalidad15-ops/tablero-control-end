@@ -1,9 +1,7 @@
 
 /// <reference types="vite/client" />
 import Papa from 'papaparse';
-import { parseClubSsiCsv } from './clubSsi';
-
-export const fetchClubSsiData = async () => parseClubSsiCsv(await fetchFromProxy('club_ssi'));
+import { clubScore, formatClubSaleDate } from './clubSsi';
 import { AutoRecord, QualityRecord, SalesQualityRecord, SalesClaimsRecord, DetailedQualityRecord, PostventaKpiRecord, BillingRecord, PCGCRecord, CemOsRecord, InternalPostventaRecord, ActionPlanRecord, CourseGrade, RelatorioItem, CollaboratorContact, CoursePhase, WarrantyRecord, QualityObjectiveRecord, QualityObjectiveSummaryRecord, QualityObjectiveScaleRecord, PvtOccupationRecord, ScoringRecord, SatisfactionSurveyRecord } from '../types';
 import type { EnvironmentalConsumptionRecord } from '../types';
 import { MOCK_DATA } from '../constants';
@@ -1208,7 +1206,7 @@ export const parseQualityCSV = (csvText: string): QualityRecord[] => {
     return records;
   };
 
-const parseSatisfactionSurveyCSV = (csvText: string): SatisfactionSurveyRecord[] => {
+export const parseSatisfactionSurveyCSV = (csvText: string): SatisfactionSurveyRecord[] => {
     const rows = parseCSV(csvText);
     if (rows.length < 2) return [];
 
@@ -1230,13 +1228,14 @@ const parseSatisfactionSurveyCSV = (csvText: string): SatisfactionSurveyRecord[]
         else if (header === 'codid' || header === 'cod id' || header.includes('codigo id')) record.cod_id = value;
         else if (header === 'ce' || header.includes('codigo conces')) record.ce = value;
         else if (header === 'ola') record.ola = value;
-        else if (header.includes('satis') && header.includes('general')) record.satisfaccion_general = parseScore(value);
-        else if (header.startsWith('recom') || header.includes('recomendacion')) record.recomendacion = parseScore(value);
-        else if (header.includes('principales motivos') || header.includes('motivo') && header.includes('calificacion')) record.motivo_calificacion = value;
+        // Q1.1 menciona 'satisfaccion general': evaluar el comentario antes que la nota.
+        else if (header.startsWith('q1.1') || header.includes('principales motivos') || (header.includes('motivo') && header.includes('calificacion'))) record.motivo_calificacion = value;
+        else if (header.includes('satis') && header.includes('general')) record.satisfaccion_general = clubScore(value);
+        else if (header.startsWith('recom') || header.includes('recomendacion')) record.recomendacion = clubScore(value);
         else if (header === 'vin' || header.includes('chasis')) record.vin = value;
         else if (header === 'nombre' || header.includes('cliente')) record.nombre = value;
         else if (header.includes('modelo')) record.modelo = value;
-        else if (header.includes('fecha venta') || header.includes('fecha de venta')) record.fecha_venta = value;
+        else if (header.includes('fecha venta') || header.includes('fecha de venta')) record.fecha_venta = formatClubSaleDate(value);
         else if (header.includes('canal') && header.includes('venta')) record.canal_venta = value;
         else if (header.includes('categorizacion')) record.categorizacion = value;
         else if (header.includes('causa raiz')) record.causa_raiz = value;
@@ -1245,8 +1244,8 @@ const parseSatisfactionSurveyCSV = (csvText: string): SatisfactionSurveyRecord[]
       });
 
       if (!record.anio) record.anio = 0;
-      record.satisfaccion_general = record.satisfaccion_general ?? parseScore(record['satis. general'] || record['satisfaccion general'] || '');
-      record.recomendacion = record.recomendacion ?? parseScore(record['recom.'] || record['recom'] || '');
+      record.satisfaccion_general = record.satisfaccion_general ?? clubScore(record['satis. general'] || record['satisfaccion general'] || '');
+      record.recomendacion = record.recomendacion ?? clubScore(record['recom.'] || record['recom'] || '');
       if (!record.provincia) record.provincia = 'Sin provincia';
       if (!record.semestre) record.semestre = 'Sin semestre';
       if (!record.ola) record.ola = 'Sin ola';

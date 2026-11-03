@@ -82,24 +82,21 @@ Para habilitar las funciones de IA y conexión a datos privados:
 ---
 
 Desarrollado para **Autosol** - *Excelencia en Movilidad*.
-# Club SSI · Calidad de Ventas
+# SSI / CSI
 
-La solapa **Club SSI** consulta `/api/data/club_ssi` con la autenticación existente.
-En Render, configurar `LINK_CLUB_SSI` con el enlace privado de Google Sheets
-(incluyendo `gid` para seleccionar la pestaña) o su ID. Compartir la planilla con
-la cuenta de servicio configurada en el backend y volver a desplegar el servicio.
+Vista unificada en `#/calidad/ssi-csi`, accesible desde Calidad y desde el
+acceso directo en Calidad de Ventas. Reemplaza la pestaña Club SSI.
 
-Estructura A:N confirmada: AÑO, PROVINCIA, SEMESTRE, CE, Ola,
-Satis. General, Recom., Q1.1 (comentario completo), VIN, NOMBRE, Modelo,
-Fecha venta, Canal Venta y CATEGORIZACION.
-
-- Filtros por año, provincia, semestre, ola, canal y categoría.
-- Promedios de satisfacción y recomendación sobre respuestas numéricas de
-  0 a 10; los valores vacíos no cuentan como cero. Se muestra la base válida.
-- Las categorías se separan por coma, punto y coma o salto de línea.
-  Las barras forman parte de la categoría. No se repite una categoría en una fila.
-- La distribución usa el total de menciones; la cobertura usa los registros.
-- Modelo conserva su texto completo; no se infiere un asesor desde ese campo.
-- Fecha venta admite texto y números de serie de Excel/Sheets.
-
-Falta configurar el enlace real en Render para validar la conexión en producción.
+- Ventas SSI usa `LINK_ENCUESTAS_SSI`. Si no está configurada, admite
+  `LINK_CLUB_SSI` por compatibilidad; no combina ambas fuentes.
+- Postventa CSI usa `LINK_ENCUESTAS_CSI`.
+- Configurar el enlace privado de Sheets con `gid` en Render y compartir la
+  planilla con la cuenta de servicio. Requiere desplegar el backend actualizado.
+- Admite las columnas A:N provistas: AÑO, PROVINCIA, SEMESTRE, CE, Ola,
+  Satis. General, Recom., Q1.1 (comentario), VIN, NOMBRE, Modelo, Fecha venta,
+  Canal Venta y CATEGORIZACION.
+- La categorización contempla todas las respuestas filtradas. Para ver solo
+  desvíos se puede elegir el rango 0 a 8. No infiere categorías desde el texto.
+- Comas, punto y coma y saltos de línea separan categorías; las barras se
+  conservan. Una misma categoría cuenta una vez por registro.
+- Los promedios excluyen vacíos e inválidos, conservan cero y admiten 0 a 10.

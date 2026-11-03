@@ -10,7 +10,6 @@ import { fetchSalesQualityData, fetchSalesClaimsData, fetchCemOsData } from '../
 import { SalesQualityRecord, SalesClaimsRecord, CemOsRecord, LoadingState, AppConfig } from '../types';
 import { MONTHS, SALES_QUALITY_SHEET_KEY, SALES_CLAIMS_SHEET_KEY, CEM_OS_SHEET_KEY, CEM_OS_SALTA_SHEET_KEY } from '../constants';
 import CemOsDashboard from './CemOsDashboard';
-import ClubSsiDashboard from './ClubSsiDashboard';
 import { DashboardFrame, LuxuryKPICard, SkeletonLoader, StatusBadge, InsightCard, DataTable, ChartWrapper, MonthSelector } from './DashboardUI';
 import './SalesQualityDashboard.css';
 
@@ -1700,7 +1699,7 @@ interface SalesQualityDashboardProps {
 }
 
 const SalesQualityDashboard: React.FC<SalesQualityDashboardProps> = ({ onBack, initialTab = 'surveys', config }) => {
-  const [activeTab, setActiveTab] = useState<'surveys' | 'claims' | 'cem_os' | 'club_ssi'>(initialTab);
+  const [activeTab, setActiveTab] = useState<'surveys' | 'claims' | 'cem_os'>(initialTab);
   const [loadingState, setLoadingState] = useState<LoadingState>(LoadingState.IDLE);
   
   // Data States
@@ -1973,7 +1972,6 @@ const SalesQualityDashboard: React.FC<SalesQualityDashboardProps> = ({ onBack, i
   const horizontalFilters = (
     <div className="sales-quality-filters flex flex-wrap items-center gap-3">
         {/* Sample Size Indicator */}
-        {activeTab !== 'club_ssi' && (<>
         <div className="flex items-center gap-3 px-5 py-2.5 bg-slate-950 text-white rounded-2xl shadow-xl shadow-slate-900/20 border border-white/10">
             <div className="w-8 h-8 bg-blue-600 rounded-xl flex items-center justify-center shadow-inner">
                 <Icons.Package className="w-4 h-4" />
@@ -1984,8 +1982,8 @@ const SalesQualityDashboard: React.FC<SalesQualityDashboardProps> = ({ onBack, i
             </div>
         </div>
 
-        </>)}
         {/* Tab Switcher */}
+        <a href="#/calidad/ssi-csi" className="rounded-xl border border-indigo-200 bg-indigo-50 px-4 py-2 text-xs font-bold text-indigo-700">Ir a SSI / CSI</a>
         <div className="flex bg-white/80 backdrop-blur-xl rounded-2xl shadow-sm border border-white p-1.5">
             <button 
                 onClick={() => setActiveTab('surveys')}
@@ -2014,10 +2012,9 @@ const SalesQualityDashboard: React.FC<SalesQualityDashboardProps> = ({ onBack, i
                 <Icons.Activity className={`w-3 h-3 ${activeTab === 'cem_os' ? 'text-blue-400' : 'text-slate-300'}`} />
                 CEM OS
             </button>
-            <button onClick={() => setActiveTab('club_ssi')} aria-pressed={activeTab === 'club_ssi'} className={`px-4 py-2 rounded-xl text-xs transition-all ${activeTab === 'club_ssi' ? 'bg-slate-950 text-white font-bold' : 'text-slate-600 hover:bg-slate-50'}`}>Club SSI</button>
         </div>
 
-        {activeTab !== 'cem_os' && activeTab !== 'club_ssi' && (
+        {activeTab !== 'cem_os' && (
             <>
                 <div className="relative min-w-[140px]">
                     <select 
@@ -2162,16 +2159,6 @@ const SalesQualityDashboard: React.FC<SalesQualityDashboardProps> = ({ onBack, i
             </div>
         )}
     </div>
-  );
-
-  if (activeTab === 'club_ssi') return (
-    <DashboardFrame title="Calidad de Ventas" subtitle="Club SSI" onBack={onBack} className="sales-quality-shell">
-      <div className="sales-quality-content space-y-5 pb-10">
-        <section className="sales-quality-intro"><div><p className="sales-quality-eyebrow"><span /> Calidad de Ventas</p><h2>Club SSI</h2><p>La voz del cliente, organizada para detectar oportunidades de mejora.</p></div></section>
-        <div className="sales-quality-toolbar">{horizontalFilters}</div>
-        <ClubSsiDashboard />
-      </div>
-    </DashboardFrame>
   );
 
   // if (loadingState === LoadingState.LOADING) return <SkeletonLoader />;

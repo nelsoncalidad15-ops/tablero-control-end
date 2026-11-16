@@ -1,0 +1,3257 @@
+import React, { useState } from 'react';
+import {
+  Bar,
+  BarChart,
+  CartesianGrid,
+  Cell,
+  LabelList,
+  Legend,
+  Line,
+  LineChart,
+  ReferenceLine,
+  ResponsiveContainer,
+  Tooltip,
+  XAxis,
+  YAxis,
+} from 'recharts';
+import {
+  AlertCircle,
+  AlertTriangle,
+  ArrowRight,
+  Check,
+  CheckCircle2,
+  ChevronDown,
+  Clock,
+  Eye,
+  EyeOff,
+  FileCheck2,
+  Link2,
+  Maximize2,
+  Minimize2,
+  Plus,
+  ShieldAlert,
+  SplitSquareVertical,
+  Trash2,
+} from 'lucide-react';
+import BrandMark from './BrandMark';
+import { ActionPlanRecord } from '../types';
+import {
+  ActionItemStatus,
+  AuditEntryData,
+  BranchSelection,
+  ClosingPriorityItem,
+  ComplianceStatus,
+  ComputedDirectionReportData,
+  DirectionReportDocument,
+  IncentiveEntryData,
+  IntegratedActionBlock,
+  IntegratedActionItem,
+  ReportPage,
+  SurveyDisplaySubOptions,
+} from '../types/directionReport';
+import {
+  evaluateCompliance,
+  formatMetricAr,
+} from '../services/directionReportData';
+import { DirectionReportImageBlock } from './DirectionReportImageBlock';
+
+// --- Design Tokens (Volkswagen & Autosol Corporate Identity) ---
+export const VW_COLORS = {
+  navy: '#001E50',
+  blue: '#0072CE',
+  sky: '#38BDF8',
+  bgLight: '#F5F7FA',
+  textSecondary: '#5A6A85',
+  compliantText: '#15803D',
+  compliantBg: '#F0FDF4',
+  compliantBorder: '#BBF7D0',
+  warningText: '#B45309',
+  warningBg: '#FFFBEB',
+  warningBorder: '#FDE68A',
+  deviatedText: '#B91C1C',
+  deviatedBg: '#FEF2F2',
+  deviatedBorder: '#FECACA',
+};
+
+// --- Compliance Status Badge ---
+export const ComplianceBadge: React.FC<{
+  status: ComplianceStatus;
+  compact?: boolean;
+  customLabel?: string;
+}> = ({ status, compact = false, customLabel }) => {
+  if (status === 'compliant') {
+    return (
+      <span
+        className={`inline-flex items-center gap-1.5 rounded-full border border-[#BBF7D0] bg-[#F0FDF4] font-bold uppercase tracking-wider text-[#15803D] ${
+          compact ? 'px-2 py-0.5 text-[9px]' : 'px-2.5 py-1 text-[10px]'
+        }`}
+      >
+        <CheckCircle2 className={compact ? 'h-3 w-3' : 'h-3.5 w-3.5'} />
+        {customLabel || 'Cumple objetivo'}
+      </span>
+    );
+  }
+
+  if (status === 'deviated') {
+    return (
+      <span
+        className={`inline-flex items-center gap-1.5 rounded-full border border-[#FECACA] bg-[#FEF2F2] font-bold uppercase tracking-wider text-[#B91C1C] ${
+          compact ? 'px-2 py-0.5 text-[9px]' : 'px-2.5 py-1 text-[10px]'
+        }`}
+      >
+        <AlertTriangle className={compact ? 'h-3 w-3' : 'h-3.5 w-3.5'} />
+        {customLabel || 'Desvío vs. objetivo'}
+      </span>
+    );
+  }
+
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-100 font-bold uppercase tracking-wider text-[#5A6A85] ${
+        compact ? 'px-2 py-0.5 text-[9px]' : 'px-2.5 py-1 text-[10px]'
+      }`}
+    >
+      <Clock className={compact ? 'h-3 w-3' : 'h-3.5 w-3.5'} />
+      {customLabel || 'Pendiente de evaluación'}
+    </span>
+  );
+};
+
+// --- Inherited Block Warning Banner (Shown when report is duplicated for a new period) ---
+export const InheritedReviewBanner: React.FC<{
+  isInherited?: boolean;
+  isPrintMode?: boolean;
+  onConfirmReview: () => void;
+}> = ({ isInherited, isPrintMode, onConfirmReview }) => {
+  if (!isInherited || isPrintMode) return null;
+  return (
+    <div className="mb-2 flex items-center justify-between gap-3 rounded-lg border border-amber-300 bg-amber-50 px-3 py-1.5 text-[11px] text-amber-900">
+      <div className="flex items-center gap-2 font-semibold">
+        <AlertCircle className="h-3.5 w-3.5 text-amber-600 shrink-0" />
+        <span>
+          Texto o plan heredado de un período anterior · Revisá y actualizá antes de confirmar.
+        </span>
+      </div>
+      <button
+        type="button"
+        onClick={onConfirmReview}
+        className="inline-flex items-center gap-1 rounded-md bg-amber-700 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-white hover:bg-amber-800 shrink-0"
+      >
+        <Check className="h-3 w-3" />
+        Confirmar bloque
+      </button>
+    </div>
+  );
+};
+
+// --- INTEGRATED ACTION PLAN BLOCK (INDICADOR -> RESULTADO -> DESVÍO -> CAUSA -> PLAN DE ACCIÓN) ---
+
+interface IntegratedActionSectionProps {
+  block: IntegratedActionBlock;
+  branchSelection: BranchSelection;
+  matchingPlans: ActionPlanRecord[];
+  isPrintMode?: boolean;
+  quickEditMode?: boolean;
+  onUpdateBlock: (nextBlock: IntegratedActionBlock) => void;
+  onSplitToContinuationPage?: () => void;
+}
+
+export const IntegratedIndicatorActionSection: React.FC<IntegratedActionSectionProps> = ({
+  block,
+  branchSelection,
+  matchingPlans,
+  isPrintMode = false,
+  onUpdateBlock,
+  onSplitToContinuationPage,
+}) => {
+  const [showPlanPicker, setShowPlanPicker] = useState(false);
+  const [showPreventiveInput, setShowPreventiveInput] = useState(Boolean(block.preventiveObservation));
+
+  const jujuyDeviated = block.jujuyCompliance === 'deviated';
+  const saltaDeviated = block.saltaCompliance === 'deviated';
+  const hasDeviation =
+    branchSelection === 'JUJUY'
+      ? jujuyDeviated
+      : branchSelection === 'SALTA'
+        ? saltaDeviated
+        : jujuyDeviated || saltaDeviated || block.overallCompliance === 'deviated';
+
+  const isPendingEval =
+    !hasDeviation &&
+    (block.overallCompliance === 'pending_evaluation' ||
+      (branchSelection === 'JUJUY' && block.jujuyCompliance === 'pending_evaluation') ||
+      (branchSelection === 'SALTA' && block.saltaCompliance === 'pending_evaluation'));
+
+  const hasDocumentedActions = block.actions.some(
+    a => Boolean(a.correctiveAction.trim() || a.rootCause.trim())
+  );
+
+  // Filter plans from Google Sheets relevant to this indicator
+  const relevantSheetPlans = matchingPlans.filter(p => p.isPlan);
+
+  const handleAddActionRow = (defaultBranch: 'JUJUY' | 'SALTA' | 'COMUN') => {
+    const newItem: IntegratedActionItem = {
+      id: `act-${Date.now()}-${Math.random().toString(36).slice(2, 5)}`,
+      branch: defaultBranch,
+      deviationSummary: '',
+      rootCause: '',
+      correctiveAction: '',
+      responsible: '',
+      targetDate: '',
+      status: 'En proceso',
+      followUpNote: '',
+    };
+    onUpdateBlock({
+      ...block,
+      visible: true,
+      manuallyToggled: true,
+      actions: [...block.actions, newItem],
+    });
+  };
+
+  const handleLinkSheetPlan = (plan: ActionPlanRecord) => {
+    const pBranch = String(plan.provincia || '').toUpperCase();
+    const branchTag: 'JUJUY' | 'SALTA' | 'COMUN' = pBranch.includes('JUJUY')
+      ? 'JUJUY'
+      : pBranch.includes('SALTA')
+        ? 'SALTA'
+        : 'COMUN';
+
+    const linkedItem: IntegratedActionItem = {
+      id: `act-linked-${plan.id}-${Date.now()}`,
+      branch: branchTag,
+      deviationSummary: plan.situacion_actual_cualitativo || plan.nombre_kpi || '',
+      rootCause: plan.causa_raiz || '',
+      correctiveAction: plan.accion_correctiva || plan.accion_inmediata || '',
+      responsible: plan.responsable || plan.sector || '',
+      targetDate: plan.fecha_inicio_est || plan.finalizacion_real || '',
+      status: plan.verificacion_eficacia ? 'Verificado' : 'En proceso',
+      followUpNote: '',
+      linkedSourcePlanId: plan.id,
+      linkedSourcePlanNro: plan.nro,
+    };
+
+    // Replace empty placeholder row if there's only 1 empty row, otherwise append
+    const hasOnlyEmptyRow =
+      block.actions.length === 1 &&
+      !block.actions[0].rootCause.trim() &&
+      !block.actions[0].correctiveAction.trim();
+
+    onUpdateBlock({
+      ...block,
+      visible: true,
+      actions: hasOnlyEmptyRow ? [linkedItem] : [...block.actions, linkedItem],
+    });
+    setShowPlanPicker(false);
+  };
+
+  const updateActionItem = (id: string, patch: Partial<IntegratedActionItem>) => {
+    onUpdateBlock({
+      ...block,
+      actions: block.actions.map(item => (item.id === id ? { ...item, ...patch } : item)),
+    });
+  };
+
+  const removeActionItem = (id: string) => {
+    onUpdateBlock({
+      ...block,
+      actions: block.actions.filter(item => item.id !== id),
+    });
+  };
+
+  // CASE 1: Indicator is Compliant and user has not manually opened the action block
+  if (!hasDeviation && !block.visible) {
+    return (
+      <div className="mt-auto pt-2">
+        <div
+          className={`flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-2.5 ${
+            isPendingEval
+              ? 'border-slate-200 bg-[#F5F7FA]'
+              : 'border-[#BBF7D0] bg-[#F0FDF4]/80'
+          }`}
+        >
+          <div className="flex items-center gap-3">
+            <ComplianceBadge status={isPendingEval ? 'pending_evaluation' : 'compliant'} />
+            <span className="text-xs font-semibold text-[#001E50]">
+              {isPendingEval
+                ? 'Datos insuficientes o meta pendiente de validación para determinar desvío.'
+                : `${block.indicatorLabel}: Meta alcanzada en el período evaluado.`}
+            </span>
+          </div>
+
+          {!isPrintMode && (
+            <div className="flex items-center gap-2">
+              {!showPreventiveInput && (
+                <button
+                  type="button"
+                  onClick={() => setShowPreventiveInput(true)}
+                  className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-bold text-[#001E50] hover:border-[#0072CE]"
+                >
+                  <Plus className="h-3 w-3 text-[#0072CE]" />
+                  Observación preventiva
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={() =>
+                  onUpdateBlock({
+                    ...block,
+                    visible: true,
+                    manuallyToggled: true,
+                    actions:
+                      block.actions.length > 0
+                        ? block.actions
+                        : [
+                            {
+                              id: `act-prev-${Date.now()}`,
+                              branch: branchSelection === 'SALTA' ? 'SALTA' : branchSelection === 'JUJUY' ? 'JUJUY' : 'COMUN',
+                              deviationSummary: 'Acción preventiva / Mejora continua',
+                              rootCause: '',
+                              correctiveAction: '',
+                              responsible: '',
+                              targetDate: '',
+                              status: 'En proceso',
+                              followUpNote: '',
+                            },
+                          ],
+                  })
+                }
+                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[10px] font-bold text-[#5A6A85] hover:border-[#001E50] hover:text-[#001E50]"
+              >
+                <Plus className="h-3 w-3" />
+                Agregar plan de acción
+              </button>
+            </div>
+          )}
+        </div>
+
+        {(showPreventiveInput || block.preventiveObservation.trim()) && (
+          <div className="mt-2 rounded-xl border border-slate-200 bg-white px-4 py-2">
+            <div className="flex items-center justify-between">
+              <span className="text-[9px] font-extrabold uppercase tracking-widest text-[#0072CE]">
+                Observación / Acción Preventiva
+              </span>
+              {!isPrintMode && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowPreventiveInput(false);
+                    onUpdateBlock({ ...block, preventiveObservation: '' });
+                  }}
+                  className="text-[10px] text-slate-400 hover:text-red-600"
+                >
+                  Quitar
+                </button>
+              )}
+            </div>
+            {isPrintMode ? (
+              <p className="mt-1 text-xs text-[#001E50]">{block.preventiveObservation}</p>
+            ) : (
+              <input
+                type="text"
+                value={block.preventiveObservation}
+                onChange={e => onUpdateBlock({ ...block, preventiveObservation: e.target.value })}
+                placeholder="Escribir observación o acción preventiva para sostener el cumplimiento..."
+                className="mt-1 w-full bg-transparent text-xs text-[#001E50] outline-none"
+              />
+            )}
+          </div>
+        )}
+      </div>
+    );
+  }
+
+  // CASE 2: Indicator is Deviated, but user explicitly hid the block
+  if (hasDeviation && !block.visible) {
+    if (isPrintMode) return null;
+    return (
+      <div className="mt-auto pt-2">
+        <div className="flex items-center justify-between gap-3 rounded-xl border border-amber-300 bg-amber-50 px-4 py-2 text-xs text-amber-900">
+          <div className="flex items-center gap-2 font-bold">
+            <AlertTriangle className="h-4 w-4 text-amber-600 shrink-0" />
+            <span>
+              Advertencia: Existe un incumplimiento en {block.indicatorLabel} y el bloque de plan de acción está oculto.
+            </span>
+          </div>
+          <button
+            type="button"
+            onClick={() => onUpdateBlock({ ...block, visible: true, manuallyToggled: true })}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-[#001E50] px-3 py-1 text-[10px] font-bold uppercase tracking-wider text-white hover:bg-[#0072CE]"
+          >
+            <Eye className="h-3 w-3" />
+            Mostrar Análisis y Plan de Acción
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // CASE 3: Visible Integrated Action Block (INDICADOR -> RESULTADO -> DESVÍO -> CAUSA -> PLAN DE ACCIÓN)
+  // Determine which branches need action when BOTH are selected
+  const branchScopeNote =
+    branchSelection === 'BOTH'
+      ? jujuyDeviated && !saltaDeviated
+        ? 'Desvío focalizado en Autosol Jujuy (3059) · Salta (3087) cumple objetivo'
+        : !jujuyDeviated && saltaDeviated
+          ? 'Desvío focalizado en Autosol Salta (3087) · Jujuy (3059) cumple objetivo'
+          : jujuyDeviated && saltaDeviated
+            ? 'Desvío en ambas sucursales · Acciones diferenciadas por sede'
+            : 'Seguimiento preventivo Jujuy / Salta'
+      : branchSelection === 'JUJUY'
+        ? 'Autosol Jujuy (3059)'
+        : 'Autosol Salta (3087)';
+
+  const visibleActions = isPrintMode
+    ? block.actions.slice(0, block.layoutMode === 'expanded' ? 4 : 3)
+    : block.actions;
+
+  return (
+    <div className="mt-auto pt-2">
+      <InheritedReviewBanner
+        isInherited={block.isInheritedPendingReview}
+        isPrintMode={isPrintMode}
+        onConfirmReview={() => onUpdateBlock({ ...block, isInheritedPendingReview: false })}
+      />
+
+      <div
+        className={`rounded-xl border transition ${
+          hasDeviation
+            ? 'border-[#FECACA] bg-gradient-to-b from-[#FEF2F2]/50 to-white'
+            : 'border-slate-200 bg-[#F5F7FA]/70'
+        } ${block.layoutMode === 'expanded' ? 'p-3.5' : 'p-2.5'}`}
+      >
+        {/* Header Bar of the Integrated Action Plan */}
+        <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-200/80 pb-2">
+          <div className="flex items-center gap-2.5">
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-md px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider ${
+                hasDeviation
+                  ? 'bg-[#B91C1C] text-white'
+                  : 'bg-[#001E50] text-white'
+              }`}
+            >
+              Análisis y Plan de Acción
+            </span>
+            <span className="text-[11px] font-bold text-[#001E50]">
+              {branchScopeNote}
+            </span>
+            {hasDeviation && !hasDocumentedActions && !isPrintMode && (
+              <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 border border-amber-300 px-2 py-0.5 text-[9px] font-bold text-amber-800">
+                <AlertCircle className="h-3 w-3 text-amber-600" />
+                Incumplimiento sin acción documentada
+              </span>
+            )}
+          </div>
+
+          {/* Editor Controls for the Integrated Action Plan */}
+          {!isPrintMode && (
+            <div className="flex flex-wrap items-center gap-1.5">
+              {relevantSheetPlans.length > 0 && (
+                <div className="relative">
+                  <button
+                    type="button"
+                    onClick={() => setShowPlanPicker(!showPlanPicker)}
+                    className="inline-flex items-center gap-1 rounded-md border border-[#0072CE]/40 bg-sky-50 px-2 py-1 text-[10px] font-bold text-[#0072CE] hover:bg-sky-100"
+                  >
+                    <Link2 className="h-3 w-3" />
+                    Vincular plan existente ({relevantSheetPlans.length})
+                  </button>
+                  {showPlanPicker && (
+                    <div className="absolute right-0 bottom-full mb-1 z-30 w-80 max-h-52 overflow-y-auto rounded-xl border border-slate-200 bg-white p-2 shadow-xl">
+                      <p className="px-2 py-1 text-[9px] font-extrabold uppercase tracking-wider text-[#5A6A85]">
+                        Seleccionar Plan de Google Sheets
+                      </p>
+                      {relevantSheetPlans.map(p => (
+                        <button
+                          key={p.id}
+                          type="button"
+                          onClick={() => handleLinkSheetPlan(p)}
+                          className="w-full text-left rounded-lg p-2 hover:bg-slate-50 transition border-b border-slate-100 last:border-0"
+                        >
+                          <div className="flex items-center justify-between text-[10px] font-bold text-[#001E50]">
+                            <span>#{p.nro} · {p.nombre_kpi}</span>
+                            <span className="text-[#0072CE]">{p.provincia || p.sector}</span>
+                          </div>
+                          <p className="mt-0.5 text-[10px] text-[#5A6A85] line-clamp-1">
+                            Causa: {p.causa_raiz || 'Sin causa'}
+                          </p>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {branchSelection === 'BOTH' && (
+                <>
+                  <button
+                    type="button"
+                    onClick={() => handleAddActionRow('JUJUY')}
+                    className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-[10px] font-bold text-[#001E50] hover:border-[#0072CE]"
+                  >
+                    <Plus className="h-2.5 w-2.5 text-[#0072CE]" />
+                    Acción Jujuy
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => handleAddActionRow('SALTA')}
+                    className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-[10px] font-bold text-[#001E50] hover:border-[#0072CE]"
+                  >
+                    <Plus className="h-2.5 w-2.5 text-[#0072CE]" />
+                    Acción Salta
+                  </button>
+                </>
+              )}
+
+              {branchSelection !== 'BOTH' && (
+                <button
+                  type="button"
+                  onClick={() => handleAddActionRow(branchSelection === 'JUJUY' ? 'JUJUY' : 'SALTA')}
+                  className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-[10px] font-bold text-[#001E50] hover:border-[#0072CE]"
+                >
+                  <Plus className="h-2.5 w-2.5 text-[#0072CE]" />
+                  Agregar acción
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() =>
+                  onUpdateBlock({
+                    ...block,
+                    layoutMode: block.layoutMode === 'compact' ? 'expanded' : 'compact',
+                  })
+                }
+                title="Alternar vista compacta / ampliada"
+                className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-[10px] font-bold text-[#5A6A85] hover:text-[#001E50]"
+              >
+                {block.layoutMode === 'compact' ? (
+                  <>
+                    <Maximize2 className="h-2.5 w-2.5" />
+                    Ampliar
+                  </>
+                ) : (
+                  <>
+                    <Minimize2 className="h-2.5 w-2.5" />
+                    Compacto
+                  </>
+                )}
+              </button>
+
+              {onSplitToContinuationPage && block.actions.length >= 2 && (
+                <button
+                  type="button"
+                  onClick={onSplitToContinuationPage}
+                  title="Crear página de continuación vinculada a este indicador"
+                  className="inline-flex items-center gap-1 rounded-md border border-slate-200 bg-white px-2 py-1 text-[10px] font-bold text-[#0072CE] hover:border-[#0072CE]"
+                >
+                  <SplitSquareVertical className="h-2.5 w-2.5" />
+                  Continuar en otra pág.
+                </button>
+              )}
+
+              <button
+                type="button"
+                onClick={() => onUpdateBlock({ ...block, visible: false, manuallyToggled: true })}
+                title="Ocultar bloque de plan de acción"
+                className="rounded-md border border-slate-200 bg-white p-1 text-slate-400 hover:text-slate-700"
+              >
+                <EyeOff className="h-3 w-3" />
+              </button>
+            </div>
+          )}
+        </div>
+
+        {/* Action Items Executive Grid (Causa Raíz -> Acción Correctiva -> Responsable -> Fecha -> Estado) */}
+        <div className="mt-2 space-y-1.5">
+          {visibleActions.length === 0 ? (
+            <div className="rounded-lg border border-dashed border-slate-300 bg-white px-3 py-2 text-center text-[11px] text-[#5A6A85]">
+              Sin acciones registradas para este indicador. Hacé clic en «Agregar acción» o «Vincular plan existente» para documentar la respuesta correctiva.
+            </div>
+          ) : (
+            visibleActions.map(item => (
+              <div
+                key={item.id}
+                className="grid grid-cols-12 items-center gap-2 rounded-lg border border-slate-200/90 bg-white px-2.5 py-1.5 text-[11px] shadow-2xs"
+              >
+                {/* Sucursal Tag */}
+                <div className="col-span-2 flex items-center gap-1.5">
+                  {!isPrintMode ? (
+                    <select
+                      value={item.branch}
+                      onChange={e =>
+                        updateActionItem(item.id, {
+                          branch: e.target.value as 'JUJUY' | 'SALTA' | 'COMUN',
+                        })
+                      }
+                      className={`rounded px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider outline-none ${
+                        item.branch === 'JUJUY'
+                          ? 'bg-[#001E50] text-white'
+                          : item.branch === 'SALTA'
+                            ? 'bg-[#0072CE] text-white'
+                            : 'bg-slate-200 text-[#001E50]'
+                      }`}
+                    >
+                      <option value="JUJUY">JUJUY</option>
+                      <option value="SALTA">SALTA</option>
+                      <option value="COMUN">CONJUNTA</option>
+                    </select>
+                  ) : (
+                    <span
+                      className={`rounded px-1.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider ${
+                        item.branch === 'JUJUY'
+                          ? 'bg-[#001E50] text-white'
+                          : item.branch === 'SALTA'
+                            ? 'bg-[#0072CE] text-white'
+                            : 'bg-slate-200 text-[#001E50]'
+                      }`}
+                    >
+                      {item.branch === 'COMUN' ? 'CONJUNTA' : item.branch}
+                    </span>
+                  )}
+                  {item.linkedSourcePlanNro && (
+                    <span className="text-[9px] font-bold text-[#0072CE]">
+                      #{item.linkedSourcePlanNro}
+                    </span>
+                  )}
+                </div>
+
+                {/* Causa Raíz */}
+                <div className="col-span-3">
+                  <span className="block text-[8px] font-bold uppercase tracking-wider text-[#5A6A85]">
+                    Causa identificada
+                  </span>
+                  {isPrintMode ? (
+                    <p className="font-semibold text-[#001E50] leading-tight">
+                      {item.rootCause || 'Pendiente de especificar'}
+                    </p>
+                  ) : (
+                    <input
+                      type="text"
+                      value={item.rootCause}
+                      onChange={e => updateActionItem(item.id, { rootCause: e.target.value })}
+                      placeholder="Hacé clic para redactar causa..."
+                      className="w-full bg-transparent font-semibold text-[#001E50] outline-none placeholder:text-slate-300 focus:border-b focus:border-[#0072CE]"
+                    />
+                  )}
+                </div>
+
+                {/* Acción Correctiva */}
+                <div className="col-span-4">
+                  <span className="block text-[8px] font-bold uppercase tracking-wider text-[#0072CE]">
+                    Acción correctiva ejecutiva
+                  </span>
+                  {isPrintMode ? (
+                    <p className="font-semibold text-[#001E50] leading-tight">
+                      {item.correctiveAction || 'Pendiente de especificar'}
+                    </p>
+                  ) : (
+                    <input
+                      type="text"
+                      value={item.correctiveAction}
+                      onChange={e => updateActionItem(item.id, { correctiveAction: e.target.value })}
+                      placeholder="Hacé clic para redactar acción correctiva..."
+                      className="w-full bg-transparent font-semibold text-[#001E50] outline-none placeholder:text-slate-300 focus:border-b focus:border-[#0072CE]"
+                    />
+                  )}
+                </div>
+
+                {/* Responsable & Fecha */}
+                <div className="col-span-2 grid grid-cols-2 gap-1">
+                  <div>
+                    <span className="block text-[8px] font-bold uppercase tracking-wider text-[#5A6A85]">
+                      Resp.
+                    </span>
+                    {isPrintMode ? (
+                      <p className="font-bold text-[#001E50] truncate">
+                        {item.responsible || '—'}
+                      </p>
+                    ) : (
+                      <input
+                        type="text"
+                        value={item.responsible}
+                        onChange={e => updateActionItem(item.id, { responsible: e.target.value })}
+                        placeholder="Área/Resp."
+                        className="w-full bg-transparent font-bold text-[#001E50] outline-none placeholder:text-slate-300"
+                      />
+                    )}
+                  </div>
+                  <div>
+                    <span className="block text-[8px] font-bold uppercase tracking-wider text-[#5A6A85]">
+                      Fecha
+                    </span>
+                    {isPrintMode ? (
+                      <p className="font-semibold text-[#5A6A85] truncate">
+                        {item.targetDate || '—'}
+                      </p>
+                    ) : (
+                      <input
+                        type="text"
+                        value={item.targetDate}
+                        onChange={e => updateActionItem(item.id, { targetDate: e.target.value })}
+                        placeholder="dd/mm"
+                        className="w-full bg-transparent font-semibold text-[#5A6A85] outline-none placeholder:text-slate-300"
+                      />
+                    )}
+                  </div>
+                </div>
+
+                {/* Estado + Eliminar */}
+                <div className="col-span-1 flex items-center justify-end gap-1">
+                  {!isPrintMode ? (
+                    <select
+                      value={item.status}
+                      onChange={e =>
+                        updateActionItem(item.id, {
+                          status: e.target.value as ActionItemStatus,
+                        })
+                      }
+                      className={`rounded px-1.5 py-0.5 text-[9px] font-bold outline-none ${
+                        item.status === 'Verificado' || item.status === 'Implementado'
+                          ? 'bg-emerald-50 text-emerald-700'
+                          : item.status === 'En proceso'
+                            ? 'bg-sky-50 text-[#0072CE]'
+                            : 'bg-amber-50 text-amber-700'
+                      }`}
+                    >
+                      <option value="Pendiente">Pendiente</option>
+                      <option value="En proceso">En proceso</option>
+                      <option value="Implementado">Implementado</option>
+                      <option value="Verificado">Verificado</option>
+                    </select>
+                  ) : (
+                    <span
+                      className={`rounded px-1.5 py-0.5 text-[9px] font-bold ${
+                        item.status === 'Verificado' || item.status === 'Implementado'
+                          ? 'bg-emerald-50 text-emerald-700'
+                          : item.status === 'En proceso'
+                            ? 'bg-sky-50 text-[#0072CE]'
+                            : 'bg-amber-50 text-amber-700'
+                      }`}
+                    >
+                      {item.status}
+                    </span>
+                  )}
+                  {!isPrintMode && (
+                    <button
+                      type="button"
+                      onClick={() => removeActionItem(item.id)}
+                      className="text-slate-300 hover:text-red-600 p-0.5"
+                      title="Quitar fila"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// --- A4 Landscape Corporate Page Frame (297mm × 210mm) ---
+
+interface PageFrameA4Props {
+  page: ReportPage;
+  pageNumber: number;
+  totalPages: number;
+  doc: DirectionReportDocument;
+  computed: ComputedDirectionReportData;
+  isPrintMode?: boolean;
+  onUpdatePage: (patch: Partial<ReportPage>) => void;
+  children: React.ReactNode;
+}
+
+export const PageFrameA4: React.FC<PageFrameA4Props> = ({
+  page,
+  pageNumber,
+  totalPages,
+  doc,
+  computed,
+  isPrintMode = false,
+  onUpdatePage,
+  children,
+}) => {
+  const formattedPageNum = String(pageNumber).padStart(2, '0');
+  const formattedTotal = String(totalPages).padStart(2, '0');
+  const branchBadge =
+    doc.branchSelection === 'BOTH'
+      ? 'Jujuy (3059) · Salta (3087)'
+      : doc.branchSelection === 'JUJUY'
+        ? 'Autosol Jujuy (3059)'
+        : 'Autosol Salta (3087)';
+
+  if (page.templateType === 'cover') {
+    return (
+      <div
+        className="direction-a4-page relative flex flex-col justify-between overflow-hidden bg-[#001E50] text-white select-none"
+        style={{
+          width: '297mm',
+          height: '210mm',
+          padding: '16mm 18mm',
+          WebkitPrintColorAdjust: 'exact',
+          printColorAdjust: 'exact',
+        }}
+      >
+        {/* Minimalist geometric architectural accents */}
+        <div className="pointer-events-none absolute top-0 right-0 h-full w-[38%] bg-gradient-to-bl from-[#0072CE]/25 via-[#002868]/40 to-transparent" />
+        <div className="pointer-events-none absolute bottom-0 left-0 h-2 w-full bg-gradient-to-r from-[#0072CE] via-sky-400 to-[#001E50]" />
+        <div className="pointer-events-none absolute top-14 right-18 bottom-14 w-px bg-white/12" />
+
+        {/* Top Identity Row */}
+        <div className="relative z-10 flex items-start justify-between gap-8">
+          <div className="flex items-center gap-5">
+            <div className="rounded-2xl bg-white px-5 py-3 shadow-lg">
+              <img
+                src={`${import.meta.env.BASE_URL}images/autosol-vw-logo.png`}
+                alt="Volkswagen Autosol"
+                className="h-9 w-auto"
+              />
+            </div>
+            <div className="h-10 w-px bg-white/20" />
+            <div>
+              <p className="text-[10px] font-extrabold uppercase tracking-[0.28em] text-sky-300">
+                Concesionario Oficial Volkswagen
+              </p>
+              <p className="mt-0.5 text-xs font-medium text-slate-300">
+                Sistema de Gestión de Calidad y Experiencia al Cliente
+              </p>
+            </div>
+          </div>
+
+          <div className="rounded-2xl border border-white/15 bg-white/5 px-5 py-3 text-right backdrop-blur-xs">
+            <p className="text-[9px] font-bold uppercase tracking-[0.26em] text-sky-300">
+              {doc.periodType === 'monthly' ? 'Período Mensual' : 'Período Trimestral'}
+            </p>
+            <p className="mt-1 text-xl font-extrabold tracking-tight text-white">
+              {computed.periodLabel}
+            </p>
+            <p className="mt-0.5 text-[10px] font-semibold text-slate-300">
+              {computed.periodClosureStatusLabel}
+            </p>
+          </div>
+        </div>
+
+        {/* Center Executive Cover Composition */}
+        <div className="relative z-10 my-auto max-w-4xl space-y-6">
+          <div className="inline-flex items-center gap-2.5 rounded-full border border-sky-400/30 bg-[#0072CE]/20 px-4 py-1.5 text-[10px] font-extrabold uppercase tracking-[0.28em] text-sky-200">
+            <span className="h-2 w-2 rounded-full bg-sky-300" />
+            {page.sectionTag || 'DIRECCIÓN GENERAL'}
+          </div>
+
+          {isPrintMode ? (
+            <h1 className="text-5xl font-extrabold tracking-tight leading-[1.04] text-white">
+              {page.title}
+            </h1>
+          ) : (
+            <input
+              type="text"
+              value={page.title}
+              onChange={e => onUpdatePage({ title: e.target.value })}
+              className="w-full bg-transparent text-5xl font-extrabold tracking-tight leading-[1.04] text-white outline-none border-b border-transparent focus:border-sky-400"
+            />
+          )}
+
+          <div className="h-1 w-28 rounded-full bg-[#0072CE]" />
+
+          {isPrintMode ? (
+            <p className="text-xl font-semibold text-sky-100">{page.subtitle}</p>
+          ) : (
+            <input
+              type="text"
+              value={page.subtitle}
+              onChange={e => onUpdatePage({ subtitle: e.target.value })}
+              className="w-full bg-transparent text-xl font-semibold text-sky-100 outline-none border-b border-transparent focus:border-sky-400"
+            />
+          )}
+
+          {/* Key Executive Summary Pills on Cover */}
+          <div className="grid grid-cols-4 gap-4 pt-4 max-w-3xl">
+            <div className="rounded-xl border border-white/12 bg-white/6 px-4 py-3">
+              <p className="text-[9px] font-bold uppercase tracking-widest text-slate-300">
+                OS de Marca
+              </p>
+              <p className="mt-1 text-2xl font-extrabold text-white">
+                {formatMetricAr(computed.consolidated.osScore)}
+              </p>
+              <p className="text-[10px] text-sky-300">
+                Meta: {formatMetricAr(computed.consolidated.osTarget)}
+              </p>
+            </div>
+            <div className="rounded-xl border border-white/12 bg-white/6 px-4 py-3">
+              <p className="text-[9px] font-bold uppercase tracking-widest text-slate-300">
+                LVS Postventa
+              </p>
+              <p className="mt-1 text-2xl font-extrabold text-white">
+                {formatMetricAr(computed.consolidated.lvsScore)}
+              </p>
+              <p className="text-[10px] text-sky-300">
+                Meta: {formatMetricAr(computed.consolidated.lvsTarget)}
+              </p>
+            </div>
+            <div className="rounded-xl border border-white/12 bg-white/6 px-4 py-3">
+              <p className="text-[9px] font-bold uppercase tracking-widest text-slate-300">
+                Sucursales
+              </p>
+              <p className="mt-1 text-base font-extrabold text-white truncate">
+                {doc.branchSelection === 'BOTH' ? 'Jujuy · Salta' : doc.branchSelection}
+              </p>
+              <p className="text-[10px] text-sky-300">
+                {doc.branchSelection === 'BOTH' ? '3059 y 3087' : doc.branchSelection === 'JUJUY' ? 'CE 3059' : 'CE 3087'}
+              </p>
+            </div>
+            <div className="rounded-xl border border-white/12 bg-white/6 px-4 py-3">
+              <p className="text-[9px] font-bold uppercase tracking-widest text-slate-300">
+                Emisión
+              </p>
+              <p className="mt-1 text-base font-extrabold text-white">
+                {doc.emittedDate}
+              </p>
+              <p className="text-[10px] text-sky-300">
+                {totalPages} láminas ejecutivas
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* Bottom Note & Footer */}
+        <div className="relative z-10 flex items-end justify-between gap-8 border-t border-white/15 pt-4">
+          <div className="flex-1 max-w-3xl">
+            <p className="text-[9px] font-bold uppercase tracking-widest text-sky-300 mb-1">
+              {page.narrativeTitle || 'Nota metodológica y corte del período'}
+            </p>
+            {isPrintMode ? (
+              <p className="text-xs leading-relaxed text-slate-300">{page.narrativeBody}</p>
+            ) : (
+              <textarea
+                value={page.narrativeBody}
+                onChange={e => onUpdatePage({ narrativeBody: e.target.value })}
+                rows={2}
+                className="w-full resize-none bg-transparent text-xs leading-relaxed text-slate-200 outline-none border border-transparent focus:border-white/20 rounded p-1"
+              />
+            )}
+          </div>
+
+          <div className="text-right shrink-0">
+            <p className="text-[10px] font-bold uppercase tracking-[0.22em] text-slate-400">
+              Autosol S.R.L. · Dirección
+            </p>
+            <p className="mt-0.5 text-xs font-extrabold text-white">
+              Pág. {formattedPageNum} / {formattedTotal}
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Standard Interior Corporate Page (A4 Landscape 297 × 210 mm)
+  return (
+    <div
+      className="direction-a4-page relative flex flex-col justify-between overflow-hidden bg-white text-[#001E50]"
+      style={{
+        width: '297mm',
+        height: '210mm',
+        padding: '10mm 14mm 9mm 14mm',
+        WebkitPrintColorAdjust: 'exact',
+        printColorAdjust: 'exact',
+      }}
+    >
+      {/* Top Institutional Accent Bar */}
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-1.5 bg-gradient-to-r from-[#001E50] via-[#0072CE] to-[#001E50]" />
+
+      {/* Consistent Corporate Header */}
+      <header className="flex items-start justify-between gap-6 border-b border-slate-200 pb-2.5 shrink-0">
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-2.5">
+            <span className="inline-block h-2 w-2 rounded-full bg-[#0072CE]" />
+            {isPrintMode ? (
+              <span className="text-[9px] font-extrabold uppercase tracking-[0.24em] text-[#0072CE]">
+                {page.sectionTag}
+              </span>
+            ) : (
+              <input
+                type="text"
+                value={page.sectionTag}
+                onChange={e => onUpdatePage({ sectionTag: e.target.value })}
+                className="bg-transparent text-[9px] font-extrabold uppercase tracking-[0.24em] text-[#0072CE] outline-none"
+              />
+            )}
+            <span className="text-slate-300">·</span>
+            <span className="text-[9px] font-bold uppercase tracking-wider text-[#5A6A85]">
+              {branchBadge}
+            </span>
+          </div>
+
+          {isPrintMode ? (
+            <h2 className="mt-0.5 text-xl font-extrabold tracking-tight text-[#001E50] leading-tight">
+              {page.title}
+            </h2>
+          ) : (
+            <input
+              type="text"
+              value={page.title}
+              onChange={e => onUpdatePage({ title: e.target.value })}
+              className="mt-0.5 w-full bg-transparent text-xl font-extrabold tracking-tight text-[#001E50] leading-tight outline-none border-b border-transparent focus:border-[#0072CE]"
+            />
+          )}
+
+          {isPrintMode ? (
+            <p className="text-[11px] font-medium text-[#5A6A85]">{page.subtitle}</p>
+          ) : (
+            <input
+              type="text"
+              value={page.subtitle}
+              onChange={e => onUpdatePage({ subtitle: e.target.value })}
+              className="w-full bg-transparent text-[11px] font-medium text-[#5A6A85] outline-none border-b border-transparent focus:border-slate-300"
+            />
+          )}
+        </div>
+
+        <div className="flex items-center gap-3 shrink-0">
+          <div className="text-right">
+            <span className="inline-block rounded-md bg-[#F5F7FA] border border-slate-200 px-2.5 py-0.5 text-[10px] font-extrabold text-[#001E50]">
+              {computed.periodShortLabel}
+            </span>
+            <p className="mt-0.5 text-[9px] font-semibold text-[#5A6A85]">
+              {computed.isClosedPeriod ? 'Período cerrado' : 'Corte parcial'}
+            </p>
+          </div>
+          <div className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-[#001E50] text-xs font-black italic text-[#001E50]">
+            VW
+          </div>
+        </div>
+      </header>
+
+      {/* Main Dynamic Body Area */}
+      <div className="my-2.5 flex flex-1 flex-col min-h-0 overflow-hidden">
+        {children}
+      </div>
+
+      {/* Consistent Discrete Corporate Footer */}
+      <footer className="flex items-center justify-between gap-4 border-t border-slate-200/80 pt-2 text-[9px] text-[#5A6A85] shrink-0">
+        <div className="flex items-center gap-2">
+          <span className="font-extrabold text-[#001E50]">AUTOSOL S.R.L.</span>
+          <span>·</span>
+          <span>Informe Ejecutivo para Dirección</span>
+          <span>·</span>
+          <span>{computed.periodLabel}</span>
+        </div>
+
+        <div className="flex-1 max-w-md text-center truncate">
+          {!isPrintMode ? (
+            <input
+              type="text"
+              value={page.footerNote || ''}
+              onChange={e => onUpdatePage({ footerNote: e.target.value })}
+              placeholder="Nota al pie opcional (hacé clic para editar)..."
+              className="w-full bg-transparent text-center text-[9px] text-[#5A6A85] outline-none placeholder:text-slate-300"
+            />
+          ) : (
+            <span>{page.footerNote || 'Documento confidencial de gestión de calidad'}</span>
+          )}
+        </div>
+
+        <div className="font-extrabold text-[#001E50] tabular-nums">
+          Página {formattedPageNum} de {formattedTotal}
+        </div>
+      </footer>
+    </div>
+  );
+};
+
+// --- TEMPLATE RENDERER FOR ALL 11+ CORPORATE TEMPLATES ---
+
+interface DirectionPageTemplateRendererProps {
+  page: ReportPage;
+  pageNumber: number;
+  totalPages: number;
+  doc: DirectionReportDocument;
+  computed: ComputedDirectionReportData;
+  isPrintMode?: boolean;
+  selectedImageId?: string | null;
+  onSelectImage?: (id: string | null) => void;
+  onUpdatePage: (patch: Partial<ReportPage>) => void;
+  onSplitActionPlanToContinuation?: (pageId: string) => void;
+}
+
+export const DirectionPageTemplateRenderer: React.FC<DirectionPageTemplateRendererProps> = ({
+  page,
+  pageNumber,
+  totalPages,
+  doc,
+  computed,
+  isPrintMode = false,
+  selectedImageId,
+  onSelectImage,
+  onUpdatePage,
+  onSplitActionPlanToContinuation,
+}) => {
+  const activeSnap =
+    doc.branchSelection === 'JUJUY'
+      ? computed.jujuy
+      : doc.branchSelection === 'SALTA'
+        ? computed.salta
+        : computed.consolidated;
+
+  const isComparative = doc.branchSelection === 'BOTH';
+
+  // 1. COVER PAGE
+  if (page.templateType === 'cover') {
+    return (
+      <PageFrameA4
+        page={page}
+        pageNumber={pageNumber}
+        totalPages={totalPages}
+        doc={doc}
+        computed={computed}
+        isPrintMode={isPrintMode}
+        onUpdatePage={onUpdatePage}
+      >
+        <div />
+      </PageFrameA4>
+    );
+  }
+
+  // 2. PLANTILLA 2: RESUMEN EJECUTIVO
+  if (page.templateType === 'executive_summary') {
+    const summaryCards = [
+      {
+        name: 'Ventas · OS de Marca (CEM)',
+        result: formatMetricAr(activeSnap.osScore),
+        target: formatMetricAr(activeSnap.osTarget),
+        diff:
+          activeSnap.osScore !== null && activeSnap.osTarget !== null
+            ? `${activeSnap.osScore - activeSnap.osTarget >= 0 ? '+' : ''}${formatMetricAr(
+                activeSnap.osScore - activeSnap.osTarget
+              )}`
+            : '—',
+        status: activeSnap.osCompliance,
+        meta: `${activeSnap.osPatentedCount} patentados · ${activeSnap.osValidCount} encuestas válidas`,
+        branchCompare: isComparative
+          ? `Jujuy: ${formatMetricAr(computed.jujuy.osScore)} | Salta: ${formatMetricAr(computed.salta.osScore)}`
+          : null,
+      },
+      {
+        name: 'Postventa · LVS Satisfacción (Q4)',
+        result: formatMetricAr(activeSnap.lvsScore),
+        target: formatMetricAr(activeSnap.lvsTarget),
+        diff:
+          activeSnap.lvsScore !== null && activeSnap.lvsTarget !== null
+            ? `${activeSnap.lvsScore - activeSnap.lvsTarget >= 0 ? '+' : ''}${formatMetricAr(
+                activeSnap.lvsScore - activeSnap.lvsTarget
+              )}`
+            : '—',
+        status: activeSnap.lvsCompliance,
+        meta: `${activeSnap.lvsValidCount} encuestas CEM Postventa válidas`,
+        branchCompare: isComparative
+          ? `Jujuy: ${formatMetricAr(computed.jujuy.lvsScore)} | Salta: ${formatMetricAr(computed.salta.lvsScore)}`
+          : null,
+      },
+      {
+        name: 'Postventa · Calidad de Lavado',
+        result: formatMetricAr(activeSnap.lvsLavadoQ6 ?? activeSnap.internalPvLavado),
+        target: formatMetricAr(activeSnap.lavadoTarget),
+        diff:
+          (activeSnap.lvsLavadoQ6 ?? activeSnap.internalPvLavado) !== null &&
+          activeSnap.lavadoTarget !== null
+            ? `${
+                (activeSnap.lvsLavadoQ6 ?? activeSnap.internalPvLavado)! - activeSnap.lavadoTarget >= 0
+                  ? '+'
+                  : ''
+              }${formatMetricAr(
+                (activeSnap.lvsLavadoQ6 ?? activeSnap.internalPvLavado)! - activeSnap.lavadoTarget
+              )}`
+            : '—',
+        status: activeSnap.lavadoCompliance,
+        meta: `CEM Q6: ${formatMetricAr(activeSnap.lvsLavadoQ6)} · Interna: ${formatMetricAr(activeSnap.internalPvLavado)}`,
+        branchCompare: isComparative
+          ? `Jujuy: ${formatMetricAr(computed.jujuy.lvsLavadoQ6 ?? computed.jujuy.internalPvLavado)} | Salta: ${formatMetricAr(
+              computed.salta.lvsLavadoQ6 ?? computed.salta.internalPvLavado
+            )}`
+          : null,
+      },
+      {
+        name: 'Reclamos de Ventas',
+        result: `${activeSnap.salesClaimsTotal} casos`,
+        target: '0 pendientes',
+        diff: `${activeSnap.salesClaimsPending} pend.`,
+        status:
+          activeSnap.salesClaimsPending === 0
+            ? ('compliant' as ComplianceStatus)
+            : ('deviated' as ComplianceStatus),
+        meta: `${activeSnap.salesClaimsResolved} resueltos en el período`,
+        branchCompare: isComparative
+          ? `Jujuy: ${computed.jujuy.salesClaimsTotal} | Salta: ${computed.salta.salesClaimsTotal}`
+          : null,
+      },
+      {
+        name: 'Reclamos de Postventa',
+        result: `${activeSnap.pvClaimsTotal} reclamos`,
+        target: '>= 90% resueltos',
+        diff:
+          activeSnap.pvClaimsResolutionRatePct !== null
+            ? `${formatMetricAr(activeSnap.pvClaimsResolutionRatePct, 1, '%')}`
+            : '—',
+        status:
+          activeSnap.pvClaimsTotal === 0
+            ? ('compliant' as ComplianceStatus)
+            : evaluateCompliance(activeSnap.pvClaimsResolutionRatePct, 90, 'up'),
+        meta: `${activeSnap.pvClaimsUniqueOr} OR únicas · ${activeSnap.pvClaimsPending} pendientes`,
+        branchCompare: isComparative
+          ? `Jujuy: ${computed.jujuy.pvClaimsTotal} (${computed.jujuy.pvClaimsUniqueOr} OR) | Salta: ${computed.salta.pvClaimsTotal} (${computed.salta.pvClaimsUniqueOr} OR)`
+          : null,
+      },
+      {
+        name: 'Encuestas Internas (Ventas / PV)',
+        result: `V: ${formatMetricAr(activeSnap.internalSalesOsScore)} · PV: ${formatMetricAr(activeSnap.internalPvService)}`,
+        target: '>= 4,50',
+        diff: `${activeSnap.internalSalesCount + activeSnap.internalPvCount} resp.`,
+        status:
+          activeSnap.internalSalesOsScore !== null || activeSnap.internalPvService !== null
+            ? ('compliant' as ComplianceStatus)
+            : ('pending_evaluation' as ComplianceStatus),
+        meta: `Muestra interna: ${activeSnap.internalSalesCount} Ventas / ${activeSnap.internalPvCount} Postventa`,
+        branchCompare: isComparative
+          ? `Jujuy PV: ${formatMetricAr(computed.jujuy.internalPvService)} | Salta PV: ${formatMetricAr(computed.salta.internalPvService)}`
+          : null,
+      },
+    ];
+
+    return (
+      <PageFrameA4
+        page={page}
+        pageNumber={pageNumber}
+        totalPages={totalPages}
+        doc={doc}
+        computed={computed}
+        isPrintMode={isPrintMode}
+        onUpdatePage={onUpdatePage}
+      >
+        <div className="flex flex-col justify-between h-full gap-3">
+          <InheritedReviewBanner
+            isInherited={page.isInheritedPendingReview}
+            isPrintMode={isPrintMode}
+            onConfirmReview={() => onUpdatePage({ isInheritedPendingReview: false })}
+          />
+
+          {/* 6 Executive KPI Cards Grid */}
+          <div className="grid grid-cols-3 gap-3">
+            {summaryCards.map(card => (
+              <div
+                key={card.name}
+                className="flex flex-col justify-between rounded-xl border border-slate-200 bg-[#F5F7FA]/70 p-3.5 shadow-2xs"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#001E50]">
+                    {card.name}
+                  </span>
+                  <ComplianceBadge status={card.status} compact />
+                </div>
+
+                <div className="my-2 flex items-baseline justify-between gap-2">
+                  <span className="text-2xl font-extrabold tracking-tight text-[#001E50] tabular-nums">
+                    {card.result}
+                  </span>
+                  <div className="text-right text-[10px]">
+                    <span className="text-[#5A6A85]">Objetivo: </span>
+                    <strong className="text-[#001E50]">{card.target}</strong>
+                    <span className="ml-1.5 font-bold text-[#0072CE]">({card.diff})</span>
+                  </div>
+                </div>
+
+                <div className="border-t border-slate-200/70 pt-1.5 space-y-0.5">
+                  <p className="text-[10px] font-medium text-[#5A6A85]">{card.meta}</p>
+                  {card.branchCompare && (
+                    <p className="text-[10px] font-bold text-[#001E50]">{card.branchCompare}</p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Editable Executive Narrative Blocks */}
+          <div className="grid grid-cols-2 gap-4 flex-1 min-h-0">
+            <div className="flex flex-col rounded-xl border border-slate-200 bg-white p-4">
+              <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                {isPrintMode ? (
+                  <h3 className="text-xs font-extrabold uppercase tracking-wider text-[#001E50]">
+                    {page.narrativeTitle || 'Síntesis de Resultados del Período'}
+                  </h3>
+                ) : (
+                  <input
+                    type="text"
+                    value={page.narrativeTitle}
+                    onChange={e => onUpdatePage({ narrativeTitle: e.target.value })}
+                    className="w-full bg-transparent text-xs font-extrabold uppercase tracking-wider text-[#001E50] outline-none"
+                  />
+                )}
+              </div>
+              {isPrintMode ? (
+                <p className="mt-2.5 text-xs leading-relaxed text-[#001E50] whitespace-pre-wrap">
+                  {page.narrativeBody ||
+                    `Resumen consolidado de ${computed.periodLabel}. Los indicadores automáticos provienen de las bases oficiales de CEM Ventas, CEM Postventa y registros internos de Calidad.`}
+                </p>
+              ) : (
+                <textarea
+                  value={page.narrativeBody}
+                  onChange={e => onUpdatePage({ narrativeBody: e.target.value })}
+                  placeholder="Hacé clic aquí para redactar el resumen ejecutivo de los principales resultados del período..."
+                  className="mt-2.5 flex-1 w-full resize-none bg-transparent text-xs leading-relaxed text-[#001E50] outline-none placeholder:text-slate-400"
+                />
+              )}
+            </div>
+
+            <div className="flex flex-col rounded-xl border border-slate-200 bg-[#001E50] p-4 text-white">
+              <div className="flex items-center justify-between border-b border-white/15 pb-2">
+                {isPrintMode ? (
+                  <h3 className="text-xs font-extrabold uppercase tracking-wider text-sky-300">
+                    {page.secondaryNarrativeTitle || 'Foco Directivo y Decisiones Clave'}
+                  </h3>
+                ) : (
+                  <input
+                    type="text"
+                    value={page.secondaryNarrativeTitle || 'Foco Directivo y Decisiones Clave'}
+                    onChange={e => onUpdatePage({ secondaryNarrativeTitle: e.target.value })}
+                    className="w-full bg-transparent text-xs font-extrabold uppercase tracking-wider text-sky-300 outline-none"
+                  />
+                )}
+              </div>
+              {isPrintMode ? (
+                <p className="mt-2.5 text-xs leading-relaxed text-slate-100 whitespace-pre-wrap">
+                  {page.secondaryNarrativeBody ||
+                    'Cada indicador incluido en este informe incorpora debajo de sus resultados su evaluación de cumplimiento y, cuando existe desvío, su causa raíz y plan de acción correctivo.'}
+                </p>
+              ) : (
+                <textarea
+                  value={page.secondaryNarrativeBody || ''}
+                  onChange={e => onUpdatePage({ secondaryNarrativeBody: e.target.value })}
+                  placeholder="Hacé clic aquí para destacar los puntos de atención prioritaria o decisiones requeridas de Dirección..."
+                  className="mt-2.5 flex-1 w-full resize-none bg-transparent text-xs leading-relaxed text-white outline-none placeholder:text-slate-400"
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      </PageFrameA4>
+    );
+  }
+
+  // 3. PLANTILLA 3: INDICADORES, EVOLUCIÓN Y PLAN DE ACCIÓN INTEGRADO (OS, LVS, Lavado)
+  if (page.templateType === 'indicator_evolution') {
+    const isOs = page.moduleId === 'ventas_os';
+    const isLavado = page.moduleId === 'lavado';
+
+    const mainScore = isOs
+      ? activeSnap.osScore
+      : isLavado
+        ? activeSnap.lvsLavadoQ6 ?? activeSnap.internalPvLavado
+        : activeSnap.lvsScore;
+    const mainTarget = isOs
+      ? activeSnap.osTarget
+      : isLavado
+        ? activeSnap.lavadoTarget
+        : activeSnap.lvsTarget;
+    const mainCompliance = isOs
+      ? activeSnap.osCompliance
+      : isLavado
+        ? activeSnap.lavadoCompliance
+        : activeSnap.lvsCompliance;
+
+    const jujuyVal = isOs
+      ? computed.jujuy.osScore
+      : isLavado
+        ? computed.jujuy.lvsLavadoQ6 ?? computed.jujuy.internalPvLavado
+        : computed.jujuy.lvsScore;
+    const saltaVal = isOs
+      ? computed.salta.osScore
+      : isLavado
+        ? computed.salta.lvsLavadoQ6 ?? computed.salta.internalPvLavado
+        : computed.salta.lvsScore;
+
+    const subKpis = isOs
+      ? [
+          { label: 'Unidades Patentadas', value: String(activeSnap.osPatentedCount), hint: 'Base del período' },
+          { label: 'Links Declarados', value: String(activeSnap.osDeclaredCount), hint: 'Con fecha de envío' },
+          { label: 'Encuestas Válidas', value: String(activeSnap.osValidCount), hint: 'Respondieron CEM' },
+          {
+            label: 'Conversión Respuesta',
+            value: activeSnap.osResponseConversionPct !== null ? `${activeSnap.osResponseConversionPct}%` : '—',
+            hint: 'Respondieron / Declarados',
+          },
+        ]
+      : isLavado
+        ? [
+            { label: 'Lavado CEM (Q6)', value: formatMetricAr(activeSnap.lvsLavadoQ6), hint: 'Encuesta oficial marca' },
+            { label: 'Lavado Enc. Interna', value: formatMetricAr(activeSnap.internalPvLavado), hint: 'Post-servicio interno' },
+            { label: 'Jujuy (3059)', value: formatMetricAr(jujuyVal), hint: 'Promedio sede Jujuy' },
+            { label: 'Salta (3087)', value: formatMetricAr(saltaVal), hint: 'Promedio sede Salta' },
+          ]
+        : [
+            { label: 'Trato Personal (Q1)', value: formatMetricAr(activeSnap.lvsTratoQ1), hint: 'Atención asesor' },
+            { label: 'Organización (Q2)', value: formatMetricAr(activeSnap.lvsOrgQ2), hint: 'Turnos y procesos' },
+            { label: 'Calidad Reparación (Q3)', value: formatMetricAr(activeSnap.lvsReparacionQ3), hint: 'Trabajo de taller' },
+            { label: 'Encuestas Válidas', value: String(activeSnap.lvsValidCount), hint: 'Muestra CEM Postventa' },
+          ];
+
+    const chartData = computed.evolution.map(pt => ({
+      name: pt.shortMonth,
+      isPeriod: pt.isPeriodMember,
+      Consolidado: isOs ? pt.osConsolidated : isLavado ? pt.lavadoConsolidated : pt.lvsConsolidated,
+      Jujuy: isOs ? pt.osJujuy : isLavado ? pt.lavadoJujuy : pt.lvsJujuy,
+      Salta: isOs ? pt.osSalta : isLavado ? pt.lavadoSalta : pt.lvsSalta,
+      Objetivo: mainTarget,
+    }));
+
+    return (
+      <PageFrameA4
+        page={page}
+        pageNumber={pageNumber}
+        totalPages={totalPages}
+        doc={doc}
+        computed={computed}
+        isPrintMode={isPrintMode}
+        onUpdatePage={onUpdatePage}
+      >
+        <div className="flex flex-col justify-between h-full gap-2.5">
+          {/* UPPER SECTION: INDICADOR -> RESULTADO -> EVOLUCIÓN */}
+          <div className="grid grid-cols-12 gap-4 flex-1 min-h-0">
+            {/* Left Column: Hero KPI + Subcards + Branch Comparison */}
+            <div className="col-span-5 flex flex-col justify-between gap-2.5">
+              {/* Hero KPI Card */}
+              <div className="rounded-xl border border-slate-200 bg-[#001E50] p-4 text-white shadow-xs">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-[10px] font-extrabold uppercase tracking-widest text-sky-300">
+                    {isOs ? 'Promedio CEM OS' : isLavado ? 'Calidad de Lavado' : 'Promedio CEM LVS (Q4)'}
+                  </span>
+                  <ComplianceBadge status={mainCompliance} compact />
+                </div>
+
+                <div className="mt-2 flex items-baseline justify-between">
+                  <span className="text-4xl font-extrabold tracking-tight text-white tabular-nums">
+                    {formatMetricAr(mainScore)}
+                  </span>
+                  <div className="text-right">
+                    <span className="text-[10px] uppercase tracking-wider text-slate-300 block">
+                      Objetivo vigente
+                    </span>
+                    <span className="text-sm font-extrabold text-sky-300">
+                      {formatMetricAr(mainTarget)} pts
+                    </span>
+                  </div>
+                </div>
+
+                {/* Individual Branch Evaluation when BOTH selected */}
+                {isComparative && (
+                  <div className="mt-3 grid grid-cols-2 gap-2 border-t border-white/15 pt-2.5">
+                    <div className="rounded-lg bg-white/8 px-2.5 py-1.5">
+                      <div className="flex items-center justify-between text-[9px] font-bold text-slate-300">
+                        <span>JUJUY (3059)</span>
+                        <span
+                          className={
+                            (isOs ? computed.jujuy.osCompliance : isLavado ? computed.jujuy.lavadoCompliance : computed.jujuy.lvsCompliance) === 'compliant'
+                              ? 'text-emerald-300'
+                              : (isOs ? computed.jujuy.osCompliance : isLavado ? computed.jujuy.lavadoCompliance : computed.jujuy.lvsCompliance) === 'deviated'
+                                ? 'text-rose-300'
+                                : 'text-slate-300'
+                          }
+                        >
+                          {(isOs ? computed.jujuy.osCompliance : isLavado ? computed.jujuy.lavadoCompliance : computed.jujuy.lvsCompliance) === 'compliant'
+                            ? 'Cumple'
+                            : (isOs ? computed.jujuy.osCompliance : isLavado ? computed.jujuy.lavadoCompliance : computed.jujuy.lvsCompliance) === 'deviated'
+                              ? 'Desvío'
+                              : 'Pend.'}
+                        </span>
+                      </div>
+                      <p className="text-base font-extrabold text-white tabular-nums">
+                        {formatMetricAr(jujuyVal)}
+                      </p>
+                    </div>
+                    <div className="rounded-lg bg-white/8 px-2.5 py-1.5">
+                      <div className="flex items-center justify-between text-[9px] font-bold text-slate-300">
+                        <span>SALTA (3087)</span>
+                        <span
+                          className={
+                            (isOs ? computed.salta.osCompliance : isLavado ? computed.salta.lavadoCompliance : computed.salta.lvsCompliance) === 'compliant'
+                              ? 'text-emerald-300'
+                              : (isOs ? computed.salta.osCompliance : isLavado ? computed.salta.lavadoCompliance : computed.salta.lvsCompliance) === 'deviated'
+                                ? 'text-rose-300'
+                                : 'text-slate-300'
+                          }
+                        >
+                          {(isOs ? computed.salta.osCompliance : isLavado ? computed.salta.lavadoCompliance : computed.salta.lvsCompliance) === 'compliant'
+                            ? 'Cumple'
+                            : (isOs ? computed.salta.osCompliance : isLavado ? computed.salta.lavadoCompliance : computed.salta.lvsCompliance) === 'deviated'
+                              ? 'Desvío'
+                              : 'Pend.'}
+                        </span>
+                      </div>
+                      <p className="text-base font-extrabold text-white tabular-nums">
+                        {formatMetricAr(saltaVal)}
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* 4 Sub-indicators Grid */}
+              <div className="grid grid-cols-2 gap-2">
+                {subKpis.map(k => (
+                  <div
+                    key={k.label}
+                    className="rounded-xl border border-slate-200 bg-[#F5F7FA] px-3 py-2"
+                  >
+                    <p className="text-[9px] font-bold uppercase tracking-wider text-[#5A6A85]">
+                      {k.label}
+                    </p>
+                    <p className="mt-0.5 text-lg font-extrabold text-[#001E50] tabular-nums">
+                      {k.value}
+                    </p>
+                    <p className="text-[9px] text-[#5A6A85]">{k.hint}</p>
+                  </div>
+                ))}
+              </div>
+
+              {/* Brief Executive Commentary */}
+              <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 flex-1 flex flex-col justify-center">
+                <span className="text-[9px] font-extrabold uppercase tracking-wider text-[#0072CE]">
+                  {page.narrativeTitle || 'Lectura Ejecutiva del Indicador'}
+                </span>
+                {isPrintMode ? (
+                  <p className="mt-1 text-[11px] leading-snug text-[#001E50]">
+                    {page.narrativeBody ||
+                      `Resultado del período ${computed.periodLabel}: ${formatMetricAr(mainScore)} frente a un objetivo de ${formatMetricAr(mainTarget)}.`}
+                  </p>
+                ) : (
+                  <textarea
+                    value={page.narrativeBody}
+                    onChange={e => onUpdatePage({ narrativeBody: e.target.value })}
+                    rows={2}
+                    placeholder="Hacé clic para agregar un comentario sobre la evolución o contexto del indicador..."
+                    className="mt-1 w-full resize-none bg-transparent text-[11px] leading-snug text-[#001E50] outline-none placeholder:text-slate-300"
+                  />
+                )}
+              </div>
+            </div>
+
+            {/* Right Column: Evolution Chart */}
+            <div className="col-span-7 flex flex-col rounded-xl border border-slate-200 bg-[#F5F7FA]/60 p-3.5 min-h-0">
+              <div className="flex items-center justify-between mb-2">
+                <div>
+                  <h4 className="text-xs font-extrabold uppercase tracking-wider text-[#001E50]">
+                    Evolución Anual {doc.year} — {isOs ? 'CEM OS Ventas' : isLavado ? 'Calidad de Lavado' : 'CEM LVS Postventa'}
+                  </h4>
+                  <p className="text-[10px] text-[#5A6A85]">
+                    Escala 1,00 a 5,00 pts · Línea punteada indica objetivo vigente ({formatMetricAr(mainTarget)})
+                  </p>
+                </div>
+                {!isPrintMode && (
+                  <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white p-0.5 text-[10px] font-bold">
+                    <button
+                      type="button"
+                      onClick={() => onUpdatePage({ chartType: 'bar' })}
+                      className={`rounded px-2 py-0.5 ${page.chartType !== 'line' ? 'bg-[#001E50] text-white' : 'text-[#5A6A85]'}`}
+                    >
+                      Barras
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onUpdatePage({ chartType: 'line' })}
+                      className={`rounded px-2 py-0.5 ${page.chartType === 'line' ? 'bg-[#001E50] text-white' : 'text-[#5A6A85]'}`}
+                    >
+                      Líneas
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              <div className="flex-1 min-h-[165px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  {page.chartType === 'line' ? (
+                    <LineChart data={chartData} margin={{ top: 16, right: 16, left: -12, bottom: 4 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: '#001E50' }} />
+                      <YAxis domain={[0, 5]} axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: '#5A6A85' }} />
+                      <Tooltip />
+                      {isComparative && <Legend iconType="circle" wrapperStyle={{ fontSize: 10, fontWeight: 700 }} />}
+                      {page.showChartTarget !== false && mainTarget && (
+                        <ReferenceLine y={mainTarget} stroke="#15803D" strokeDasharray="4 4" strokeWidth={1.5} />
+                      )}
+                      {isComparative ? (
+                        <>
+                          <Line type="monotone" dataKey="Jujuy" name="Jujuy (3059)" stroke="#001E50" strokeWidth={2.5} dot={{ r: 3.5 }} connectNulls />
+                          <Line type="monotone" dataKey="Salta" name="Salta (3087)" stroke="#0072CE" strokeWidth={2.5} dot={{ r: 3.5 }} connectNulls />
+                        </>
+                      ) : (
+                        <Line type="monotone" dataKey="Consolidado" name="Resultado" stroke="#001E50" strokeWidth={3} dot={{ r: 4, fill: '#0072CE' }} connectNulls />
+                      )}
+                    </LineChart>
+                  ) : (
+                    <BarChart data={chartData} margin={{ top: 18, right: 16, left: -12, bottom: 4 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                      <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: '#001E50' }} />
+                      <YAxis domain={[0, 5]} axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: '#5A6A85' }} />
+                      <Tooltip />
+                      {isComparative && <Legend iconType="circle" wrapperStyle={{ fontSize: 10, fontWeight: 700 }} />}
+                      {page.showChartTarget !== false && mainTarget && (
+                        <ReferenceLine y={mainTarget} stroke="#15803D" strokeDasharray="4 4" strokeWidth={1.5} />
+                      )}
+                      {isComparative ? (
+                        <>
+                          <Bar dataKey="Jujuy" name="Jujuy (3059)" fill="#001E50" radius={[4, 4, 0, 0]} barSize={14} />
+                          <Bar dataKey="Salta" name="Salta (3087)" fill="#0072CE" radius={[4, 4, 0, 0]} barSize={14} />
+                        </>
+                      ) : (
+                        <Bar dataKey="Consolidado" name="Resultado" radius={[6, 6, 0, 0]} barSize={24}>
+                          {chartData.map(entry => (
+                            <Cell key={entry.name} fill={entry.isPeriod ? '#001E50' : '#94A3B8'} />
+                          ))}
+                          {page.showChartLabels !== false && (
+                            <LabelList dataKey="Consolidado" position="top" style={{ fill: '#001E50', fontSize: 9, fontWeight: 800 }} />
+                          )}
+                        </Bar>
+                      )}
+                    </BarChart>
+                  )}
+                </ResponsiveContainer>
+              </div>
+            </div>
+          </div>
+
+          {/* LOWER SECTION: INTEGRATED ANALYSIS & ACTION PLAN */}
+          {page.actionBlock && (
+            <IntegratedIndicatorActionSection
+              block={page.actionBlock}
+              branchSelection={doc.branchSelection}
+              matchingPlans={computed.matchingActionPlans}
+              isPrintMode={isPrintMode}
+              onUpdateBlock={nextBlock => onUpdatePage({ actionBlock: nextBlock })}
+              onSplitToContinuationPage={
+                onSplitActionPlanToContinuation
+                  ? () => onSplitActionPlanToContinuation(page.id)
+                  : undefined
+              }
+            />
+          )}
+        </div>
+      </PageFrameA4>
+    );
+  }
+
+  // 4. PLANTILLA 4: COMPARACIÓN JUJUY (3059) / SALTA (3087)
+  if (page.templateType === 'branch_comparison') {
+    const compBarData = [
+      {
+        metric: 'OS Marca',
+        Jujuy: computed.jujuy.osScore ?? 0,
+        Salta: computed.salta.osScore ?? 0,
+        Objetivo: computed.consolidated.osTarget ?? 4.6,
+      },
+      {
+        metric: 'LVS Postventa',
+        Jujuy: computed.jujuy.lvsScore ?? 0,
+        Salta: computed.salta.lvsScore ?? 0,
+        Objetivo: computed.consolidated.lvsTarget ?? 4.8,
+      },
+      {
+        metric: 'Trato PV (Q1)',
+        Jujuy: computed.jujuy.lvsTratoQ1 ?? 0,
+        Salta: computed.salta.lvsTratoQ1 ?? 0,
+        Objetivo: 4.8,
+      },
+      {
+        metric: 'Reparación (Q3)',
+        Jujuy: computed.jujuy.lvsReparacionQ3 ?? 0,
+        Salta: computed.salta.lvsReparacionQ3 ?? 0,
+        Objetivo: 4.8,
+      },
+      {
+        metric: 'Lavado',
+        Jujuy: computed.jujuy.lvsLavadoQ6 ?? computed.jujuy.internalPvLavado ?? 0,
+        Salta: computed.salta.lvsLavadoQ6 ?? computed.salta.internalPvLavado ?? 0,
+        Objetivo: computed.consolidated.lavadoTarget ?? 4.5,
+      },
+    ];
+
+    const renderBranchColumn = (snap: typeof computed.jujuy, title: string, code: string, accentColor: string) => (
+      <div className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
+        <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+          <div>
+            <span
+              className="inline-block rounded px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-white"
+              style={{ backgroundColor: accentColor }}
+            >
+              Concesionario {code}
+            </span>
+            <h3 className="mt-1 text-base font-extrabold text-[#001E50]">{title}</h3>
+          </div>
+          <div className="text-right">
+            <span className="text-[9px] font-bold uppercase text-[#5A6A85] block">Estado General</span>
+            <ComplianceBadge
+              status={
+                snap.osCompliance === 'deviated' || snap.lvsCompliance === 'deviated'
+                  ? 'deviated'
+                  : snap.osCompliance === 'compliant' && snap.lvsCompliance === 'compliant'
+                    ? 'compliant'
+                    : 'pending_evaluation'
+              }
+              compact
+            />
+          </div>
+        </div>
+
+        <div className="my-2.5 grid grid-cols-2 gap-2.5">
+          <div className="rounded-lg bg-[#F5F7FA] p-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[9px] font-bold uppercase text-[#5A6A85]">OS Ventas</span>
+              <ComplianceBadge status={snap.osCompliance} compact />
+            </div>
+            <p className="mt-1 text-xl font-extrabold text-[#001E50] tabular-nums">
+              {formatMetricAr(snap.osScore)}
+            </p>
+            <p className="text-[9px] text-[#5A6A85]">
+              {snap.osPatentedCount} pat. · {snap.osValidCount} resp.
+            </p>
+          </div>
+
+          <div className="rounded-lg bg-[#F5F7FA] p-2.5">
+            <div className="flex items-center justify-between">
+              <span className="text-[9px] font-bold uppercase text-[#5A6A85]">LVS Postventa</span>
+              <ComplianceBadge status={snap.lvsCompliance} compact />
+            </div>
+            <p className="mt-1 text-xl font-extrabold text-[#001E50] tabular-nums">
+              {formatMetricAr(snap.lvsScore)}
+            </p>
+            <p className="text-[9px] text-[#5A6A85]">
+              Q1: {formatMetricAr(snap.lvsTratoQ1)} · Q3: {formatMetricAr(snap.lvsReparacionQ3)}
+            </p>
+          </div>
+
+          <div className="rounded-lg bg-[#F5F7FA] p-2.5">
+            <span className="text-[9px] font-bold uppercase text-[#5A6A85] block">
+              Calidad de Lavado
+            </span>
+            <p className="mt-1 text-base font-extrabold text-[#001E50] tabular-nums">
+              {formatMetricAr(snap.lvsLavadoQ6 ?? snap.internalPvLavado)}
+            </p>
+            <p className="text-[9px] text-[#5A6A85]">
+              Interna PV: {formatMetricAr(snap.internalPvService)} ({snap.internalPvCount} enc.)
+            </p>
+          </div>
+
+          <div className="rounded-lg bg-[#F5F7FA] p-2.5">
+            <span className="text-[9px] font-bold uppercase text-[#5A6A85] block">
+              Reclamos del Período
+            </span>
+            <p className="mt-1 text-base font-extrabold text-[#001E50] tabular-nums">
+              V: {snap.salesClaimsTotal} · PV: {snap.pvClaimsTotal}
+            </p>
+            <p className="text-[9px] text-[#5A6A85]">
+              {snap.pvClaimsUniqueOr} OR únicas · {snap.pvClaimsResolved} resueltos
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+
+    return (
+      <PageFrameA4
+        page={page}
+        pageNumber={pageNumber}
+        totalPages={totalPages}
+        doc={doc}
+        computed={computed}
+        isPrintMode={isPrintMode}
+        onUpdatePage={onUpdatePage}
+      >
+        <div className="flex flex-col justify-between h-full gap-3">
+          {/* Symmetrical Side-by-Side Branch Cards */}
+          <div className="grid grid-cols-2 gap-4">
+            {renderBranchColumn(computed.jujuy, 'Autosol Jujuy', '3059', '#001E50')}
+            {renderBranchColumn(computed.salta, 'Autosol Salta', '3087', '#0072CE')}
+          </div>
+
+          {/* Bottom Comparative Chart + Synthesis */}
+          <div className="grid grid-cols-12 gap-4 flex-1 min-h-0">
+            <div className="col-span-7 rounded-xl border border-slate-200 bg-[#F5F7FA]/60 p-3 flex flex-col min-h-0">
+              <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-[#001E50] mb-1">
+                Comparativa Directa de Indicadores Clave (Escala 1 a 5)
+              </h4>
+              <div className="flex-1 min-h-[130px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={compBarData} margin={{ top: 14, right: 14, left: -16, bottom: 0 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                    <XAxis dataKey="metric" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: '#001E50' }} />
+                    <YAxis domain={[0, 5]} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#5A6A85' }} />
+                    <Tooltip />
+                    <Legend iconType="circle" wrapperStyle={{ fontSize: 10, fontWeight: 700 }} />
+                    <Bar dataKey="Jujuy" name="Jujuy (3059)" fill="#001E50" radius={[4, 4, 0, 0]} barSize={20}>
+                      <LabelList dataKey="Jujuy" position="top" style={{ fill: '#001E50', fontSize: 9, fontWeight: 800 }} />
+                    </Bar>
+                    <Bar dataKey="Salta" name="Salta (3087)" fill="#0072CE" radius={[4, 4, 0, 0]} barSize={20}>
+                      <LabelList dataKey="Salta" position="top" style={{ fill: '#0072CE', fontSize: 9, fontWeight: 800 }} />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            <div className="col-span-5 rounded-xl border border-slate-200 bg-white p-3.5 flex flex-col">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#0072CE]">
+                {page.narrativeTitle || 'Conclusiones Comparativas Jujuy vs. Salta'}
+              </span>
+              {isPrintMode ? (
+                <p className="mt-2 text-xs leading-relaxed text-[#001E50] whitespace-pre-wrap">
+                  {page.narrativeBody ||
+                    'Comparación equilibrada entre ambas sucursales. Las diferencias de desempeño permiten focalizar los planes de acción específicamente en la sede que presenta el desvío.'}
+                </p>
+              ) : (
+                <textarea
+                  value={page.narrativeBody}
+                  onChange={e => onUpdatePage({ narrativeBody: e.target.value })}
+                  placeholder="Escribí aquí las conclusiones del análisis comparativo entre Jujuy (3059) y Salta (3087)..."
+                  className="mt-2 flex-1 w-full resize-none bg-transparent text-xs leading-relaxed text-[#001E50] outline-none placeholder:text-slate-300"
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      </PageFrameA4>
+    );
+  }
+
+  // 5. PLANTILLA 5: ENCUESTAS SSI / CSI / CLUB SSI (MÓDULOS DIFERENCIADOS + PLAN INTEGRADO)
+  if (page.templateType === 'survey_study') {
+    const prog = page.surveyProgram || 'SSI';
+    const study: typeof computed.ssiStudy =
+      prog === 'CSI'
+        ? computed.csiStudy
+        : prog === 'CLUB_SSI'
+          ? computed.clubSsiStudy
+          : computed.ssiStudy;
+
+    const subOpts: SurveyDisplaySubOptions = doc.surveySubOptions;
+    const isClubSsi = prog === 'CLUB_SSI';
+    const overrides = page.surveyBenchmarkOverride;
+
+    const activeBranchStudy =
+      doc.branchSelection === 'JUJUY'
+        ? study.byBranch.JUJUY
+        : doc.branchSelection === 'SALTA'
+          ? study.byBranch.SALTA
+          : {
+              validCount: study.validSurveysCount,
+              t2bPercent: study.t2bPercent,
+              satisfactionAvg: study.satisfactionAvg,
+              recommendationAvg: study.recommendationAvg,
+              compliance: study.compliance,
+              topReasons: study.topDissatisfactionReasons,
+            };
+
+    const gapMarket =
+      activeBranchStudy.t2bPercent !== null && overrides?.marketT2B !== null && overrides?.marketT2B !== undefined
+        ? Number((activeBranchStudy.t2bPercent - overrides.marketT2B).toFixed(1))
+        : null;
+    const gapTop5 =
+      activeBranchStudy.t2bPercent !== null && overrides?.top5T2B !== null && overrides?.top5T2B !== undefined
+        ? Number((activeBranchStudy.t2bPercent - overrides.top5T2B).toFixed(1))
+        : null;
+
+    return (
+      <PageFrameA4
+        page={page}
+        pageNumber={pageNumber}
+        totalPages={totalPages}
+        doc={doc}
+        computed={computed}
+        isPrintMode={isPrintMode}
+        onUpdatePage={onUpdatePage}
+      >
+        <div className="flex flex-col justify-between h-full gap-2.5">
+          {/* Upper KPI Strip */}
+          <div className="grid grid-cols-5 gap-3">
+            <div className="rounded-xl bg-[#001E50] p-3 text-white">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-sky-300 block">
+                Encuestas Válidas ({prog === 'CLUB_SSI' ? 'Club SSI' : prog})
+              </span>
+              <p className="mt-1 text-2xl font-extrabold tabular-nums">
+                {activeBranchStudy.validCount}
+              </p>
+              <p className="text-[9px] text-slate-300">
+                {study.periodMatchingMode === 'exact_period'
+                  ? 'Período exacto'
+                  : study.periodMatchingMode === 'semester_or_year'
+                    ? 'Acumulado año/ola'
+                    : 'Sin registros'}
+              </p>
+            </div>
+
+            {subOpts.showGeneralSatisfaction && (
+              <div className="rounded-xl border border-slate-200 bg-[#F5F7FA] p-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-[#5A6A85]">
+                    Satisfacción Gral.
+                  </span>
+                  <ComplianceBadge status={activeBranchStudy.compliance} compact />
+                </div>
+                <p className="mt-1 text-2xl font-extrabold text-[#001E50] tabular-nums">
+                  {formatMetricAr(activeBranchStudy.satisfactionAvg)}
+                </p>
+                <p className="text-[9px] text-[#5A6A85]">Escala 0 a 10 pts</p>
+              </div>
+            )}
+
+            {subOpts.showRecommendation && (
+              <div className="rounded-xl border border-slate-200 bg-[#F5F7FA] p-3">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-[#5A6A85] block">
+                  Recomendación
+                </span>
+                <p className="mt-1 text-2xl font-extrabold text-[#001E50] tabular-nums">
+                  {formatMetricAr(activeBranchStudy.recommendationAvg)}
+                </p>
+                <p className="text-[9px] text-[#5A6A85]">Promedio nota recom.</p>
+              </div>
+            )}
+
+            {!isClubSsi && (
+              <div className="rounded-xl border border-slate-200 bg-[#F5F7FA] p-3">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-[#5A6A85] block">
+                  Top 2 Box (Notas 9–10)
+                </span>
+                <p className="mt-1 text-2xl font-extrabold text-[#0072CE] tabular-nums">
+                  {activeBranchStudy.t2bPercent !== null
+                    ? `${formatMetricAr(activeBranchStudy.t2bPercent, 1)}%`
+                    : 'Sin datos'}
+                </p>
+                <p className="text-[9px] text-[#5A6A85]">Proporción conformes</p>
+              </div>
+            )}
+
+            {/* Market & Top 5 Reference Card (Explicitly separated & editable per period) */}
+            {!isClubSsi && (subOpts.showMarketComparison || subOpts.showTop5Comparison) ? (
+              <div className="rounded-xl border border-slate-200 bg-white p-3">
+                <div className="flex items-center justify-between">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-[#001E50]">
+                    Referencias {prog}
+                  </span>
+                  <span className="rounded bg-amber-50 px-1.5 py-0.5 text-[8px] font-bold text-amber-700">
+                    Carga manual período
+                  </span>
+                </div>
+                <div className="mt-1.5 grid grid-cols-2 gap-1.5 text-[10px]">
+                  {subOpts.showMarketComparison && (
+                    <div>
+                      <span className="text-[#5A6A85] block text-[8px] uppercase font-bold">Media Mercado %</span>
+                      {!isPrintMode ? (
+                        <input
+                          type="number"
+                          step="0.1"
+                          value={overrides?.marketT2B ?? ''}
+                          onChange={e =>
+                            onUpdatePage({
+                              surveyBenchmarkOverride: {
+                                marketT2B: e.target.value ? Number(e.target.value) : null,
+                                top5T2B: overrides?.top5T2B ?? null,
+                                marketScore: overrides?.marketScore ?? null,
+                                targetScore: overrides?.targetScore ?? 8.8,
+                                validatedForPeriod: true,
+                              },
+                            })
+                          }
+                          placeholder="Ej: 78.0"
+                          className="w-full border-b border-slate-200 font-extrabold text-[#001E50] outline-none"
+                        />
+                      ) : (
+                        <strong className="text-[#001E50]">
+                          {overrides?.marketT2B != null ? `${overrides.marketT2B}%` : 'Pend.'}
+                        </strong>
+                      )}
+                      {gapMarket !== null && (
+                        <span className={`block text-[9px] font-bold ${gapMarket >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
+                          Brecha: {gapMarket >= 0 ? `+${gapMarket}` : gapMarket} pp
+                        </span>
+                      )}
+                    </div>
+                  )}
+                  {subOpts.showTop5Comparison && (
+                    <div>
+                      <span className="text-[#5A6A85] block text-[8px] uppercase font-bold">Top 5 T2B %</span>
+                      {!isPrintMode ? (
+                        <input
+                          type="number"
+                          step="0.1"
+                          value={overrides?.top5T2B ?? ''}
+                          onChange={e =>
+                            onUpdatePage({
+                              surveyBenchmarkOverride: {
+                                marketT2B: overrides?.marketT2B ?? null,
+                                top5T2B: e.target.value ? Number(e.target.value) : null,
+                                marketScore: overrides?.marketScore ?? null,
+                                targetScore: overrides?.targetScore ?? 8.8,
+                                validatedForPeriod: true,
+                              },
+                            })
+                          }
+                          placeholder="Ej: 85.0"
+                          className="w-full border-b border-slate-200 font-extrabold text-[#001E50] outline-none"
+                        />
+                      ) : (
+                        <strong className="text-[#001E50]">
+                          {overrides?.top5T2B != null ? `${overrides.top5T2B}%` : 'Pend.'}
+                        </strong>
+                      )}
+                      {gapTop5 !== null && (
+                        <span className={`block text-[9px] font-bold ${gapTop5 >= 0 ? 'text-emerald-700' : 'text-red-700'}`}>
+                          Brecha: {gapTop5 >= 0 ? `+${gapTop5}` : gapTop5} pp
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="rounded-xl border border-slate-200 bg-white p-3">
+                <span className="text-[9px] font-bold uppercase tracking-wider text-[#5A6A85] block">
+                  Jujuy vs. Salta
+                </span>
+                <p className="mt-1 text-xs font-extrabold text-[#001E50]">
+                  Jujuy: {formatMetricAr(study.byBranch.JUJUY.satisfactionAvg)} ({study.byBranch.JUJUY.validCount})
+                </p>
+                <p className="mt-0.5 text-xs font-extrabold text-[#0072CE]">
+                  Salta: {formatMetricAr(study.byBranch.SALTA.satisfactionAvg)} ({study.byBranch.SALTA.validCount})
+                </p>
+              </div>
+            )}
+          </div>
+
+          {/* Middle Section: Dissatisfaction Reasons Ranking + Narrative Analysis */}
+          <div className="grid grid-cols-12 gap-4 flex-1 min-h-0">
+            <div className="col-span-7 rounded-xl border border-slate-200 bg-[#F5F7FA]/60 p-3.5 flex flex-col min-h-0">
+              <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-[#001E50] mb-1">
+                Principales Motivos de Insatisfacción / Categorización ({prog === 'CLUB_SSI' ? 'Club SSI' : prog})
+              </h4>
+              {activeBranchStudy.topReasons.length === 0 ? (
+                <div className="flex-1 flex items-center justify-center text-xs text-[#5A6A85]">
+                  No se registran motivos categorizados de insatisfacción en la muestra seleccionada.
+                </div>
+              ) : (
+                <div className="flex-1 min-h-[120px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={activeBranchStudy.topReasons}
+                      layout="vertical"
+                      margin={{ top: 4, right: 28, left: 10, bottom: 4 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E2E8F0" />
+                      <XAxis type="number" hide />
+                      <YAxis
+                        type="category"
+                        dataKey="name"
+                        width={175}
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 10, fontWeight: 700, fill: '#001E50' }}
+                      />
+                      <Tooltip />
+                      <Bar dataKey="value" fill="#001E50" radius={[0, 6, 6, 0]} barSize={16}>
+                        <LabelList dataKey="value" position="right" style={{ fill: '#001E50', fontSize: 10, fontWeight: 800 }} />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
+
+            <div className="col-span-5 rounded-xl border border-slate-200 bg-white p-3.5 flex flex-col justify-between">
+              <div>
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#0072CE]">
+                  {page.narrativeTitle || `Lectura del Estudio ${prog}`}
+                </span>
+                {isPrintMode ? (
+                  <p className="mt-2 text-xs leading-relaxed text-[#001E50] whitespace-pre-wrap">
+                    {page.narrativeBody ||
+                      `Evaluación diferenciada del estudio ${prog}. Los datos de SSI, Club SSI y CSI se mantienen independientes para preservar la trazabilidad metodológica de cada programa.`}
+                  </p>
+                ) : (
+                  <textarea
+                    value={page.narrativeBody}
+                    onChange={e => onUpdatePage({ narrativeBody: e.target.value })}
+                    rows={4}
+                    placeholder={`Redactar interpretación de resultados y hallazgos específicos de ${prog}...`}
+                    className="mt-2 w-full resize-none bg-transparent text-xs leading-relaxed text-[#001E50] outline-none placeholder:text-slate-300"
+                  />
+                )}
+              </div>
+
+              {isComparative && (
+                <div className="mt-2 grid grid-cols-2 gap-2 border-t border-slate-100 pt-2 text-[10px]">
+                  <div className="rounded-lg bg-[#F5F7FA] p-2">
+                    <span className="font-bold text-[#001E50] block">Jujuy (3059)</span>
+                    <span>Sat: {formatMetricAr(study.byBranch.JUJUY.satisfactionAvg)} · T2B: {study.byBranch.JUJUY.t2bPercent ?? '—'}%</span>
+                  </div>
+                  <div className="rounded-lg bg-[#F5F7FA] p-2">
+                    <span className="font-bold text-[#0072CE] block">Salta (3087)</span>
+                    <span>Sat: {formatMetricAr(study.byBranch.SALTA.satisfactionAvg)} · T2B: {study.byBranch.SALTA.t2bPercent ?? '—'}%</span>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Integrated Action Plan for this Survey Study */}
+          {page.actionBlock && (
+            <IntegratedIndicatorActionSection
+              block={page.actionBlock}
+              branchSelection={doc.branchSelection}
+              matchingPlans={computed.matchingActionPlans}
+              isPrintMode={isPrintMode}
+              onUpdateBlock={nextBlock => onUpdatePage({ actionBlock: nextBlock })}
+            />
+          )}
+        </div>
+      </PageFrameA4>
+    );
+  }
+
+  // 6. GESTIÓN DE RECLAMOS VENTAS Y POSTVENTA + PLAN DE ACCIÓN INTEGRADO
+  if (page.templateType === 'claims_module') {
+    const showSales = doc.enabledModules.includes('reclamos_ventas');
+    const showPv = doc.enabledModules.includes('reclamos_postventa') || !showSales;
+
+    return (
+      <PageFrameA4
+        page={page}
+        pageNumber={pageNumber}
+        totalPages={totalPages}
+        doc={doc}
+        computed={computed}
+        isPrintMode={isPrintMode}
+        onUpdatePage={onUpdatePage}
+      >
+        <div className="flex flex-col justify-between h-full gap-2.5">
+          {/* Top Summary Strip */}
+          <div className="grid grid-cols-4 gap-3">
+            <div className="rounded-xl bg-[#001E50] p-3 text-white">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-sky-300 block">
+                Reclamos Postventa
+              </span>
+              <p className="mt-1 text-2xl font-extrabold tabular-nums">
+                {activeSnap.pvClaimsTotal}
+              </p>
+              <p className="text-[9px] text-slate-300">
+                {activeSnap.pvClaimsUniqueOr} órdenes de reparación (OR) únicas
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-[#F5F7FA] p-3">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-[#5A6A85] block">
+                Resolución Postventa
+              </span>
+              <p className="mt-1 text-2xl font-extrabold text-[#15803D] tabular-nums">
+                {activeSnap.pvClaimsResolved} resueltos
+              </p>
+              <p className="text-[9px] text-[#5A6A85]">
+                {activeSnap.pvClaimsPending} pendientes ({formatMetricAr(activeSnap.pvClaimsResolutionRatePct, 1, '%')})
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-[#F5F7FA] p-3">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-[#5A6A85] block">
+                Reclamos Ventas
+              </span>
+              <p className="mt-1 text-2xl font-extrabold text-[#001E50] tabular-nums">
+                {activeSnap.salesClaimsTotal}
+              </p>
+              <p className="text-[9px] text-[#5A6A85]">
+                {activeSnap.salesClaimsResolved} cerrados · {activeSnap.salesClaimsPending} en gestión
+              </p>
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-white p-3">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-[#5A6A85] block">
+                Apertura por Sucursal
+              </span>
+              <p className="mt-1 text-xs font-extrabold text-[#001E50]">
+                Jujuy: {computed.jujuy.pvClaimsTotal} PV / {computed.jujuy.salesClaimsTotal} V
+              </p>
+              <p className="mt-0.5 text-xs font-extrabold text-[#0072CE]">
+                Salta: {computed.salta.pvClaimsTotal} PV / {computed.salta.salesClaimsTotal} V
+              </p>
+            </div>
+          </div>
+
+          {/* Charts for Top Claim Reasons */}
+          <div className="grid grid-cols-2 gap-4 flex-1 min-h-0">
+            <div className="rounded-xl border border-slate-200 bg-[#F5F7FA]/60 p-3 flex flex-col min-h-0">
+              <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-[#001E50] mb-1">
+                Principales Motivos de Reclamo — Postventa
+              </h4>
+              {activeSnap.pvClaimsTopReasons.length === 0 ? (
+                <div className="flex-1 flex items-center justify-center text-xs text-[#5A6A85]">
+                  Sin motivos de reclamo Postventa registrados en el período.
+                </div>
+              ) : (
+                <div className="flex-1 min-h-[115px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart
+                      data={activeSnap.pvClaimsTopReasons}
+                      layout="vertical"
+                      margin={{ top: 4, right: 24, left: 8, bottom: 4 }}
+                    >
+                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E2E8F0" />
+                      <XAxis type="number" hide />
+                      <YAxis
+                        type="category"
+                        dataKey="name"
+                        width={155}
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 9.5, fontWeight: 700, fill: '#001E50' }}
+                      />
+                      <Tooltip />
+                      <Bar dataKey="value" fill="#001E50" radius={[0, 5, 5, 0]} barSize={15}>
+                        <LabelList dataKey="value" position="right" style={{ fill: '#001E50', fontSize: 10, fontWeight: 800 }} />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-[#F5F7FA]/60 p-3 flex flex-col min-h-0">
+              <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-[#001E50] mb-1">
+                {showSales ? 'Principales Motivos de Reclamo — Ventas' : 'Evolución Anual de Reclamos Postventa'}
+              </h4>
+              {showSales ? (
+                activeSnap.salesClaimsTopReasons.length === 0 ? (
+                  <div className="flex-1 flex items-center justify-center text-xs text-[#5A6A85]">
+                    Sin motivos de reclamo Comercial registrados en el período.
+                  </div>
+                ) : (
+                  <div className="flex-1 min-h-[115px]">
+                    <ResponsiveContainer width="100%" height="100%">
+                      <BarChart
+                        data={activeSnap.salesClaimsTopReasons}
+                        layout="vertical"
+                        margin={{ top: 4, right: 24, left: 8, bottom: 4 }}
+                      >
+                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E2E8F0" />
+                        <XAxis type="number" hide />
+                        <YAxis
+                          type="category"
+                          dataKey="name"
+                          width={155}
+                          axisLine={false}
+                          tickLine={false}
+                          tick={{ fontSize: 9.5, fontWeight: 700, fill: '#001E50' }}
+                        />
+                        <Tooltip />
+                        <Bar dataKey="value" fill="#0072CE" radius={[0, 5, 5, 0]} barSize={15}>
+                          <LabelList dataKey="value" position="right" style={{ fill: '#0072CE', fontSize: 10, fontWeight: 800 }} />
+                        </Bar>
+                      </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+                )
+              ) : (
+                <div className="flex-1 min-h-[115px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <BarChart data={computed.evolution} margin={{ top: 14, right: 12, left: -16, bottom: 0 }}>
+                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                      <XAxis dataKey="shortMonth" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 700, fill: '#001E50' }} />
+                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#5A6A85' }} />
+                      <Tooltip />
+                      <Bar dataKey="pvClaimsConsolidated" fill="#001E50" radius={[4, 4, 0, 0]} barSize={18}>
+                        <LabelList dataKey="pvClaimsConsolidated" position="top" style={{ fill: '#001E50', fontSize: 9, fontWeight: 800 }} />
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* Integrated Action Plan for Claims */}
+          {page.actionBlock && (
+            <IntegratedIndicatorActionSection
+              block={page.actionBlock}
+              branchSelection={doc.branchSelection}
+              matchingPlans={computed.matchingActionPlans}
+              isPrintMode={isPrintMode}
+              onUpdateBlock={nextBlock => onUpdatePage({ actionBlock: nextBlock })}
+            />
+          )}
+        </div>
+      </PageFrameA4>
+    );
+  }
+
+  // 7. PLANTILLA 6: AUDITORÍAS (PCGC / ISO 9001 / GAMS) + PLAN DE ACCIÓN INTEGRADO
+  if (page.templateType === 'audits') {
+    const entries = page.auditEntries || [];
+
+    const updateAuditEntry = (id: string, patch: Partial<AuditEntryData>) => {
+      onUpdatePage({
+        auditEntries: entries.map(e => (e.id === id ? { ...e, ...patch } : e)),
+      });
+    };
+
+    const addAuditEntry = () => {
+      const next: AuditEntryData = {
+        id: `audit-${Date.now()}`,
+        auditType: 'OTRA',
+        auditName: 'Nueva Auditoría de Calidad',
+        branch: doc.branchSelection === 'BOTH' ? 'AMBAS' : doc.branchSelection,
+        periodLabel: computed.periodLabel,
+        scoreResult: '',
+        numericResult: null,
+        targetScore: 90,
+        status: 'pending_evaluation',
+        auditStateLabel: 'En preparación',
+        mandatoryDeviationsCount: 0,
+        pendingActionsCount: 0,
+        chapters: [],
+        mainDeviationsText: '',
+        observationsText: '',
+        isManualSource: true,
+      };
+      onUpdatePage({ auditEntries: [...entries, next] });
+    };
+
+    return (
+      <PageFrameA4
+        page={page}
+        pageNumber={pageNumber}
+        totalPages={totalPages}
+        doc={doc}
+        computed={computed}
+        isPrintMode={isPrintMode}
+        onUpdatePage={onUpdatePage}
+      >
+        <div className="flex flex-col justify-between h-full gap-2.5">
+          {/* Methodological Note for PCGC */}
+          <div className="flex items-center justify-between rounded-lg border border-slate-200 bg-[#F5F7FA] px-3.5 py-1.5 text-[10px] text-[#5A6A85]">
+            <span>
+              <strong className="text-[#001E50]">Referencia documental:</strong> La base PCGC conectada ({computed.pcgcSummary.totalRequirements} requisitos) corresponde al listado de control. Los resultados oficiales de auditoría y desvíos mandatorios se registran a continuación.
+            </span>
+            {!isPrintMode && (
+              <button
+                type="button"
+                onClick={addAuditEntry}
+                className="inline-flex items-center gap-1 rounded-md bg-[#001E50] px-2.5 py-1 text-[9px] font-bold uppercase tracking-wider text-white hover:bg-[#0072CE] shrink-0"
+              >
+                <Plus className="h-3 w-3" />
+                Agregar auditoría
+              </button>
+            )}
+          </div>
+
+          {/* Audit Cards Grid */}
+          <div className="grid grid-cols-12 gap-4 flex-1 min-h-0">
+            <div className="col-span-8 flex flex-col gap-2.5 overflow-y-auto pr-1">
+              {entries.map(audit => (
+                <div
+                  key={audit.id}
+                  className="rounded-xl border border-slate-200 bg-white p-3.5 shadow-2xs"
+                >
+                  <div className="flex items-center justify-between gap-2 border-b border-slate-100 pb-2">
+                    <div className="flex items-center gap-2 flex-1">
+                      <span className="rounded bg-[#001E50] px-2 py-0.5 text-[9px] font-extrabold uppercase text-white">
+                        {audit.auditType.replace('_', ' ')}
+                      </span>
+                      {isPrintMode ? (
+                        <h4 className="text-sm font-extrabold text-[#001E50]">{audit.auditName}</h4>
+                      ) : (
+                        <input
+                          type="text"
+                          value={audit.auditName}
+                          onChange={e => updateAuditEntry(audit.id, { auditName: e.target.value })}
+                          className="flex-1 bg-transparent text-sm font-extrabold text-[#001E50] outline-none border-b border-transparent focus:border-[#0072CE]"
+                        />
+                      )}
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      {!isPrintMode ? (
+                        <select
+                          value={audit.status}
+                          onChange={e => {
+                            const nextStatus = e.target.value as ComplianceStatus;
+                            updateAuditEntry(audit.id, { status: nextStatus });
+                            if (page.actionBlock && nextStatus === 'deviated') {
+                              onUpdatePage({
+                                actionBlock: {
+                                  ...page.actionBlock,
+                                  visible: true,
+                                  overallCompliance: 'deviated',
+                                },
+                              });
+                            }
+                          }}
+                          className="rounded border border-slate-200 bg-slate-50 px-2 py-0.5 text-[10px] font-bold text-[#001E50]"
+                        >
+                          <option value="pending_evaluation">Pendiente de evaluación</option>
+                          <option value="compliant">Cumple estándar</option>
+                          <option value="deviated">Con desvío / No conformidad</option>
+                        </select>
+                      ) : (
+                        <ComplianceBadge status={audit.status} compact />
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="mt-2.5 grid grid-cols-4 gap-3 text-xs">
+                    <div className="rounded-lg bg-[#F5F7FA] p-2">
+                      <span className="text-[9px] font-bold uppercase text-[#5A6A85] block">
+                        Resultado / Puntaje
+                      </span>
+                      {isPrintMode ? (
+                        <p className="mt-0.5 text-base font-extrabold text-[#001E50]">
+                          {audit.scoreResult || 'Pendiente'}
+                        </p>
+                      ) : (
+                        <input
+                          type="text"
+                          value={audit.scoreResult}
+                          onChange={e => updateAuditEntry(audit.id, { scoreResult: e.target.value })}
+                          placeholder="Ej: 92,5% / Aprobada"
+                          className="mt-0.5 w-full bg-transparent text-sm font-extrabold text-[#001E50] outline-none"
+                        />
+                      )}
+                    </div>
+
+                    <div className="rounded-lg bg-[#F5F7FA] p-2">
+                      <span className="text-[9px] font-bold uppercase text-[#5A6A85] block">
+                        Sucursal / Alcance
+                      </span>
+                      {isPrintMode ? (
+                        <p className="mt-0.5 font-bold text-[#001E50]">{audit.branch}</p>
+                      ) : (
+                        <select
+                          value={audit.branch}
+                          onChange={e =>
+                            updateAuditEntry(audit.id, {
+                              branch: e.target.value as 'JUJUY' | 'SALTA' | 'AMBAS',
+                            })
+                          }
+                          className="mt-0.5 w-full bg-transparent font-bold text-[#001E50] outline-none"
+                        >
+                          <option value="AMBAS">Jujuy y Salta</option>
+                          <option value="JUJUY">Jujuy (3059)</option>
+                          <option value="SALTA">Salta (3087)</option>
+                        </select>
+                      )}
+                    </div>
+
+                    <div className="rounded-lg bg-[#F5F7FA] p-2">
+                      <span className="text-[9px] font-bold uppercase text-[#5A6A85] block">
+                        Desvíos Mandatorios
+                      </span>
+                      {isPrintMode ? (
+                        <p className="mt-0.5 font-extrabold text-[#B91C1C]">
+                          {audit.mandatoryDeviationsCount}
+                        </p>
+                      ) : (
+                        <input
+                          type="number"
+                          min={0}
+                          value={audit.mandatoryDeviationsCount}
+                          onChange={e =>
+                            updateAuditEntry(audit.id, {
+                              mandatoryDeviationsCount: Number(e.target.value) || 0,
+                            })
+                          }
+                          className="mt-0.5 w-full bg-transparent font-extrabold text-[#B91C1C] outline-none"
+                        />
+                      )}
+                    </div>
+
+                    <div className="rounded-lg bg-[#F5F7FA] p-2">
+                      <span className="text-[9px] font-bold uppercase text-[#5A6A85] block">
+                        Acciones Pendientes
+                      </span>
+                      {isPrintMode ? (
+                        <p className="mt-0.5 font-extrabold text-[#001E50]">
+                          {audit.pendingActionsCount}
+                        </p>
+                      ) : (
+                        <input
+                          type="number"
+                          min={0}
+                          value={audit.pendingActionsCount}
+                          onChange={e =>
+                            updateAuditEntry(audit.id, {
+                              pendingActionsCount: Number(e.target.value) || 0,
+                            })
+                          }
+                          className="mt-0.5 w-full bg-transparent font-extrabold text-[#001E50] outline-none"
+                        />
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Principales Desvíos / Observaciones */}
+                  <div className="mt-2">
+                    <span className="text-[9px] font-bold uppercase tracking-wider text-[#0072CE] block">
+                      Principales hallazgos / desvíos de la auditoría
+                    </span>
+                    {isPrintMode ? (
+                      <p className="mt-0.5 text-[11px] text-[#001E50]">
+                        {audit.mainDeviationsText || 'Sin desvíos críticos documentados en este bloque.'}
+                      </p>
+                    ) : (
+                      <input
+                        type="text"
+                        value={audit.mainDeviationsText}
+                        onChange={e => updateAuditEntry(audit.id, { mainDeviationsText: e.target.value })}
+                        placeholder="Describir capítulos observados o desvíos detectados..."
+                        className="mt-0.5 w-full bg-transparent text-[11px] text-[#001E50] outline-none border-b border-transparent focus:border-slate-300"
+                      />
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Right Column: Evidence / Screenshot Upload for Audits */}
+            <div className="col-span-4 flex flex-col rounded-xl border border-slate-200 bg-[#F5F7FA]/60 p-3 min-h-0">
+              <span className="text-[9px] font-extrabold uppercase tracking-wider text-[#001E50] mb-1.5">
+                Evidencia Oficial / Captura de Auditoría
+              </span>
+              <DirectionReportImageBlock
+                images={page.images}
+                layoutPreset="single_large"
+                isPrintMode={isPrintMode}
+                selectedImageId={selectedImageId}
+                onSelectImage={onSelectImage}
+                onChangeImages={nextImages => onUpdatePage({ images: nextImages })}
+                compactMode
+              />
+            </div>
+          </div>
+
+          {/* Integrated Action Plan for Audits */}
+          {page.actionBlock && (
+            <IntegratedIndicatorActionSection
+              block={page.actionBlock}
+              branchSelection={doc.branchSelection}
+              matchingPlans={computed.matchingActionPlans}
+              isPrintMode={isPrintMode}
+              onUpdateBlock={nextBlock => onUpdatePage({ actionBlock: nextBlock })}
+            />
+          )}
+        </div>
+      </PageFrameA4>
+    );
+  }
+
+  // 8. PLANTILLA 7: INCENTIVOS (VENTAS Y POSTVENTA)
+  if (page.templateType === 'incentives') {
+    const entries = page.incentiveEntries || computed.defaultIncentives;
+
+    const updateEntry = (id: string, patch: Partial<IncentiveEntryData>) => {
+      onUpdatePage({
+        incentiveEntries: entries.map(item => (item.id === id ? { ...item, ...patch } : item)),
+      });
+    };
+
+    return (
+      <PageFrameA4
+        page={page}
+        pageNumber={pageNumber}
+        totalPages={totalPages}
+        doc={doc}
+        computed={computed}
+        isPrintMode={isPrintMode}
+        onUpdatePage={onUpdatePage}
+      >
+        <div className="flex flex-col justify-between h-full gap-3">
+          <div className="rounded-lg border border-slate-200 bg-[#F5F7FA] px-3.5 py-2 text-[10px] text-[#5A6A85] flex items-center justify-between">
+            <span>
+              <strong className="text-[#001E50]">Módulo de Resumen de Incentivos:</strong> Los resultados de calidad se vinculan automáticamente con el período {computed.periodLabel}. Los tramos, penalizaciones e importes estimados pueden completarse o ajustarse manualmente para Dirección.
+            </span>
+            <span className="rounded bg-[#001E50]/10 px-2 py-0.5 text-[9px] font-bold text-[#001E50]">
+              Resumen Respaldado / Editable
+            </span>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4 flex-1 min-h-0">
+            {entries.map(item => (
+              <div
+                key={item.id}
+                className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-2xs"
+              >
+                <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`rounded px-2 py-0.5 text-[9px] font-extrabold uppercase text-white ${
+                        item.branch === 'JUJUY' ? 'bg-[#001E50]' : 'bg-[#0072CE]'
+                      }`}
+                    >
+                      {item.branch}
+                    </span>
+                    <h4 className="text-sm font-extrabold text-[#001E50]">
+                      Incentivos {item.area}
+                    </h4>
+                  </div>
+                  <ComplianceBadge status={item.complianceStatus} compact />
+                </div>
+
+                <div className="my-2 grid grid-cols-2 gap-2.5 text-xs">
+                  <div className="rounded-lg bg-[#F5F7FA] p-2">
+                    <span className="text-[9px] font-bold uppercase text-[#5A6A85] block">
+                      Resultado Período
+                    </span>
+                    <p className="mt-0.5 font-extrabold text-[#001E50]">{item.currentResultText}</p>
+                  </div>
+
+                  <div className="rounded-lg bg-[#F5F7FA] p-2">
+                    <span className="text-[9px] font-bold uppercase text-[#5A6A85] block">
+                      Escala de Cobro
+                    </span>
+                    {isPrintMode ? (
+                      <p className="mt-0.5 font-bold text-[#001E50]">{item.scaleReached}</p>
+                    ) : (
+                      <input
+                        type="text"
+                        value={item.scaleReached}
+                        onChange={e => updateEntry(item.id, { scaleReached: e.target.value })}
+                        className="mt-0.5 w-full bg-transparent font-bold text-[#001E50] outline-none"
+                      />
+                    )}
+                  </div>
+
+                  <div className="rounded-lg bg-[#F5F7FA] p-2">
+                    <span className="text-[9px] font-bold uppercase text-[#5A6A85] block">
+                      % Aplicable / Bonus
+                    </span>
+                    {isPrintMode ? (
+                      <p className="mt-0.5 font-extrabold text-[#0072CE]">{item.applicablePctText}</p>
+                    ) : (
+                      <input
+                        type="text"
+                        value={item.applicablePctText}
+                        onChange={e => updateEntry(item.id, { applicablePctText: e.target.value })}
+                        className="mt-0.5 w-full bg-transparent font-extrabold text-[#0072CE] outline-none"
+                      />
+                    )}
+                  </div>
+
+                  <div className="rounded-lg bg-[#F5F7FA] p-2">
+                    <span className="text-[9px] font-bold uppercase text-[#5A6A85] block">
+                      Penalizaciones
+                    </span>
+                    {isPrintMode ? (
+                      <p className="mt-0.5 font-bold text-[#B91C1C]">{item.penaltyText}</p>
+                    ) : (
+                      <input
+                        type="text"
+                        value={item.penaltyText}
+                        onChange={e => updateEntry(item.id, { penaltyText: e.target.value })}
+                        className="mt-0.5 w-full bg-transparent font-bold text-[#B91C1C] outline-none"
+                      />
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center justify-between rounded-lg bg-[#001E50] px-3.5 py-2 text-white">
+                  <span className="text-[9px] font-bold uppercase tracking-wider text-sky-300">
+                    Importe / Impacto Estimado (Manual)
+                  </span>
+                  {isPrintMode ? (
+                    <span className="text-sm font-extrabold">{item.estimatedAmountText}</span>
+                  ) : (
+                    <input
+                      type="text"
+                      value={item.estimatedAmountText}
+                      onChange={e => updateEntry(item.id, { estimatedAmountText: e.target.value })}
+                      placeholder="$ 0 / % Mayorista"
+                      className="bg-transparent text-right text-sm font-extrabold text-white outline-none border-b border-white/20 focus:border-sky-300"
+                    />
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="rounded-xl border border-slate-200 bg-white px-4 py-2.5">
+            <span className="text-[9px] font-extrabold uppercase tracking-wider text-[#0072CE] block">
+              {page.narrativeTitle || 'Notas Ejecutivas sobre Liquidación e Incentivos'}
+            </span>
+            {isPrintMode ? (
+              <p className="mt-1 text-xs text-[#001E50]">
+                {page.narrativeBody ||
+                  'Los porcentajes de cobro y bonus se encuentran sujetos al cierre definitivo de marca y validación de requisitos mandatorios del trimestre.'}
+              </p>
+            ) : (
+              <input
+                type="text"
+                value={page.narrativeBody}
+                onChange={e => onUpdatePage({ narrativeBody: e.target.value })}
+                placeholder="Agregar comentario sobre liquidación, escalas o condiciones del trimestre..."
+                className="mt-1 w-full bg-transparent text-xs text-[#001E50] outline-none"
+              />
+            )}
+          </div>
+        </div>
+      </PageFrameA4>
+    );
+  }
+
+  // 9. PLANTILLA 8: MATRIZ DE CUMPLIMIENTO DE OBJETIVOS Y ANÁLISIS DE CAUSAS (2 COLUMNAS)
+  if (page.templateType === 'analysis_causes') {
+    return (
+      <PageFrameA4
+        page={page}
+        pageNumber={pageNumber}
+        totalPages={totalPages}
+        doc={doc}
+        computed={computed}
+        isPrintMode={isPrintMode}
+        onUpdatePage={onUpdatePage}
+      >
+        <div className="flex flex-col justify-between h-full gap-3">
+          {/* Upper Matrix of Active Objectives */}
+          <div className="rounded-xl border border-slate-200 bg-white overflow-hidden shadow-2xs">
+            <div className="bg-[#001E50] px-4 py-2 text-white flex items-center justify-between">
+              <span className="text-[10px] font-extrabold uppercase tracking-wider">
+                Matriz Consolidada de Cumplimiento frente a Objetivos Vigentes
+              </span>
+              <span className="text-[9px] text-sky-300 font-semibold">
+                Valores vinculados automáticamente
+              </span>
+            </div>
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="border-b border-slate-200 bg-[#F5F7FA] text-[9px] font-extrabold uppercase tracking-wider text-[#5A6A85]">
+                  <th className="py-2 px-3">Área</th>
+                  <th className="py-2 px-3">Indicador</th>
+                  <th className="py-2 px-3">Objetivo</th>
+                  <th className="py-2 px-3">Jujuy (3059)</th>
+                  <th className="py-2 px-3">Salta (3087)</th>
+                  <th className="py-2 px-3">Consolidado</th>
+                  <th className="py-2 px-3 text-right">Estado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {computed.objectivesMatrix.map(row => (
+                  <tr key={row.indicatorKey} className="border-b border-slate-100 last:border-0">
+                    <td className="py-2 px-3 font-bold text-[#0072CE]">{row.area}</td>
+                    <td className="py-2 px-3 font-extrabold text-[#001E50]">{row.name}</td>
+                    <td className="py-2 px-3 font-bold text-[#5A6A85]">{row.targetText}</td>
+                    <td className="py-2 px-3 font-bold tabular-nums">
+                      {formatMetricAr(row.jujuyValue, row.unit === '%' ? 1 : 2, row.unit === '%' ? '%' : '')}
+                    </td>
+                    <td className="py-2 px-3 font-bold tabular-nums">
+                      {formatMetricAr(row.saltaValue, row.unit === '%' ? 1 : 2, row.unit === '%' ? '%' : '')}
+                    </td>
+                    <td className="py-2 px-3 font-extrabold text-[#001E50] tabular-nums">
+                      {formatMetricAr(row.consolidatedValue, row.unit === '%' ? 1 : 2, row.unit === '%' ? '%' : '')}
+                    </td>
+                    <td className="py-2 px-3 text-right">
+                      <ComplianceBadge status={row.consolidatedStatus} compact />
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+
+          {/* Lower Two-Column Analysis (Principales Hallazgos & Causas vs. Impacto & Acciones Propuestas) */}
+          <div className="grid grid-cols-2 gap-4 flex-1 min-h-0">
+            <div className="rounded-xl border border-slate-200 bg-[#F5F7FA] p-4 flex flex-col">
+              {isPrintMode ? (
+                <h4 className="text-xs font-extrabold uppercase tracking-wider text-[#001E50] border-b border-slate-200 pb-2">
+                  {page.narrativeTitle || 'Principales Hallazgos y Causas Identificadas'}
+                </h4>
+              ) : (
+                <input
+                  type="text"
+                  value={page.narrativeTitle}
+                  onChange={e => onUpdatePage({ narrativeTitle: e.target.value })}
+                  className="bg-transparent text-xs font-extrabold uppercase tracking-wider text-[#001E50] border-b border-slate-200 pb-2 outline-none"
+                />
+              )}
+              {isPrintMode ? (
+                <p className="mt-2.5 text-xs leading-relaxed text-[#001E50] whitespace-pre-wrap">
+                  {page.narrativeBody || 'Espacio destinado a sintetizar los hallazgos estructurales del período y las causas raíz transversales identificadas.'}
+                </p>
+              ) : (
+                <textarea
+                  value={page.narrativeBody}
+                  onChange={e => onUpdatePage({ narrativeBody: e.target.value })}
+                  placeholder="Redactar principales hallazgos y causas identificadas en el período..."
+                  className="mt-2.5 flex-1 w-full resize-none bg-transparent text-xs leading-relaxed text-[#001E50] outline-none placeholder:text-slate-400"
+                />
+              )}
+            </div>
+
+            <div className="rounded-xl border border-slate-200 bg-white p-4 flex flex-col">
+              {isPrintMode ? (
+                <h4 className="text-xs font-extrabold uppercase tracking-wider text-[#0072CE] border-b border-slate-100 pb-2">
+                  {page.secondaryNarrativeTitle || 'Impacto Operativo y Propuestas de Mejora'}
+                </h4>
+              ) : (
+                <input
+                  type="text"
+                  value={page.secondaryNarrativeTitle || 'Impacto Operativo y Propuestas de Mejora'}
+                  onChange={e => onUpdatePage({ secondaryNarrativeTitle: e.target.value })}
+                  className="bg-transparent text-xs font-extrabold uppercase tracking-wider text-[#0072CE] border-b border-slate-100 pb-2 outline-none"
+                />
+              )}
+              {isPrintMode ? (
+                <p className="mt-2.5 text-xs leading-relaxed text-[#001E50] whitespace-pre-wrap">
+                  {page.secondaryNarrativeBody || 'Síntesis del impacto comercial/postventa y lineamientos estratégicos propuestos para el próximo corte.'}
+                </p>
+              ) : (
+                <textarea
+                  value={page.secondaryNarrativeBody || ''}
+                  onChange={e => onUpdatePage({ secondaryNarrativeBody: e.target.value })}
+                  placeholder="Redactar el impacto estimado y las propuestas de intervención..."
+                  className="mt-2.5 flex-1 w-full resize-none bg-transparent text-xs leading-relaxed text-[#001E50] outline-none placeholder:text-slate-400"
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      </PageFrameA4>
+    );
+  }
+
+  // 10. PLANTILLA 9 / CONTINUACIÓN DE PLAN DE ACCIÓN VINCULADO A UN INDICADOR
+  if (page.templateType === 'action_plan_continuation') {
+    return (
+      <PageFrameA4
+        page={page}
+        pageNumber={pageNumber}
+        totalPages={totalPages}
+        doc={doc}
+        computed={computed}
+        isPrintMode={isPrintMode}
+        onUpdatePage={onUpdatePage}
+      >
+        <div className="flex flex-col justify-between h-full gap-3">
+          <div className="rounded-xl border border-slate-200 bg-[#F5F7FA] p-3.5">
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#0072CE] block">
+              Continuación de Análisis y Seguimiento
+            </span>
+            {isPrintMode ? (
+              <p className="mt-1 text-xs text-[#001E50]">
+                {page.narrativeBody || 'Detalle ampliado de causas raíz, acciones correctivas y seguimiento de eficacia vinculados al indicador.'}
+              </p>
+            ) : (
+              <textarea
+                value={page.narrativeBody}
+                onChange={e => onUpdatePage({ narrativeBody: e.target.value })}
+                rows={2}
+                placeholder="Contexto adicional para la página de continuación del plan de acción..."
+                className="mt-1 w-full resize-none bg-transparent text-xs text-[#001E50] outline-none"
+              />
+            )}
+          </div>
+
+          {page.actionBlock && (
+            <div className="flex-1 flex flex-col justify-start">
+              <IntegratedIndicatorActionSection
+                block={{ ...page.actionBlock, visible: true, layoutMode: 'expanded' }}
+                branchSelection={doc.branchSelection}
+                matchingPlans={computed.matchingActionPlans}
+                isPrintMode={isPrintMode}
+                onUpdateBlock={nextBlock => onUpdatePage({ actionBlock: nextBlock })}
+              />
+            </div>
+          )}
+        </div>
+      </PageFrameA4>
+    );
+  }
+
+  // 11. PLANTILLA 10: FOTOGRAFÍAS, CAPTURAS Y EVIDENCIAS
+  if (page.templateType === 'photo_evidences') {
+    return (
+      <PageFrameA4
+        page={page}
+        pageNumber={pageNumber}
+        totalPages={totalPages}
+        doc={doc}
+        computed={computed}
+        isPrintMode={isPrintMode}
+        onUpdatePage={onUpdatePage}
+      >
+        <div className="flex flex-col justify-between h-full gap-3">
+          <div className="flex-1 min-h-0 flex flex-col">
+            <DirectionReportImageBlock
+              images={page.images}
+              layoutPreset={page.photoLayout || 'two_comparative'}
+              isPrintMode={isPrintMode}
+              selectedImageId={selectedImageId}
+              onSelectImage={onSelectImage}
+              onChangeImages={nextImages => onUpdatePage({ images: nextImages })}
+              onChangeLayoutPreset={preset => onUpdatePage({ photoLayout: preset })}
+            />
+          </div>
+
+          <div className="rounded-xl border border-slate-200 bg-[#F5F7FA] px-4 py-2.5 shrink-0">
+            <span className="text-[9px] font-extrabold uppercase tracking-wider text-[#0072CE] block">
+              {page.narrativeTitle || 'Síntesis Documental de Evidencias'}
+            </span>
+            {isPrintMode ? (
+              <p className="mt-0.5 text-xs text-[#001E50]">
+                {page.narrativeBody || 'Registro visual incorporado para respaldo de Dirección y seguimiento de estándares físicos y digitales.'}
+              </p>
+            ) : (
+              <input
+                type="text"
+                value={page.narrativeBody}
+                onChange={e => onUpdatePage({ narrativeBody: e.target.value })}
+                placeholder="Comentario general sobre las fotografías o capturas de esta página..."
+                className="mt-0.5 w-full bg-transparent text-xs text-[#001E50] outline-none"
+              />
+            )}
+          </div>
+        </div>
+      </PageFrameA4>
+    );
+  }
+
+  // 12. PLANTILLA 11: CIERRE EJECUTIVO Y PRÓXIMOS PASOS (3 PRIORIDADES CLAVE PARA DIRECCIÓN)
+  if (page.templateType === 'next_steps') {
+    const priorities = page.closingPriorities || [];
+
+    const updatePriority = (id: string, patch: Partial<ClosingPriorityItem>) => {
+      onUpdatePage({
+        closingPriorities: priorities.map(p => (p.id === id ? { ...p, ...patch } : p)),
+      });
+    };
+
+    const addPriority = () => {
+      if (priorities.length >= 4) return;
+      onUpdatePage({
+        closingPriorities: [
+          ...priorities,
+          {
+            id: `prio-${Date.now()}`,
+            priorityNumber: priorities.length + 1,
+            title: `Prioridad ${priorities.length + 1}`,
+            areaAndBranch: doc.branchSelection === 'BOTH' ? 'Jujuy y Salta' : doc.branchSelection,
+            KeyFinding: '',
+            commitmentAction: '',
+            responsible: 'Dirección / Calidad',
+            deadline: '',
+            decisionRequired: '',
+            status: 'Seguimiento',
+          },
+        ],
+      });
+    };
+
+    return (
+      <PageFrameA4
+        page={page}
+        pageNumber={pageNumber}
+        totalPages={totalPages}
+        doc={doc}
+        computed={computed}
+        isPrintMode={isPrintMode}
+        onUpdatePage={onUpdatePage}
+      >
+        <div className="flex flex-col justify-between h-full gap-3">
+          <InheritedReviewBanner
+            isInherited={page.isInheritedPendingReview}
+            isPrintMode={isPrintMode}
+            onConfirmReview={() => onUpdatePage({ isInheritedPendingReview: false })}
+          />
+
+          <div className="flex items-center justify-between rounded-xl bg-[#001E50] px-4 py-2.5 text-white">
+            <div>
+              <span className="text-[9px] font-extrabold uppercase tracking-[0.22em] text-sky-300 block">
+                Foco Directivo · Sin repetir planes operativos
+              </span>
+              <p className="text-xs font-medium text-slate-200">
+                Síntesis de las prioridades estratégicas del período que requieren seguimiento ejecutivo, asignación de recursos o decisiones de Dirección.
+              </p>
+            </div>
+            {!isPrintMode && priorities.length < 4 && (
+              <button
+                type="button"
+                onClick={addPriority}
+                className="inline-flex items-center gap-1 rounded-lg bg-[#0072CE] px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white hover:bg-sky-500 shrink-0"
+              >
+                <Plus className="h-3 w-3" />
+                Agregar prioridad
+              </button>
+            )}
+          </div>
+
+          {/* 3-4 Priority Cards */}
+          <div className={`grid ${priorities.length === 4 ? 'grid-cols-2' : 'grid-cols-3'} gap-4 flex-1 min-h-0`}>
+            {priorities.map((prio, index) => (
+              <div
+                key={prio.id}
+                className="flex flex-col justify-between rounded-xl border border-slate-200 bg-[#F5F7FA]/80 p-4 shadow-2xs"
+              >
+                <div>
+                  <div className="flex items-center justify-between gap-2 border-b border-slate-200 pb-2.5">
+                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#001E50] text-xs font-extrabold text-white">
+                      0{index + 1}
+                    </span>
+                    {!isPrintMode ? (
+                      <select
+                        value={prio.status}
+                        onChange={e =>
+                          updatePriority(prio.id, {
+                            status: e.target.value as ClosingPriorityItem['status'],
+                          })
+                        }
+                        className="rounded-full border border-slate-200 bg-white px-2.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-[#0072CE]"
+                      >
+                        <option value="Prioridad Alta">Prioridad Alta</option>
+                        <option value="Seguimiento">Seguimiento</option>
+                        <option value="Decisión Dirección">Decisión Dirección</option>
+                      </select>
+                    ) : (
+                      <span className="rounded-full border border-slate-200 bg-white px-2.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-[#0072CE]">
+                        {prio.status}
+                      </span>
+                    )}
+                  </div>
+
+                  {isPrintMode ? (
+                    <h4 className="mt-3 text-sm font-extrabold text-[#001E50]">{prio.title}</h4>
+                  ) : (
+                    <input
+                      type="text"
+                      value={prio.title}
+                      onChange={e => updatePriority(prio.id, { title: e.target.value })}
+                      className="mt-3 w-full bg-transparent text-sm font-extrabold text-[#001E50] outline-none border-b border-transparent focus:border-[#0072CE]"
+                    />
+                  )}
+
+                  <div className="mt-3 space-y-2">
+                    <div className="rounded-lg bg-white p-2.5 border border-slate-200/70">
+                      <span className="text-[8px] font-extrabold uppercase tracking-wider text-[#5A6A85] block">
+                        Compromiso / Acción Clave
+                      </span>
+                      {isPrintMode ? (
+                        <p className="mt-1 text-xs font-medium text-[#001E50] leading-snug">
+                          {prio.commitmentAction || 'Definir compromiso prioritario del área.'}
+                        </p>
+                      ) : (
+                        <textarea
+                          value={prio.commitmentAction}
+                          onChange={e => updatePriority(prio.id, { commitmentAction: e.target.value })}
+                          rows={2}
+                          placeholder="Hacé clic para describir el compromiso clave..."
+                          className="mt-1 w-full resize-none bg-transparent text-xs font-medium text-[#001E50] outline-none placeholder:text-slate-300"
+                        />
+                      )}
+                    </div>
+
+                    <div className="rounded-lg bg-white p-2.5 border border-slate-200/70">
+                      <span className="text-[8px] font-extrabold uppercase tracking-wider text-[#0072CE] block">
+                        Decisión / Recurso Requerido de Dirección
+                      </span>
+                      {isPrintMode ? (
+                        <p className="mt-1 text-xs font-medium text-[#001E50] leading-snug">
+                          {prio.decisionRequired || 'Seguimiento en reunión mensual de resultados.'}
+                        </p>
+                      ) : (
+                        <textarea
+                          value={prio.decisionRequired}
+                          onChange={e => updatePriority(prio.id, { decisionRequired: e.target.value })}
+                          rows={2}
+                          placeholder="¿Qué definición o soporte necesita de Dirección?"
+                          className="mt-1 w-full resize-none bg-transparent text-xs font-medium text-[#001E50] outline-none placeholder:text-slate-300"
+                        />
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="mt-3 grid grid-cols-2 gap-2 border-t border-slate-200/80 pt-2 text-[10px]">
+                  <div>
+                    <span className="text-[8px] font-bold uppercase text-[#5A6A85] block">Responsable</span>
+                    {isPrintMode ? (
+                      <strong className="text-[#001E50]">{prio.responsible}</strong>
+                    ) : (
+                      <input
+                        type="text"
+                        value={prio.responsible}
+                        onChange={e => updatePriority(prio.id, { responsible: e.target.value })}
+                        className="w-full bg-transparent font-bold text-[#001E50] outline-none"
+                      />
+                    )}
+                  </div>
+                  <div>
+                    <span className="text-[8px] font-bold uppercase text-[#5A6A85] block">Fecha Revisión</span>
+                    {isPrintMode ? (
+                      <strong className="text-[#0072CE]">{prio.deadline || 'Próximo comité'}</strong>
+                    ) : (
+                      <input
+                        type="text"
+                        value={prio.deadline}
+                        onChange={e => updatePriority(prio.id, { deadline: e.target.value })}
+                        placeholder="Ej: 15/mes sig."
+                        className="w-full bg-transparent font-bold text-[#0072CE] outline-none"
+                      />
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Final Executive Conclusion */}
+          <div className="rounded-xl border border-slate-200 bg-white px-4 py-2.5">
+            <span className="text-[9px] font-extrabold uppercase tracking-wider text-[#001E50] block">
+              {page.narrativeTitle || 'Acuerdos y Conclusión General del Comité'}
+            </span>
+            {isPrintMode ? (
+              <p className="mt-0.5 text-xs text-[#001E50]">
+                {page.narrativeBody ||
+                  'Informe elaborado por el Área de Calidad de Autosol S.R.L. para revisión y toma de decisiones de Dirección.'}
+              </p>
+            ) : (
+              <input
+                type="text"
+                value={page.narrativeBody}
+                onChange={e => onUpdatePage({ narrativeBody: e.target.value })}
+                placeholder="Redactar conclusión final o acuerdo de cierre de la presentación..."
+                className="mt-0.5 w-full bg-transparent text-xs text-[#001E50] outline-none"
+              />
+            )}
+          </div>
+        </div>
+      </PageFrameA4>
+    );
+  }
+
+  // 13. CUSTOM PAGE (PÁGINA PERSONALIZADA DESDE CERO)
+  const customCards = page.customCards || [];
+  const customChart = page.customChart;
+
+  return (
+    <PageFrameA4
+      page={page}
+      pageNumber={pageNumber}
+      totalPages={totalPages}
+      doc={doc}
+      computed={computed}
+      isPrintMode={isPrintMode}
+      onUpdatePage={onUpdatePage}
+    >
+      <div className="flex flex-col justify-between h-full gap-3">
+        {/* Custom Cards Row */}
+        {customCards.length > 0 && (
+          <div className={`grid grid-cols-${Math.min(4, Math.max(2, customCards.length))} gap-3`}>
+            {customCards.map(card => (
+              <div
+                key={card.id}
+                className="rounded-xl border border-slate-200 bg-[#F5F7FA] p-3"
+              >
+                <div className="flex items-center justify-between">
+                  {isPrintMode ? (
+                    <span className="text-[10px] font-extrabold uppercase text-[#001E50]">
+                      {card.label}
+                    </span>
+                  ) : (
+                    <input
+                      type="text"
+                      value={card.label}
+                      onChange={e =>
+                        onUpdatePage({
+                          customCards: customCards.map(c =>
+                            c.id === card.id ? { ...c, label: e.target.value } : c
+                          ),
+                        })
+                      }
+                      className="bg-transparent text-[10px] font-extrabold uppercase text-[#001E50] outline-none"
+                    />
+                  )}
+                  <span className="rounded bg-slate-200 px-1.5 py-0.5 text-[8px] font-bold text-[#001E50]">
+                    Manual
+                  </span>
+                </div>
+                <div className="mt-1.5 flex items-baseline justify-between">
+                  {isPrintMode ? (
+                    <span className="text-2xl font-extrabold text-[#001E50]">{card.value}</span>
+                  ) : (
+                    <input
+                      type="text"
+                      value={card.value}
+                      onChange={e =>
+                        onUpdatePage({
+                          customCards: customCards.map(c =>
+                            c.id === card.id ? { ...c, value: e.target.value } : c
+                          ),
+                        })
+                      }
+                      className="w-24 bg-transparent text-2xl font-extrabold text-[#001E50] outline-none border-b border-transparent focus:border-[#0072CE]"
+                    />
+                  )}
+                  <span className="text-[10px] text-[#5A6A85]">Meta: {card.target}</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Middle Custom Chart + Custom Narrative / Image */}
+        <div className="grid grid-cols-12 gap-4 flex-1 min-h-0">
+          {customChart ? (
+            <div className="col-span-6 rounded-xl border border-slate-200 bg-[#F5F7FA]/60 p-3 flex flex-col min-h-0">
+              <h4 className="text-xs font-extrabold uppercase text-[#001E50] mb-1">
+                {customChart.title}
+              </h4>
+              <div className="flex-1 min-h-[140px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={customChart.dataPoints} margin={{ top: 16, right: 16, left: -12, bottom: 4 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
+                    <XAxis dataKey="label" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: '#001E50' }} />
+                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#5A6A85' }} />
+                    <Tooltip />
+                    <Bar dataKey="value" fill="#001E50" radius={[6, 6, 0, 0]} barSize={32}>
+                      <LabelList dataKey="value" position="top" style={{ fill: '#001E50', fontSize: 10, fontWeight: 800 }} />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+          ) : null}
+
+          <div className={`${customChart ? 'col-span-6' : 'col-span-12'} flex flex-col gap-3 min-h-0`}>
+            <div className="rounded-xl border border-slate-200 bg-white p-3.5 flex-1 flex flex-col">
+              {isPrintMode ? (
+                <h4 className="text-xs font-extrabold uppercase text-[#0072CE]">
+                  {page.narrativeTitle || 'Análisis y Comentarios'}
+                </h4>
+              ) : (
+                <input
+                  type="text"
+                  value={page.narrativeTitle}
+                  onChange={e => onUpdatePage({ narrativeTitle: e.target.value })}
+                  className="bg-transparent text-xs font-extrabold uppercase text-[#0072CE] outline-none"
+                />
+              )}
+              {isPrintMode ? (
+                <p className="mt-2 text-xs leading-relaxed text-[#001E50] whitespace-pre-wrap">
+                  {page.narrativeBody || 'Contenido complementario incorporado para Dirección.'}
+                </p>
+              ) : (
+                <textarea
+                  value={page.narrativeBody}
+                  onChange={e => onUpdatePage({ narrativeBody: e.target.value })}
+                  placeholder="Escribí aquí tus comentarios, conclusiones o información complementaria..."
+                  className="mt-2 flex-1 w-full resize-none bg-transparent text-xs leading-relaxed text-[#001E50] outline-none"
+                />
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </PageFrameA4>
+  );
+};

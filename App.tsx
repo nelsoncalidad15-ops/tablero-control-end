@@ -32,6 +32,8 @@ const ExecutiveSummary = lazy(() => import('./components/ExecutiveSummary'));
 const ProfessionalReport = lazy(() => import('./components/ProfessionalReport'));
 const FullReportPrintView = lazy(() => import('./components/FullReportPrintView'));
 const ReportConfigModal = lazy(() => import('./components/ReportConfigModal'));
+const ReportCenter = lazy(() => import('./components/ReportCenter'));
+const DirectionReport = lazy(() => import('./components/DirectionReport'));
 
 const FRONTEND_ONLY_POSTVENTA = false;
 const FRONTEND_ONLY_RRHH = false;
@@ -227,6 +229,8 @@ function App() {
       preloadModule(() => import('./components/ActionPlanDashboard'));
       preloadModule(() => import('./components/InternalPostventaDashboard'));
       preloadModule(() => import('./components/SsiCsiDashboard'));
+      preloadModule(() => import('./components/ReportCenter'));
+      preloadModule(() => import('./components/DirectionReport'));
       return;
     }
 
@@ -353,7 +357,7 @@ function App() {
           area="Calidad"
           onBack={handleBackToPortal}
           showReport
-          onReport={() => navigate('/report')}
+          onReport={() => navigate('/calidad/reportes')}
         />
         <div className="mx-auto flex w-full max-w-[1600px] flex-col gap-6 px-[clamp(24px,4vw,72px)] py-8">
           <motion.div initial={{ opacity: 0, y: -12 }} animate={{ opacity: 1, y: 0 }} className="text-center">
@@ -671,7 +675,9 @@ function App() {
             <Route path="/calidad/refuerzo" element={<DashboardView type="calidad" subType="refuerzo" />} />
 
             <Route path="/executive" element={<DashboardView type="executive" />} />
-            <Route path="/report" element={<ProfessionalReport config={config} onBack={() => navigate('/calidad')} />} />
+            <Route path="/calidad/reportes" element={<ReportCenter onBack={() => navigate('/calidad')} />} />
+            <Route path="/report" element={<ProfessionalReport config={config} onBack={() => navigate('/calidad/reportes')} />} />
+            <Route path="/report/direccion" element={<DirectionReport config={config} onBack={() => navigate('/calidad/reportes')} />} />
 
             <Route path="/ambiente" element={<AmbienteSelection />} />
             <Route path="/ambiente/consumos" element={<DashboardView type="ambiente" subType="consumos" />} />

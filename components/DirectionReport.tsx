@@ -482,6 +482,63 @@ export const DirectionReport: React.FC<DirectionReportProps> = ({ config, onBack
     });
   };
 
+  const handleAddActionPlanPageForIndicator = (sourcePageId: string) => {
+    applyDocChange(current => {
+      const idx = current.pages.findIndex(p => p.id === sourcePageId);
+      if (idx < 0) return current;
+      const sourcePage = current.pages[idx];
+
+      const existingNext = current.pages[idx + 1];
+      if (
+        existingNext &&
+        existingNext.templateType === 'action_plan_continuation' &&
+        existingNext.continuationOfPageId === sourcePage.id
+      ) {
+        return current;
+      }
+
+      const indLabel =
+        sourcePage.moduleId === 'ventas_os'
+          ? 'OS de Marca (CEM Ventas)'
+          : sourcePage.moduleId === 'lavado'
+            ? 'Calidad de Lavado (CEM Q6)'
+            : sourcePage.moduleId === 'postventa_lvs'
+              ? 'LVS Satisfacción (CEM Postventa)'
+              : sourcePage.title.split('—')[0].trim();
+
+      const newActionPage: ReportPage = {
+        id: `page-action-plan-${Date.now().toString(36)}`,
+        templateType: 'action_plan_continuation',
+        moduleId: sourcePage.moduleId,
+        linkedIndicatorKey: sourcePage.linkedIndicatorKey || sourcePage.moduleId,
+        continuationOfPageId: sourcePage.id,
+        title: `Plan de Acción — ${indLabel}`,
+        subtitle: `Causas raíz, acciones correctivas y seguimiento de eficacia (${computed.periodLabel})`,
+        sectionTag: 'GESTIÓN DE CALIDAD · PLAN DE ACCIÓN',
+        visible: true,
+        exportSelected: true,
+        layoutVariant: 'balanced_split',
+        narrativeTitle: `Análisis de Desvío y Compromiso de Mejora (${indLabel})`,
+        narrativeBody: '',
+        images: [],
+        actionBlock: buildIntegratedActionBlock(
+          sourcePage.moduleId || 'ventas_os',
+          indLabel,
+          'deviated',
+          'deviated',
+          'deviated',
+          current.branchSelection,
+          computed.matchingActionPlans,
+          true
+        ),
+      };
+
+      const nextPages = [...current.pages];
+      nextPages.splice(idx + 1, 0, newActionPage);
+      return { ...current, pages: nextPages };
+    });
+  };
+
   const handleDuplicateReportToNewPeriod = async (targetParams: {
     name: string;
     periodType: ReportPeriodType;
@@ -622,6 +679,7 @@ export const DirectionReport: React.FC<DirectionReportProps> = ({ config, onBack
           onMovePage={handleMovePage}
           onDeletePage={handleDeletePage}
           onSplitActionPlanToContinuation={handleSplitActionPlanToContinuation}
+          onAddActionPlanPage={handleAddActionPlanPageForIndicator}
           onResetReportContent={handleGenerateAndOpenEditor}
           onOpenDuplicateReportModal={handleDuplicateReportToNewPeriod}
           onOpenPreview={() => setStep('preview')}

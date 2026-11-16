@@ -80,6 +80,7 @@ interface DirectionReportEditorProps {
   onOpenPreview: () => void;
   onTriggerPrint: () => void;
   onBackToConfig: () => void;
+  onAddActionPlanPage?: (sourcePageId: string) => void;
 }
 
 const TEMPLATE_CATALOG: Array<{
@@ -123,6 +124,7 @@ export const DirectionReportEditor: React.FC<DirectionReportEditorProps> = ({
   onOpenPreview,
   onTriggerPrint,
   onBackToConfig,
+  onAddActionPlanPage,
 }) => {
   const [selectedPageId, setSelectedPageId] = useState<string>(doc.pages[0]?.id || '');
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
@@ -553,6 +555,7 @@ export const DirectionReportEditor: React.FC<DirectionReportEditorProps> = ({
                     onSelectImage={setSelectedImageId}
                     onUpdatePage={patch => onUpdatePage(p.id, patch)}
                     onSplitActionPlanToContinuation={onSplitActionPlanToContinuation}
+                    onAddActionPlanPage={onAddActionPlanPage}
                   />
                 </div>
               ))}
@@ -578,6 +581,7 @@ export const DirectionReportEditor: React.FC<DirectionReportEditorProps> = ({
                   onSelectImage={setSelectedImageId}
                   onUpdatePage={patch => onUpdatePage(activePage.id, patch)}
                   onSplitActionPlanToContinuation={onSplitActionPlanToContinuation}
+                  onAddActionPlanPage={onAddActionPlanPage}
                 />
               </div>
             </div>

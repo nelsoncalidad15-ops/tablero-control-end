@@ -1076,6 +1076,7 @@ interface DirectionPageTemplateRendererProps {
   onSelectImage?: (id: string | null) => void;
   onUpdatePage: (patch: Partial<ReportPage>) => void;
   onSplitActionPlanToContinuation?: (pageId: string) => void;
+  onAddActionPlanPage?: (sourcePageId: string) => void;
 }
 
 export const DirectionPageTemplateRenderer: React.FC<DirectionPageTemplateRendererProps> = ({
@@ -1089,6 +1090,7 @@ export const DirectionPageTemplateRenderer: React.FC<DirectionPageTemplateRender
   onSelectImage,
   onUpdatePage,
   onSplitActionPlanToContinuation,
+  onAddActionPlanPage,
 }) => {
   const activeSnap =
     doc.branchSelection === 'JUJUY'
@@ -1118,81 +1120,62 @@ export const DirectionPageTemplateRenderer: React.FC<DirectionPageTemplateRender
 
   // 2. PLANTILLA 2: RESUMEN EJECUTIVO
   if (page.templateType === 'executive_summary') {
-    const ssiResult =
-      computed.ssiStudy.validSurveysCount > 0
-        ? `${formatMetricAr(computed.ssiStudy.satisfactionAvg)} pts (${computed.ssiStudy.t2bPercent ?? 0}% T2B)`
-        : computed.csiStudy.validSurveysCount > 0
-          ? `${formatMetricAr(computed.csiStudy.satisfactionAvg)} pts (${computed.csiStudy.t2bPercent ?? 0}% T2B)`
-          : 'Sin registros';
+    const showStudies =
+      doc.enabledModules.includes('encuestas_ssi') || doc.enabledModules.includes('encuestas_csi');
 
-    const ssiTargetVal = doc.targets?.ssi ?? 8.8;
-    const ssiStatus =
-      computed.ssiStudy.validSurveysCount > 0
-        ? computed.ssiStudy.compliance
-        : computed.csiStudy.validSurveysCount > 0
-          ? computed.csiStudy.compliance
-          : ('pending_evaluation' as ComplianceStatus);
-
-    const summaryCards = [
+    const executiveCards = [
       {
+        id: 'os',
         name: 'Ventas · OS de Marca (CEM)',
-        result: formatMetricAr(activeSnap.osScore),
-        target: formatMetricAr(activeSnap.osTarget),
-        diff:
-          activeSnap.osScore !== null && activeSnap.osTarget !== null
-            ? `${activeSnap.osScore - activeSnap.osTarget >= 0 ? '+' : ''}${formatMetricAr(
-                activeSnap.osScore - activeSnap.osTarget
-              )}`
-            : '—',
-        status: activeSnap.osCompliance,
-        meta: `${activeSnap.osPatentedCount} patentados · ${activeSnap.osValidCount} encuestas válidas`,
-        branchCompare: isComparative
-          ? `Jujuy: ${formatMetricAr(computed.jujuy.osScore)} | Salta: ${formatMetricAr(computed.salta.osScore)}`
-          : null,
+        target: doc.targets?.os ?? 4.6,
+        jujuyScore: computed.jujuy.osScore,
+        jujuyStatus: computed.jujuy.osCompliance,
+        saltaScore: computed.salta.osScore,
+        saltaStatus: computed.salta.osCompliance,
       },
       {
-        name: 'Postventa · LVS Satisfacción (Q4)',
-        result: formatMetricAr(activeSnap.lvsScore),
-        target: formatMetricAr(activeSnap.lvsTarget),
-        diff:
-          activeSnap.lvsScore !== null && activeSnap.lvsTarget !== null
-            ? `${activeSnap.lvsScore - activeSnap.lvsTarget >= 0 ? '+' : ''}${formatMetricAr(
-                activeSnap.lvsScore - activeSnap.lvsTarget
-              )}`
-            : '—',
-        status: activeSnap.lvsCompliance,
-        meta: `${activeSnap.lvsValidCount} encuestas CEM Postventa válidas`,
-        branchCompare: isComparative
-          ? `Jujuy: ${formatMetricAr(computed.jujuy.lvsScore)} | Salta: ${formatMetricAr(computed.salta.lvsScore)}`
-          : null,
+        id: 'lvs',
+        name: 'Postventa · LVS Satisfacción (CEM)',
+        target: doc.targets?.lvs ?? 4.8,
+        jujuyScore: computed.jujuy.lvsScore,
+        jujuyStatus: computed.jujuy.lvsCompliance,
+        saltaScore: computed.salta.lvsScore,
+        saltaStatus: computed.salta.lvsCompliance,
       },
       {
-        name: 'Postventa · Calidad de Lavado (Q6)',
-        result: formatMetricAr(activeSnap.lvsLavadoQ6),
-        target: formatMetricAr(activeSnap.lavadoTarget),
-        diff:
-          activeSnap.lvsLavadoQ6 !== null && activeSnap.lavadoTarget !== null
-            ? `${activeSnap.lvsLavadoQ6 - activeSnap.lavadoTarget >= 0 ? '+' : ''}${formatMetricAr(
-                activeSnap.lvsLavadoQ6 - activeSnap.lavadoTarget
-              )}`
-            : '—',
-        status: evaluateCompliance(activeSnap.lvsLavadoQ6, activeSnap.lavadoTarget, 'up'),
-        meta: `Pregunta Q6 Encuesta Oficial Volkswagen`,
-        branchCompare: isComparative
-          ? `Jujuy: ${formatMetricAr(computed.jujuy.lvsLavadoQ6)} | Salta: ${formatMetricAr(computed.salta.lvsLavadoQ6)}`
-          : null,
+        id: 'lavado',
+        name: 'Postventa · Calidad de Lavado (CEM Q6)',
+        target: doc.targets?.lavado ?? 4.5,
+        jujuyScore: computed.jujuy.lvsLavadoQ6,
+        jujuyStatus: evaluateCompliance(computed.jujuy.lvsLavadoQ6, doc.targets?.lavado ?? 4.5, 'up'),
+        saltaScore: computed.salta.lvsLavadoQ6,
+        saltaStatus: evaluateCompliance(computed.salta.lvsLavadoQ6, doc.targets?.lavado ?? 4.5, 'up'),
       },
-      {
-        name: 'Estudios de Red · SSI / CSI',
-        result: ssiResult,
-        target: `>= ${formatMetricAr(ssiTargetVal)}`,
-        diff: `${computed.ssiStudy.validSurveysCount + computed.csiStudy.validSurveysCount} enc.`,
-        status: ssiStatus,
-        meta: `Muestra oficial de red: ${computed.ssiStudy.validSurveysCount} SSI / ${computed.csiStudy.validSurveysCount} CSI`,
-        branchCompare: isComparative
-          ? `Jujuy: ${formatMetricAr(computed.ssiStudy.byBranch.JUJUY.satisfactionAvg)} | Salta: ${formatMetricAr(computed.ssiStudy.byBranch.SALTA.satisfactionAvg)}`
-          : null,
-      },
+      ...(showStudies
+        ? [
+            {
+              id: 'ssi_csi',
+              name: 'Estudios de Red · SSI / CSI',
+              target: doc.targets?.ssi ?? 8.8,
+              jujuyScore:
+                computed.ssiStudy.validSurveysCount > 0
+                  ? computed.ssiStudy.byBranch.JUJUY.satisfactionAvg
+                  : computed.csiStudy.byBranch.JUJUY.satisfactionAvg,
+              jujuyStatus:
+                computed.ssiStudy.validSurveysCount > 0
+                  ? computed.ssiStudy.byBranch.JUJUY.compliance
+                  : computed.csiStudy.byBranch.JUJUY.compliance,
+              saltaScore:
+                computed.ssiStudy.validSurveysCount > 0
+                  ? computed.ssiStudy.byBranch.SALTA.satisfactionAvg
+                  : computed.csiStudy.byBranch.SALTA.satisfactionAvg,
+              saltaStatus:
+                computed.ssiStudy.validSurveysCount > 0
+                  ? computed.ssiStudy.byBranch.SALTA.compliance
+                  : computed.csiStudy.byBranch.SALTA.compliance,
+            },
+          ]
+        : []),
     ];
 
     return (
@@ -1212,39 +1195,73 @@ export const DirectionPageTemplateRenderer: React.FC<DirectionPageTemplateRender
             onConfirmReview={() => onUpdatePage({ isInheritedPendingReview: false })}
           />
 
-          {/* 4 Executive KPI Cards Grid */}
-          <div className="grid grid-cols-4 gap-3">
-            {summaryCards.map(card => (
-              <div
-                key={card.name}
-                className="flex flex-col justify-between rounded-xl border border-slate-200 bg-[#F5F7FA]/70 p-3.5 shadow-2xs"
-              >
-                <div className="flex items-start justify-between gap-2">
-                  <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#001E50]">
-                    {card.name}
-                  </span>
-                  <ComplianceBadge status={card.status} compact />
-                </div>
+          {/* Tarjetas Ejecutivas Principales: Jujuy y Salta por separado, sin promediar juntos */}
+          <div className={`grid ${executiveCards.length === 4 ? 'grid-cols-4' : 'grid-cols-3'} gap-3`}>
+            {executiveCards.map(card => {
+              const singleVal = doc.branchSelection === 'SALTA' ? card.saltaScore : card.jujuyScore;
+              const singleStatus = doc.branchSelection === 'SALTA' ? card.saltaStatus : card.jujuyStatus;
 
-                <div className="my-2 flex items-baseline justify-between gap-2">
-                  <span className="text-2xl font-extrabold tracking-tight text-[#001E50] tabular-nums">
-                    {card.result}
-                  </span>
-                  <div className="text-right text-[10px]">
-                    <span className="text-[#5A6A85]">Objetivo: </span>
-                    <strong className="text-[#001E50]">{card.target}</strong>
-                    <span className="ml-1.5 font-bold text-[#0072CE]">({card.diff})</span>
+              return (
+                <div
+                  key={card.id}
+                  className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-[#F5F7FA]/80 p-3.5 shadow-2xs"
+                >
+                  {/* Encabezado: Nombre del Indicador y Meta */}
+                  <div className="flex items-center justify-between gap-2 border-b border-slate-200/70 pb-2">
+                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#001E50] line-clamp-1">
+                      {card.name}
+                    </span>
+                    <span className="text-[10px] font-extrabold text-[#0072CE] shrink-0">
+                      Obj: ≥ {formatMetricAr(card.target)}
+                    </span>
+                  </div>
+
+                  {/* Cuerpo: Si es ambas sucursales, mostrar Jujuy y Salta por separado */}
+                  {isComparative ? (
+                    <div className="my-2.5 grid grid-cols-2 gap-2">
+                      {/* Autosol Jujuy */}
+                      <div className="rounded-xl border border-slate-200/60 bg-white p-2.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[9px] font-extrabold uppercase text-[#001E50]">Jujuy (3059)</span>
+                          <ComplianceBadge status={card.jujuyStatus} compact />
+                        </div>
+                        <p className="mt-1 text-2xl font-black text-[#001E50] tabular-nums">
+                          {formatMetricAr(card.jujuyScore)}
+                        </p>
+                      </div>
+
+                      {/* Autosol Salta */}
+                      <div className="rounded-xl border border-slate-200/60 bg-white p-2.5">
+                        <div className="flex items-center justify-between">
+                          <span className="text-[9px] font-extrabold uppercase text-[#0072CE]">Salta (3087)</span>
+                          <ComplianceBadge status={card.saltaStatus} compact />
+                        </div>
+                        <p className="mt-1 text-2xl font-black text-[#001E50] tabular-nums">
+                          {formatMetricAr(card.saltaScore)}
+                        </p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="my-3 flex items-baseline justify-between rounded-xl border border-slate-200/60 bg-white p-3">
+                      <div>
+                        <span className="text-[9px] font-extrabold uppercase text-[#5A6A85] block">
+                          Autosol {doc.branchSelection === 'SALTA' ? 'Salta (3087)' : 'Jujuy (3059)'}
+                        </span>
+                        <span className="text-3xl font-black text-[#001E50] tabular-nums">
+                          {formatMetricAr(singleVal)}
+                        </span>
+                      </div>
+                      <ComplianceBadge status={singleStatus} />
+                    </div>
+                  )}
+
+                  <div className="text-[9px] font-semibold text-[#5A6A85] flex items-center justify-between pt-1 border-t border-slate-200/50">
+                    <span>Resultado Oficial de Marca</span>
+                    <span className="text-[#001E50] font-bold">Autosol S.R.L.</span>
                   </div>
                 </div>
-
-                <div className="border-t border-slate-200/70 pt-1.5 space-y-0.5">
-                  <p className="text-[10px] font-medium text-[#5A6A85]">{card.meta}</p>
-                  {card.branchCompare && (
-                    <p className="text-[10px] font-bold text-[#001E50]">{card.branchCompare}</p>
-                  )}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           {/* Editable Executive Narrative Blocks */}
@@ -1314,7 +1331,7 @@ export const DirectionPageTemplateRenderer: React.FC<DirectionPageTemplateRender
     );
   }
 
-  // 3. PLANTILLA 3: INDICADORES, EVOLUCIÓN Y PLAN DE ACCIÓN INTEGRADO (OS, LVS, Lavado)
+  // 3. PLANTILLA 3: INDICADORES, EVOLUCIÓN ANUAL Y ENLACE A PLAN DE ACCIÓN
   if (page.templateType === 'indicator_evolution') {
     const isOs = page.moduleId === 'ventas_os';
     const isLavado = page.moduleId === 'lavado';
@@ -1322,7 +1339,7 @@ export const DirectionPageTemplateRenderer: React.FC<DirectionPageTemplateRender
     const mainScore = isOs
       ? activeSnap.osScore
       : isLavado
-        ? activeSnap.lvsLavadoQ6 ?? activeSnap.internalPvLavado
+        ? activeSnap.lvsLavadoQ6
         : activeSnap.lvsScore;
     const mainTarget = isOs
       ? activeSnap.osTarget
@@ -1332,44 +1349,37 @@ export const DirectionPageTemplateRenderer: React.FC<DirectionPageTemplateRender
     const mainCompliance = isOs
       ? activeSnap.osCompliance
       : isLavado
-        ? activeSnap.lavadoCompliance
+        ? evaluateCompliance(activeSnap.lvsLavadoQ6, activeSnap.lavadoTarget, 'up')
         : activeSnap.lvsCompliance;
 
     const jujuyVal = isOs
       ? computed.jujuy.osScore
       : isLavado
-        ? computed.jujuy.lvsLavadoQ6 ?? computed.jujuy.internalPvLavado
+        ? computed.jujuy.lvsLavadoQ6
         : computed.jujuy.lvsScore;
     const saltaVal = isOs
       ? computed.salta.osScore
       : isLavado
-        ? computed.salta.lvsLavadoQ6 ?? computed.salta.internalPvLavado
+        ? computed.salta.lvsLavadoQ6
         : computed.salta.lvsScore;
 
-    const subKpis = isOs
-      ? [
-          { label: 'Unidades Patentadas', value: String(activeSnap.osPatentedCount), hint: 'Base del período' },
-          { label: 'Links Declarados', value: String(activeSnap.osDeclaredCount), hint: 'Con fecha de envío' },
-          { label: 'Encuestas Válidas', value: String(activeSnap.osValidCount), hint: 'Respondieron CEM' },
-          {
-            label: 'Conversión Respuesta',
-            value: activeSnap.osResponseConversionPct !== null ? `${activeSnap.osResponseConversionPct}%` : '—',
-            hint: 'Respondieron / Declarados',
-          },
-        ]
+    const jujuyComp = isOs
+      ? computed.jujuy.osCompliance
       : isLavado
-        ? [
-            { label: 'Lavado CEM (Q6)', value: formatMetricAr(activeSnap.lvsLavadoQ6), hint: 'Encuesta oficial marca' },
-            { label: 'Objetivo Oficial VW', value: `>= ${formatMetricAr(mainTarget)}`, hint: 'Meta de marca' },
-            { label: 'Jujuy (3059)', value: formatMetricAr(jujuyVal), hint: 'Promedio sede Jujuy' },
-            { label: 'Salta (3087)', value: formatMetricAr(saltaVal), hint: 'Promedio sede Salta' },
-          ]
-        : [
-            { label: 'Trato Personal (Q1)', value: formatMetricAr(activeSnap.lvsTratoQ1), hint: 'Atención asesor' },
-            { label: 'Organización (Q2)', value: formatMetricAr(activeSnap.lvsOrgQ2), hint: 'Turnos y procesos' },
-            { label: 'Calidad Reparación (Q3)', value: formatMetricAr(activeSnap.lvsReparacionQ3), hint: 'Trabajo de taller' },
-            { label: 'Encuestas Válidas', value: String(activeSnap.lvsValidCount), hint: 'Muestra CEM Postventa' },
-          ];
+        ? evaluateCompliance(computed.jujuy.lvsLavadoQ6, mainTarget, 'up')
+        : computed.jujuy.lvsCompliance;
+    const saltaComp = isOs
+      ? computed.salta.osCompliance
+      : isLavado
+        ? evaluateCompliance(computed.salta.lvsLavadoQ6, mainTarget, 'up')
+        : computed.salta.lvsCompliance;
+
+    const hasAnyDeviation =
+      jujuyComp === 'deviated' || saltaComp === 'deviated' || mainCompliance === 'deviated';
+
+    const hasLinkedPlanPage = doc.pages.some(
+      p => p.templateType === 'action_plan_continuation' && p.continuationOfPageId === page.id
+    );
 
     const chartData = computed.evolution.map(pt => ({
       name: pt.shortMonth,
@@ -1379,6 +1389,31 @@ export const DirectionPageTemplateRenderer: React.FC<DirectionPageTemplateRender
       Salta: isOs ? pt.osSalta : isLavado ? pt.lavadoSalta : pt.lvsSalta,
       Objetivo: mainTarget,
     }));
+
+    // Origen del eje Y: por defecto 4.5 para apreciar variaciones de forma nítida
+    const numericVals = chartData.flatMap(d =>
+      [d.Jujuy, d.Salta, d.Consolidado].filter(
+        (v): v is number => typeof v === 'number' && Number.isFinite(v) && v > 0
+      )
+    );
+    const minVal = numericVals.length > 0 ? Math.min(...numericVals) : 4.5;
+    const yOrigin = minVal < 4.5 ? Math.max(3.8, Math.floor(minVal * 10) / 10) : 4.5;
+    const yTicks =
+      yOrigin === 4.5
+        ? [4.5, 4.6, 4.7, 4.8, 4.9, 5.0]
+        : [
+            yOrigin,
+            Number((yOrigin + (5.0 - yOrigin) * 0.25).toFixed(2)),
+            Number((yOrigin + (5.0 - yOrigin) * 0.5).toFixed(2)),
+            Number((yOrigin + (5.0 - yOrigin) * 0.75).toFixed(2)),
+            5.0,
+          ];
+
+    const indicatorTitle = isOs
+      ? 'CEM OS Ventas'
+      : isLavado
+        ? 'Calidad de Lavado (CEM Q6)'
+        : 'CEM LVS Postventa (Q4)';
 
     return (
       <PageFrameA4
@@ -1390,138 +1425,128 @@ export const DirectionPageTemplateRenderer: React.FC<DirectionPageTemplateRender
         isPrintMode={isPrintMode}
         onUpdatePage={onUpdatePage}
       >
-        <div className="flex flex-col justify-between h-full gap-2.5">
-          {/* UPPER SECTION: INDICADOR -> RESULTADO -> EVOLUCIÓN */}
-          <div className="grid grid-cols-12 gap-4 flex-1 min-h-0">
-            {/* Left Column: Hero KPI + Subcards + Branch Comparison */}
-            <div className="col-span-5 flex flex-col justify-between gap-2.5">
-              {/* Hero KPI Card */}
-              <div className="rounded-xl border border-slate-200 bg-[#001E50] p-4 text-white shadow-xs">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="text-[10px] font-extrabold uppercase tracking-widest text-sky-300">
-                    {isOs ? 'Promedio CEM OS' : isLavado ? 'Calidad de Lavado' : 'Promedio CEM LVS (Q4)'}
-                  </span>
-                  <ComplianceBadge status={mainCompliance} compact />
-                </div>
-
-                <div className="mt-2 flex items-baseline justify-between">
-                  <span className="text-4xl font-extrabold tracking-tight text-white tabular-nums">
-                    {formatMetricAr(mainScore)}
-                  </span>
-                  <div className="text-right">
-                    <span className="text-[10px] uppercase tracking-wider text-slate-300 block">
-                      Objetivo vigente
+        <div className="flex flex-col justify-between h-full gap-3">
+          {/* Grilla Limpia: Izquierda Resultados por Sucursal | Derecha Gráfico de Evolución */}
+          <div className="grid grid-cols-12 gap-5 flex-1 min-h-0">
+            {/* Columna Izquierda: Resultados Jujuy y Salta por separado + Acción Directiva */}
+            <div className="col-span-4 flex flex-col justify-between gap-3">
+              <div className="space-y-3">
+                {/* Autosol Jujuy (3059) */}
+                <div className="rounded-2xl border border-slate-200 bg-[#F5F7FA] p-3.5 shadow-2xs">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="text-[9px] font-extrabold uppercase tracking-wider text-[#001E50] block">
+                        Autosol Jujuy (CE 3059)
+                      </span>
+                      <p className="text-[10px] text-[#5A6A85]">
+                        Objetivo: ≥ {formatMetricAr(mainTarget)} pts
+                      </p>
+                    </div>
+                    <ComplianceBadge status={jujuyComp} />
+                  </div>
+                  <div className="mt-2 flex items-baseline justify-between">
+                    <span className="text-3xl font-black tracking-tight text-[#001E50] tabular-nums">
+                      {formatMetricAr(jujuyVal)}
                     </span>
-                    <span className="text-sm font-extrabold text-sky-300">
-                      {formatMetricAr(mainTarget)} pts
+                    <span className="text-xs font-bold text-[#5A6A85]">
+                      {jujuyVal !== null && mainTarget !== null
+                        ? `${jujuyVal >= mainTarget ? '+' : ''}${formatMetricAr(jujuyVal - mainTarget)} pts`
+                        : '—'}
                     </span>
                   </div>
                 </div>
 
-                {/* Individual Branch Evaluation when BOTH selected */}
+                {/* Autosol Salta (3087) si es comparativo */}
                 {isComparative && (
-                  <div className="mt-3 grid grid-cols-2 gap-2 border-t border-white/15 pt-2.5">
-                    <div className="rounded-lg bg-white/8 px-2.5 py-1.5">
-                      <div className="flex items-center justify-between text-[9px] font-bold text-slate-300">
-                        <span>JUJUY (3059)</span>
-                        <span
-                          className={
-                            (isOs ? computed.jujuy.osCompliance : isLavado ? computed.jujuy.lavadoCompliance : computed.jujuy.lvsCompliance) === 'compliant'
-                              ? 'text-emerald-300'
-                              : (isOs ? computed.jujuy.osCompliance : isLavado ? computed.jujuy.lavadoCompliance : computed.jujuy.lvsCompliance) === 'deviated'
-                                ? 'text-rose-300'
-                                : 'text-slate-300'
-                          }
-                        >
-                          {(isOs ? computed.jujuy.osCompliance : isLavado ? computed.jujuy.lavadoCompliance : computed.jujuy.lvsCompliance) === 'compliant'
-                            ? 'Cumple'
-                            : (isOs ? computed.jujuy.osCompliance : isLavado ? computed.jujuy.lavadoCompliance : computed.jujuy.lvsCompliance) === 'deviated'
-                              ? 'Desvío'
-                              : 'Pend.'}
+                  <div className="rounded-2xl border border-slate-200 bg-[#F5F7FA] p-3.5 shadow-2xs">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <span className="text-[9px] font-extrabold uppercase tracking-wider text-[#0072CE] block">
+                          Autosol Salta (CE 3087)
                         </span>
+                        <p className="text-[10px] text-[#5A6A85]">
+                          Objetivo: ≥ {formatMetricAr(mainTarget)} pts
+                        </p>
                       </div>
-                      <p className="text-base font-extrabold text-white tabular-nums">
-                        {formatMetricAr(jujuyVal)}
-                      </p>
+                      <ComplianceBadge status={saltaComp} />
                     </div>
-                    <div className="rounded-lg bg-white/8 px-2.5 py-1.5">
-                      <div className="flex items-center justify-between text-[9px] font-bold text-slate-300">
-                        <span>SALTA (3087)</span>
-                        <span
-                          className={
-                            (isOs ? computed.salta.osCompliance : isLavado ? computed.salta.lavadoCompliance : computed.salta.lvsCompliance) === 'compliant'
-                              ? 'text-emerald-300'
-                              : (isOs ? computed.salta.osCompliance : isLavado ? computed.salta.lavadoCompliance : computed.salta.lvsCompliance) === 'deviated'
-                                ? 'text-rose-300'
-                                : 'text-slate-300'
-                          }
-                        >
-                          {(isOs ? computed.salta.osCompliance : isLavado ? computed.salta.lavadoCompliance : computed.salta.lvsCompliance) === 'compliant'
-                            ? 'Cumple'
-                            : (isOs ? computed.salta.osCompliance : isLavado ? computed.salta.lavadoCompliance : computed.salta.lvsCompliance) === 'deviated'
-                              ? 'Desvío'
-                              : 'Pend.'}
-                        </span>
-                      </div>
-                      <p className="text-base font-extrabold text-white tabular-nums">
+                    <div className="mt-2 flex items-baseline justify-between">
+                      <span className="text-3xl font-black tracking-tight text-[#001E50] tabular-nums">
                         {formatMetricAr(saltaVal)}
-                      </p>
+                      </span>
+                      <span className="text-xs font-bold text-[#5A6A85]">
+                        {saltaVal !== null && mainTarget !== null
+                          ? `${saltaVal >= mainTarget ? '+' : ''}${formatMetricAr(saltaVal - mainTarget)} pts`
+                          : '—'}
+                      </span>
                     </div>
+                  </div>
+                )}
+
+                {/* Botón o Aviso para Plan de Acción en Hoja Siguiente */}
+                {!isPrintMode && (
+                  <div className="pt-1">
+                    {hasLinkedPlanPage ? (
+                      <div className="rounded-xl border border-emerald-300 bg-emerald-50 px-3.5 py-2.5 text-[11px] font-bold text-emerald-900 flex items-center gap-2">
+                        <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                        <span>Plan de Acción documentado en la hoja siguiente</span>
+                      </div>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => onAddActionPlanPage?.(page.id)}
+                        className={`w-full inline-flex items-center justify-center gap-2 rounded-xl px-3.5 py-2.5 text-xs font-extrabold uppercase tracking-wider transition shadow-xs ${
+                          hasAnyDeviation
+                            ? 'bg-rose-600 hover:bg-rose-700 text-white animate-pulse'
+                            : 'bg-[#001E50] hover:bg-[#0072CE] text-white'
+                        }`}
+                      >
+                        <Plus className="h-4 w-4" />
+                        <span>
+                          {hasAnyDeviation
+                            ? 'Agregar hoja de Plan de Acción por desvío'
+                            : 'Agregar hoja de Plan de Acción'}
+                        </span>
+                      </button>
+                    )}
                   </div>
                 )}
               </div>
 
-              {/* 4 Sub-indicators Grid */}
-              <div className="grid grid-cols-2 gap-2">
-                {subKpis.map(k => (
-                  <div
-                    key={k.label}
-                    className="rounded-xl border border-slate-200 bg-[#F5F7FA] px-3 py-2"
-                  >
-                    <p className="text-[9px] font-bold uppercase tracking-wider text-[#5A6A85]">
-                      {k.label}
-                    </p>
-                    <p className="mt-0.5 text-lg font-extrabold text-[#001E50] tabular-nums">
-                      {k.value}
-                    </p>
-                    <p className="text-[9px] text-[#5A6A85]">{k.hint}</p>
-                  </div>
-                ))}
-              </div>
-
-              {/* Brief Executive Commentary */}
-              <div className="rounded-xl border border-slate-200 bg-white px-3 py-2 flex-1 flex flex-col justify-center">
-                <span className="text-[9px] font-extrabold uppercase tracking-wider text-[#0072CE]">
-                  {page.narrativeTitle || 'Lectura Ejecutiva del Indicador'}
+              {/* Comentario Ejecutivo Conciso */}
+              <div className="rounded-2xl border border-slate-200 bg-white p-3.5 flex flex-col justify-between">
+                <span className="text-[9px] font-extrabold uppercase tracking-wider text-[#0072CE] block">
+                  {page.narrativeTitle || `Lectura Ejecutiva · ${indicatorTitle}`}
                 </span>
                 {isPrintMode ? (
-                  <p className="mt-1 text-[11px] leading-snug text-[#001E50]">
+                  <p className="mt-1 text-xs leading-relaxed text-[#001E50]">
                     {page.narrativeBody ||
-                      `Resultado del período ${computed.periodLabel}: ${formatMetricAr(mainScore)} frente a un objetivo de ${formatMetricAr(mainTarget)}.`}
+                      `Desempeño registrado en el período ${computed.periodLabel}. Los datos corresponden exclusivamente a las calificaciones oficiales de marca.`}
                   </p>
                 ) : (
                   <textarea
                     value={page.narrativeBody}
                     onChange={e => onUpdatePage({ narrativeBody: e.target.value })}
-                    rows={2}
-                    placeholder="Hacé clic para agregar un comentario sobre la evolución o contexto del indicador..."
-                    className="mt-1 w-full resize-none bg-transparent text-[11px] leading-snug text-[#001E50] outline-none placeholder:text-slate-300"
+                    rows={3}
+                    placeholder="Escribí aquí una síntesis o decisión directiva sobre este indicador..."
+                    className="mt-1.5 w-full resize-none bg-transparent text-xs leading-relaxed text-[#001E50] outline-none placeholder:text-slate-300"
                   />
                 )}
               </div>
             </div>
 
-            {/* Right Column: Evolution Chart */}
-            <div className="col-span-7 flex flex-col rounded-xl border border-slate-200 bg-[#F5F7FA]/60 p-3.5 min-h-0">
-              <div className="flex items-center justify-between mb-2">
+            {/* Columna Derecha: Gráfico de Evolución Anual (Escala 4.5 a 5.0) */}
+            <div className="col-span-8 flex flex-col rounded-2xl border border-slate-200 bg-[#F5F7FA]/70 p-4 min-h-0">
+              <div className="flex items-center justify-between mb-2 pb-2 border-b border-slate-200/60">
                 <div>
-                  <h4 className="text-xs font-extrabold uppercase tracking-wider text-[#001E50]">
-                    Evolución Anual {doc.year} — {isOs ? 'CEM OS Ventas' : isLavado ? 'Calidad de Lavado' : 'CEM LVS Postventa'}
+                  <h4 className="text-xs font-black uppercase tracking-wider text-[#001E50]">
+                    Evolución Anual {doc.year} — {indicatorTitle}
                   </h4>
                   <p className="text-[10px] text-[#5A6A85]">
-                    Escala 1,00 a 5,00 pts · Línea punteada indica objetivo vigente ({formatMetricAr(mainTarget)})
+                    Escala ampliada desde {formatMetricAr(yOrigin, 1)} hasta 5,00 pts · Meta: ≥ {formatMetricAr(mainTarget)} pts
                   </p>
                 </div>
+
                 {!isPrintMode && (
                   <div className="flex items-center gap-1 rounded-lg border border-slate-200 bg-white p-0.5 text-[10px] font-bold">
                     <button
@@ -1542,44 +1567,62 @@ export const DirectionPageTemplateRenderer: React.FC<DirectionPageTemplateRender
                 )}
               </div>
 
-              <div className="flex-1 min-h-[165px]">
+              <div className="flex-1 min-h-[260px]">
                 <ResponsiveContainer width="100%" height="100%">
                   {page.chartType === 'line' ? (
-                    <LineChart data={chartData} margin={{ top: 16, right: 16, left: -12, bottom: 4 }}>
+                    <LineChart data={chartData} margin={{ top: 18, right: 20, left: -10, bottom: 4 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
                       <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: '#001E50' }} />
-                      <YAxis domain={[0, 5]} axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: '#5A6A85' }} />
+                      <YAxis
+                        domain={[yOrigin, 5.0]}
+                        ticks={yTicks}
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 10, fontWeight: 700, fill: '#5A6A85' }}
+                        tickFormatter={v => v.toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 2 })}
+                      />
                       <Tooltip />
                       {isComparative && <Legend iconType="circle" wrapperStyle={{ fontSize: 10, fontWeight: 700 }} />}
                       {page.showChartTarget !== false && mainTarget && (
-                        <ReferenceLine y={mainTarget} stroke="#15803D" strokeDasharray="4 4" strokeWidth={1.5} />
+                        <ReferenceLine y={mainTarget} stroke="#15803D" strokeDasharray="4 4" strokeWidth={1.5} label={{ value: `Meta: ${mainTarget}`, fill: '#15803D', fontSize: 10, position: 'top' }} />
                       )}
                       {isComparative ? (
                         <>
-                          <Line type="monotone" dataKey="Jujuy" name="Jujuy (3059)" stroke="#001E50" strokeWidth={2.5} dot={{ r: 3.5 }} connectNulls />
-                          <Line type="monotone" dataKey="Salta" name="Salta (3087)" stroke="#0072CE" strokeWidth={2.5} dot={{ r: 3.5 }} connectNulls />
+                          <Line type="monotone" dataKey="Jujuy" name="Jujuy (3059)" stroke="#001E50" strokeWidth={2.8} dot={{ r: 4 }} connectNulls />
+                          <Line type="monotone" dataKey="Salta" name="Salta (3087)" stroke="#0072CE" strokeWidth={2.8} dot={{ r: 4 }} connectNulls />
                         </>
                       ) : (
                         <Line type="monotone" dataKey="Consolidado" name="Resultado" stroke="#001E50" strokeWidth={3} dot={{ r: 4, fill: '#0072CE' }} connectNulls />
                       )}
                     </LineChart>
                   ) : (
-                    <BarChart data={chartData} margin={{ top: 18, right: 16, left: -12, bottom: 4 }}>
+                    <BarChart data={chartData} margin={{ top: 18, right: 20, left: -10, bottom: 4 }}>
                       <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
                       <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: '#001E50' }} />
-                      <YAxis domain={[0, 5]} axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: '#5A6A85' }} />
+                      <YAxis
+                        domain={[yOrigin, 5.0]}
+                        ticks={yTicks}
+                        axisLine={false}
+                        tickLine={false}
+                        tick={{ fontSize: 10, fontWeight: 700, fill: '#5A6A85' }}
+                        tickFormatter={v => v.toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 2 })}
+                      />
                       <Tooltip />
                       {isComparative && <Legend iconType="circle" wrapperStyle={{ fontSize: 10, fontWeight: 700 }} />}
                       {page.showChartTarget !== false && mainTarget && (
-                        <ReferenceLine y={mainTarget} stroke="#15803D" strokeDasharray="4 4" strokeWidth={1.5} />
+                        <ReferenceLine y={mainTarget} stroke="#15803D" strokeDasharray="4 4" strokeWidth={1.5} label={{ value: `Meta: ${mainTarget}`, fill: '#15803D', fontSize: 10, position: 'top' }} />
                       )}
                       {isComparative ? (
                         <>
-                          <Bar dataKey="Jujuy" name="Jujuy (3059)" fill="#001E50" radius={[4, 4, 0, 0]} barSize={14} />
-                          <Bar dataKey="Salta" name="Salta (3087)" fill="#0072CE" radius={[4, 4, 0, 0]} barSize={14} />
+                          <Bar dataKey="Jujuy" name="Jujuy (3059)" fill="#001E50" radius={[4, 4, 0, 0]} barSize={16}>
+                            <LabelList dataKey="Jujuy" position="top" style={{ fill: '#001E50', fontSize: 9, fontWeight: 800 }} />
+                          </Bar>
+                          <Bar dataKey="Salta" name="Salta (3087)" fill="#0072CE" radius={[4, 4, 0, 0]} barSize={16}>
+                            <LabelList dataKey="Salta" position="top" style={{ fill: '#0072CE', fontSize: 9, fontWeight: 800 }} />
+                          </Bar>
                         </>
                       ) : (
-                        <Bar dataKey="Consolidado" name="Resultado" radius={[6, 6, 0, 0]} barSize={24}>
+                        <Bar dataKey="Consolidado" name="Resultado" radius={[6, 6, 0, 0]} barSize={26}>
                           {chartData.map(entry => (
                             <Cell key={entry.name} fill={entry.isPeriod ? '#001E50' : '#94A3B8'} />
                           ))}
@@ -1594,22 +1637,6 @@ export const DirectionPageTemplateRenderer: React.FC<DirectionPageTemplateRender
               </div>
             </div>
           </div>
-
-          {/* LOWER SECTION: INTEGRATED ANALYSIS & ACTION PLAN */}
-          {page.actionBlock && (
-            <IntegratedIndicatorActionSection
-              block={page.actionBlock}
-              branchSelection={doc.branchSelection}
-              matchingPlans={computed.matchingActionPlans}
-              isPrintMode={isPrintMode}
-              onUpdateBlock={nextBlock => onUpdatePage({ actionBlock: nextBlock })}
-              onSplitToContinuationPage={
-                onSplitActionPlanToContinuation
-                  ? () => onSplitActionPlanToContinuation(page.id)
-                  : undefined
-              }
-            />
-          )}
         </div>
       </PageFrameA4>
     );
@@ -1619,117 +1646,107 @@ export const DirectionPageTemplateRenderer: React.FC<DirectionPageTemplateRender
   if (page.templateType === 'branch_comparison') {
     const compBarData = [
       {
-        metric: 'OS Marca',
+        metric: 'OS Marca (Ventas)',
         Jujuy: computed.jujuy.osScore ?? 0,
         Salta: computed.salta.osScore ?? 0,
-        Objetivo: computed.consolidated.osTarget ?? 4.6,
+        Objetivo: doc.targets?.os ?? 4.6,
       },
       {
-        metric: 'LVS Postventa',
+        metric: 'LVS Postventa (Q4)',
         Jujuy: computed.jujuy.lvsScore ?? 0,
         Salta: computed.salta.lvsScore ?? 0,
-        Objetivo: computed.consolidated.lvsTarget ?? 4.8,
+        Objetivo: doc.targets?.lvs ?? 4.8,
       },
       {
-        metric: 'Trato PV (Q1)',
-        Jujuy: computed.jujuy.lvsTratoQ1 ?? 0,
-        Salta: computed.salta.lvsTratoQ1 ?? 0,
-        Objetivo: 4.8,
-      },
-      {
-        metric: 'Reparación (Q3)',
-        Jujuy: computed.jujuy.lvsReparacionQ3 ?? 0,
-        Salta: computed.salta.lvsReparacionQ3 ?? 0,
-        Objetivo: 4.8,
-      },
-      {
-        metric: 'Lavado',
-        Jujuy: computed.jujuy.lvsLavadoQ6 ?? computed.jujuy.internalPvLavado ?? 0,
-        Salta: computed.salta.lvsLavadoQ6 ?? computed.salta.internalPvLavado ?? 0,
-        Objetivo: computed.consolidated.lavadoTarget ?? 4.5,
+        metric: 'Calidad Lavado (Q6)',
+        Jujuy: computed.jujuy.lvsLavadoQ6 ?? 0,
+        Salta: computed.salta.lvsLavadoQ6 ?? 0,
+        Objetivo: doc.targets?.lavado ?? 4.5,
       },
     ];
 
-    const renderBranchColumn = (snap: typeof computed.jujuy, title: string, code: string, accentColor: string) => (
-      <div className="flex flex-col justify-between rounded-xl border border-slate-200 bg-white p-4 shadow-2xs">
-        <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
-          <div>
-            <span
-              className="inline-block rounded px-2 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-white"
-              style={{ backgroundColor: accentColor }}
-            >
-              Concesionario {code}
-            </span>
-            <h3 className="mt-1 text-base font-extrabold text-[#001E50]">{title}</h3>
+    const renderBranchColumn = (snap: typeof computed.jujuy, title: string, code: string, accentColor: string) => {
+      const isJujuy = code === '3059';
+      const osScore = snap.osScore;
+      const osTarget = doc.targets?.os ?? 4.6;
+      const lvsScore = snap.lvsScore;
+      const lvsTarget = doc.targets?.lvs ?? 4.8;
+      const lavadoScore = snap.lvsLavadoQ6;
+      const lavadoTarget = doc.targets?.lavado ?? 4.5;
+
+      return (
+        <div className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-white p-4 shadow-2xs">
+          <div className="flex items-center justify-between border-b border-slate-100 pb-2.5">
+            <div>
+              <span
+                className="inline-block rounded-md px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-white"
+                style={{ backgroundColor: accentColor }}
+              >
+                Concesionario {code}
+              </span>
+              <h3 className="mt-1 text-base font-extrabold text-[#001E50]">{title}</h3>
+            </div>
+            <div className="text-right">
+              <span className="text-[9px] font-bold uppercase text-[#5A6A85] block">Estado General</span>
+              <ComplianceBadge
+                status={
+                  snap.osCompliance === 'deviated' || snap.lvsCompliance === 'deviated'
+                    ? 'deviated'
+                    : snap.osCompliance === 'compliant' && snap.lvsCompliance === 'compliant'
+                      ? 'compliant'
+                      : 'pending_evaluation'
+                }
+                compact
+              />
+            </div>
           </div>
-          <div className="text-right">
-            <span className="text-[9px] font-bold uppercase text-[#5A6A85] block">Estado General</span>
-            <ComplianceBadge
-              status={
-                snap.osCompliance === 'deviated' || snap.lvsCompliance === 'deviated'
-                  ? 'deviated'
-                  : snap.osCompliance === 'compliant' && snap.lvsCompliance === 'compliant'
-                    ? 'compliant'
-                    : 'pending_evaluation'
-              }
-              compact
-            />
+
+          <div className="my-2.5 grid grid-cols-3 gap-2.5">
+            {/* OS Ventas */}
+            <div className="rounded-xl border border-slate-200/70 bg-[#F5F7FA] p-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[9px] font-black uppercase text-[#5A6A85]">OS Ventas</span>
+                <ComplianceBadge status={snap.osCompliance} compact />
+              </div>
+              <p className="mt-1 text-2xl font-black text-[#001E50] tabular-nums">
+                {formatMetricAr(osScore)}
+              </p>
+              <p className="text-[10px] text-[#5A6A85]">
+                Meta: ≥ {formatMetricAr(osTarget)}
+              </p>
+            </div>
+
+            {/* LVS Postventa */}
+            <div className="rounded-xl border border-slate-200/70 bg-[#F5F7FA] p-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[9px] font-black uppercase text-[#5A6A85]">LVS Postventa</span>
+                <ComplianceBadge status={snap.lvsCompliance} compact />
+              </div>
+              <p className="mt-1 text-2xl font-black text-[#001E50] tabular-nums">
+                {formatMetricAr(lvsScore)}
+              </p>
+              <p className="text-[10px] text-[#5A6A85]">
+                Meta: ≥ {formatMetricAr(lvsTarget)}
+              </p>
+            </div>
+
+            {/* Lavado CEM Q6 */}
+            <div className="rounded-xl border border-slate-200/70 bg-[#F5F7FA] p-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[9px] font-black uppercase text-[#5A6A85]">Lavado (Q6)</span>
+                <ComplianceBadge status={evaluateCompliance(lavadoScore, lavadoTarget, 'up')} compact />
+              </div>
+              <p className="mt-1 text-2xl font-black text-[#001E50] tabular-nums">
+                {formatMetricAr(lavadoScore)}
+              </p>
+              <p className="text-[10px] text-[#5A6A85]">
+                Meta: ≥ {formatMetricAr(lavadoTarget)}
+              </p>
+            </div>
           </div>
         </div>
-
-        <div className="my-2.5 grid grid-cols-2 gap-2.5">
-          <div className="rounded-lg bg-[#F5F7FA] p-2.5">
-            <div className="flex items-center justify-between">
-              <span className="text-[9px] font-bold uppercase text-[#5A6A85]">OS Ventas</span>
-              <ComplianceBadge status={snap.osCompliance} compact />
-            </div>
-            <p className="mt-1 text-xl font-extrabold text-[#001E50] tabular-nums">
-              {formatMetricAr(snap.osScore)}
-            </p>
-            <p className="text-[9px] text-[#5A6A85]">
-              {snap.osPatentedCount} pat. · {snap.osValidCount} resp.
-            </p>
-          </div>
-
-          <div className="rounded-lg bg-[#F5F7FA] p-2.5">
-            <div className="flex items-center justify-between">
-              <span className="text-[9px] font-bold uppercase text-[#5A6A85]">LVS Postventa</span>
-              <ComplianceBadge status={snap.lvsCompliance} compact />
-            </div>
-            <p className="mt-1 text-xl font-extrabold text-[#001E50] tabular-nums">
-              {formatMetricAr(snap.lvsScore)}
-            </p>
-            <p className="text-[9px] text-[#5A6A85]">
-              Q1: {formatMetricAr(snap.lvsTratoQ1)} · Q3: {formatMetricAr(snap.lvsReparacionQ3)}
-            </p>
-          </div>
-
-          <div className="rounded-lg bg-[#F5F7FA] p-2.5">
-            <span className="text-[9px] font-bold uppercase text-[#5A6A85] block">
-              Calidad de Lavado (CEM Q6)
-            </span>
-            <p className="mt-1 text-base font-extrabold text-[#001E50] tabular-nums">
-              {formatMetricAr(snap.lvsLavadoQ6)}
-            </p>
-            <p className="text-[9px] text-[#5A6A85]">
-              Meta oficial: ≥ {formatMetricAr(doc.targets?.lavado ?? 4.5)} pts
-            </p>
-          </div>
-
-          <div className="rounded-lg bg-[#F5F7FA] p-2.5">
-            <span className="text-[9px] font-bold uppercase text-[#5A6A85] block">
-              Conversión CEM OS
-            </span>
-            <p className="mt-1 text-base font-extrabold text-[#001E50] tabular-nums">
-              {snap.osResponseConversionPct !== null ? `${snap.osResponseConversionPct}%` : '—'}
-            </p>
-            <p className="text-[9px] text-[#5A6A85]">
-              {snap.osValidCount} válidas de {snap.osDeclaredCount} declarados
-            </p>
-          </div>
-        </div>
-      </div>
-    );
+      );
+    };
 
     return (
       <PageFrameA4
@@ -1750,22 +1767,32 @@ export const DirectionPageTemplateRenderer: React.FC<DirectionPageTemplateRender
 
           {/* Bottom Comparative Chart + Synthesis */}
           <div className="grid grid-cols-12 gap-4 flex-1 min-h-0">
-            <div className="col-span-7 rounded-xl border border-slate-200 bg-[#F5F7FA]/60 p-3 flex flex-col min-h-0">
-              <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-[#001E50] mb-1">
-                Comparativa Directa de Indicadores Clave (Escala 1 a 5)
+            <div className="col-span-7 rounded-xl border border-slate-200 bg-[#F5F7FA]/60 p-3.5 flex flex-col min-h-0">
+              <h4 className="text-xs font-black uppercase tracking-wider text-[#001E50] mb-1">
+                Comparativa de Indicadores Clave de Marca (Escala 4,5 a 5,0)
               </h4>
-              <div className="flex-1 min-h-[130px]">
+              <p className="text-[10px] text-[#5A6A85] mb-2">
+                Comparación directa entre CE 3059 (Jujuy) y CE 3087 (Salta)
+              </p>
+              <div className="flex-1 min-h-[140px]">
                 <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={compBarData} margin={{ top: 14, right: 14, left: -16, bottom: 0 }}>
+                  <BarChart data={compBarData} margin={{ top: 18, right: 14, left: -10, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
                     <XAxis dataKey="metric" axisLine={false} tickLine={false} tick={{ fontSize: 10, fontWeight: 700, fill: '#001E50' }} />
-                    <YAxis domain={[0, 5]} axisLine={false} tickLine={false} tick={{ fontSize: 10, fill: '#5A6A85' }} />
+                    <YAxis
+                      domain={[4.5, 5.0]}
+                      ticks={[4.5, 4.6, 4.7, 4.8, 4.9, 5.0]}
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fontSize: 10, fontWeight: 700, fill: '#5A6A85' }}
+                      tickFormatter={v => v.toLocaleString('es-AR', { minimumFractionDigits: 1, maximumFractionDigits: 2 })}
+                    />
                     <Tooltip />
                     <Legend iconType="circle" wrapperStyle={{ fontSize: 10, fontWeight: 700 }} />
-                    <Bar dataKey="Jujuy" name="Jujuy (3059)" fill="#001E50" radius={[4, 4, 0, 0]} barSize={20}>
+                    <Bar dataKey="Jujuy" name="Jujuy (3059)" fill="#001E50" radius={[4, 4, 0, 0]} barSize={24}>
                       <LabelList dataKey="Jujuy" position="top" style={{ fill: '#001E50', fontSize: 9, fontWeight: 800 }} />
                     </Bar>
-                    <Bar dataKey="Salta" name="Salta (3087)" fill="#0072CE" radius={[4, 4, 0, 0]} barSize={20}>
+                    <Bar dataKey="Salta" name="Salta (3087)" fill="#0072CE" radius={[4, 4, 0, 0]} barSize={24}>
                       <LabelList dataKey="Salta" position="top" style={{ fill: '#0072CE', fontSize: 9, fontWeight: 800 }} />
                     </Bar>
                   </BarChart>

@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useMemo } from 'react';
 import { 
   ResponsiveContainer, 
@@ -15,7 +14,7 @@ import {
   Pie,
   LabelList
 } from 'recharts';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 import { Icons } from './Icon';
 import { DashboardFrame, ChartWrapper } from './DashboardUI';
 import { InternalPostventaRecord, LoadingState } from '../types';
@@ -49,7 +48,7 @@ const GaugeChart = ({ value, label, min = 0, max = 5, isDark = true }: { value: 
           <path
             d="M 20 90 A 70 70 0 0 1 160 90"
             fill="none"
-            stroke="#1e3a8a" // Dark blue from image
+            stroke="#1e3a8a"
             strokeWidth={strokeWidth}
             strokeLinecap="round"
             strokeDasharray={circumference}
@@ -70,12 +69,28 @@ const GaugeChart = ({ value, label, min = 0, max = 5, isDark = true }: { value: 
   );
 };
 
+const isExcludedFromSurveyableBase = (estadoRaw: string | undefined): boolean => {
+  const norm = String(estadoRaw || '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+    .trim();
+  return (
+    norm.includes('duplicad') ||
+    norm.includes('no se encuesta') ||
+    norm.includes('no encuestar') ||
+    norm.includes('no se encuentra')
+  );
+};
+
 const InternalPostventaDashboard: React.FC<InternalPostventaDashboardProps> = ({ sheetUrl, onBack }) => {
   const [data, setData] = useState<InternalPostventaRecord[]>([]);
   const [loading, setLoading] = useState(LoadingState.LOADING);
   const [selectedMonth, setSelectedMonth] = useState<string>('Febrero');
   const [selectedSucursal, setSelectedSucursal] = useState<string>('Todas');
   const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  // 'clean' = Principal (Sin Duplicados ni No se encuesta), 'raw' = Secundaria (Total Bruto), 'both' = Ambas pantallas
+  const [statusViewMode, setStatusViewMode] = useState<'clean' | 'raw' | 'both'>('clean');
 
   useEffect(() => {
     const loadData = async () => {
@@ -116,9 +131,6 @@ const InternalPostventaDashboard: React.FC<InternalPostventaDashboardProps> = ({
   }, [data]);
 
   const metrics = useMemo(() => {
-    const validData = filteredData.filter(r => r.servicio_prestado !== null);
-    const count = validData.length || 1;
-    
     const avg = (key: keyof InternalPostventaRecord) => {
       const scores = filteredData.map(r => Number(r[key])).filter(v => !isNaN(v) && v > 0);
       return scores.length ? scores.reduce((a, b) => a + b, 0) / scores.length : 0;
@@ -188,18 +200,53 @@ const InternalPostventaDashboard: React.FC<InternalPostventaDashboardProps> = ({
       .slice(0, 8);
   }, [filteredData]);
 
-  const estadoData = useMemo(() => {
+  // Secundaria: Todos los estados (Base Total Bruta)
+  const estadoDataTotal = useMemo(() => {
     const counts: Record<string, number> = {};
     filteredData.forEach(r => {
       const estado = r.estado || 'Sin Estado';
       counts[estado] = (counts[estado] || 0) + 1;
     });
     const total = filteredData.length || 1;
-    return Object.entries(counts).map(([name, value]) => ({
-      name,
-      value,
-      percentage: ((value / total) * 100).toFixed(2)
-    })).sort((a, b) => b.value - a.value);
+    return Object.entries(counts)
+      .map(([name, value]) => ({
+        name,
+        value,
+        percentage: ((value / total) * 100).toFixed(2),
+      }))
+      .sort((a, b) => b.value - a.value);
+  }, [filteredData]);
+
+  // Principal: Base Encuestable (Quitando Duplicados y No se encuesta)
+  const { estadoDataClean, cleanTotalCount, excludedCount } = useMemo(() => {
+    const counts: Record<string, number> = {};
+    let cleanTotal = 0;
+    let excluded = 0;
+
+    filteredData.forEach(r => {
+      const estado = r.estado || 'Sin Estado';
+      if (isExcludedFromSurveyableBase(estado)) {
+        excluded += 1;
+        return;
+      }
+      cleanTotal += 1;
+      counts[estado] = (counts[estado] || 0) + 1;
+    });
+
+    const denominator = cleanTotal || 1;
+    const list = Object.entries(counts)
+      .map(([name, value]) => ({
+        name,
+        value,
+        percentage: ((value / denominator) * 100).toFixed(2),
+      }))
+      .sort((a, b) => b.value - a.value);
+
+    return {
+      estadoDataClean: list,
+      cleanTotalCount: cleanTotal,
+      excludedCount: excluded,
+    };
   }, [filteredData]);
 
   const COLORS = ['#3b82f6', '#1e3a8a', '#f59e0b', '#ef4444', '#10b981', '#8b5cf6', '#ec4899'];
@@ -254,10 +301,15 @@ const InternalPostventaDashboard: React.FC<InternalPostventaDashboardProps> = ({
             </div>
           </div>
 
-          <div className="flex gap-12">
+          <div className="flex flex-wrap gap-8 md:gap-10">
             <div className="text-center">
               <p className="text-[10px] font-black text-slate-500 uppercase tracking-[0.3em] mb-2">Total Encuestas</p>
-              <p className="text-4xl font-black text-white italic tracking-tighter">{metrics.totalEncuestas}</p>
+              <p className="text-4xl font-black text-slate-300 italic tracking-tighter">{metrics.totalEncuestas}</p>
+            </div>
+            <div className="w-px h-12 bg-white/10"></div>
+            <div className="text-center">
+              <p className="text-[10px] font-black text-emerald-400 uppercase tracking-[0.3em] mb-2">Base Encuestable</p>
+              <p className="text-4xl font-black text-white italic tracking-tighter">{cleanTotalCount}</p>
             </div>
             <div className="w-px h-12 bg-white/10"></div>
             <div className="text-center">
@@ -295,7 +347,11 @@ const InternalPostventaDashboard: React.FC<InternalPostventaDashboardProps> = ({
         {/* Main Charts Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* LVS Trend */}
-          <ChartWrapper title="Evolución LVS" isDark={true} className="lg:col-span-8">
+          <ChartWrapper
+            title="Evolución LVS"
+            isDark={true}
+            className={statusViewMode === 'both' ? 'lg:col-span-12' : 'lg:col-span-8'}
+          >
             <div className="h-[350px] w-full">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart data={lvsByMonth} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
@@ -318,43 +374,171 @@ const InternalPostventaDashboard: React.FC<InternalPostventaDashboardProps> = ({
             </div>
           </ChartWrapper>
 
-          {/* Survey Status */}
-          <ChartWrapper title="Estado de Encuestas" isDark={true} className="lg:col-span-4">
-            <div className="h-[350px] w-full flex flex-col justify-center">
-              <ResponsiveContainer width="100%" height="220">
-                <PieChart>
-                  <Pie
-                    data={estadoData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={65}
-                    outerRadius={85}
-                    paddingAngle={8}
-                    dataKey="value"
-                  >
-                    {estadoData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip 
-                    contentStyle={{ backgroundColor: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
-                    itemStyle={{ color: '#fff', fontSize: '10px', fontWeight: 'bold' }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="space-y-3 mt-6">
-                {estadoData.map((item, i) => (
-                  <div key={i} className="flex items-center justify-between px-4">
-                    <div className="flex items-center gap-3">
-                      <div className="w-2 h-2 rounded-full" style={{ backgroundColor: COLORS[i % COLORS.length] }}></div>
-                      <span className="text-[10px] font-black text-slate-400 uppercase">{item.name}</span>
-                    </div>
-                    <span className="text-[10px] font-black text-white">{item.percentage}%</span>
+          {/* Survey Status - PANTALLA PRINCIPAL (Sin Duplicados ni No se encuesta) */}
+          {(statusViewMode === 'clean' || statusViewMode === 'both') && (
+            <ChartWrapper
+              title="Estado de Encuestas (Base Encuestable)"
+              isDark={true}
+              className={statusViewMode === 'both' ? 'lg:col-span-6' : 'lg:col-span-4'}
+            >
+              <div className="flex flex-col justify-between min-h-[360px] w-full">
+                <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-white/10">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/15 border border-emerald-500/30 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-emerald-400">
+                    Principal · Sin Duplicados ni No se encuesta
+                  </span>
+                  <div className="flex items-center gap-1 bg-slate-900/90 p-1 rounded-xl border border-white/10">
+                    <button
+                      type="button"
+                      onClick={() => setStatusViewMode('raw')}
+                      className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider text-slate-400 hover:text-white transition"
+                    >
+                      Ver Total Bruto
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setStatusViewMode(statusViewMode === 'both' ? 'clean' : 'both')
+                      }
+                      className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider transition ${
+                        statusViewMode === 'both'
+                          ? 'bg-indigo-600 text-white shadow'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      {statusViewMode === 'both' ? 'Ocultar secundaria' : '+ Mostrar secundaria'}
+                    </button>
                   </div>
-                ))}
+                </div>
+
+                <div className="h-[190px] w-full mt-2">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={estadoDataClean}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={55}
+                        outerRadius={76}
+                        paddingAngle={6}
+                        dataKey="value"
+                      >
+                        {estadoDataClean.map((entry, index) => (
+                          <Cell key={`cell-clean-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{ backgroundColor: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
+                        itemStyle={{ color: '#fff', fontSize: '10px', fontWeight: 'bold' }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <div className="space-y-2.5 mt-3">
+                  {estadoDataClean.map((item, i) => (
+                    <div key={i} className="flex items-center justify-between px-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }}></div>
+                        <span className="text-[10px] font-black text-slate-300 uppercase">{item.name}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[9px] font-bold text-slate-500">({item.value})</span>
+                        <span className="text-[11px] font-black text-white tabular-nums">{item.percentage}%</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between px-3 text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+                  <span>Base encuestable: {cleanTotalCount}</span>
+                  <span>Excluidos: {excludedCount}</span>
+                </div>
               </div>
-            </div>
-          </ChartWrapper>
+            </ChartWrapper>
+          )}
+
+          {/* Survey Status - PANTALLA SECUNDARIA (Con todos los estados incluidos Duplicados y No se encuesta) */}
+          {(statusViewMode === 'raw' || statusViewMode === 'both') && (
+            <ChartWrapper
+              title="Estado de Encuestas (Total con Duplicados)"
+              isDark={true}
+              className={statusViewMode === 'both' ? 'lg:col-span-6' : 'lg:col-span-4'}
+            >
+              <div className="flex flex-col justify-between min-h-[360px] w-full">
+                <div className="flex flex-wrap items-center justify-between gap-2 pb-3 border-b border-white/10">
+                  <span className="inline-flex items-center gap-1.5 rounded-full bg-amber-500/15 border border-amber-500/30 px-2.5 py-1 text-[9px] font-black uppercase tracking-wider text-amber-300">
+                    Secundaria · Incluye Duplicados y No se encuesta
+                  </span>
+                  <div className="flex items-center gap-1 bg-slate-900/90 p-1 rounded-xl border border-white/10">
+                    <button
+                      type="button"
+                      onClick={() => setStatusViewMode('clean')}
+                      className="px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider text-blue-400 hover:text-white transition"
+                    >
+                      Volver a Principal
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setStatusViewMode(statusViewMode === 'both' ? 'clean' : 'both')
+                      }
+                      className={`px-2.5 py-1 rounded-lg text-[9px] font-black uppercase tracking-wider transition ${
+                        statusViewMode === 'both'
+                          ? 'bg-indigo-600 text-white shadow'
+                          : 'text-slate-400 hover:text-white'
+                      }`}
+                    >
+                      {statusViewMode === 'both' ? 'Cerrar secundaria' : '+ Comparar ambas'}
+                    </button>
+                  </div>
+                </div>
+
+                <div className="h-[190px] w-full mt-2">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={estadoDataTotal}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={55}
+                        outerRadius={76}
+                        paddingAngle={6}
+                        dataKey="value"
+                      >
+                        {estadoDataTotal.map((entry, index) => (
+                          <Cell key={`cell-raw-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip
+                        contentStyle={{ backgroundColor: '#0f172a', border: '1px solid rgba(255,255,255,0.1)', borderRadius: '12px' }}
+                        itemStyle={{ color: '#fff', fontSize: '10px', fontWeight: 'bold' }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </div>
+
+                <div className="space-y-2.5 mt-3">
+                  {estadoDataTotal.map((item, i) => (
+                    <div key={i} className="flex items-center justify-between px-3">
+                      <div className="flex items-center gap-3">
+                        <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }}></div>
+                        <span className="text-[10px] font-black text-slate-400 uppercase">{item.name}</span>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[9px] font-bold text-slate-500">({item.value})</span>
+                        <span className="text-[11px] font-black text-white tabular-nums">{item.percentage}%</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                <div className="mt-4 pt-3 border-t border-white/10 flex items-center justify-between px-3 text-[9px] font-bold text-slate-400 uppercase tracking-wider">
+                  <span>Total bruto: {metrics.totalEncuestas}</span>
+                  <span>Todos los registros</span>
+                </div>
+              </div>
+            </ChartWrapper>
+          )}
 
           {/* Rankings */}
           <ChartWrapper title="Top 5 Asesores (Calidad)" isDark={true} className="lg:col-span-4">

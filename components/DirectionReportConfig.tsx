@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import {
-  AlertCircle,
   ArrowLeft,
   ArrowRight,
   Bookmark,
@@ -8,12 +7,14 @@ import {
   Building2,
   Calendar,
   Check,
-  CheckCircle2,
+  ChevronDown,
+  ChevronUp,
   Clock,
   Copy,
-  FileSpreadsheet,
+  FileText,
   FolderOpen,
   Layers,
+  Settings2,
   Sparkles,
   Trash2,
 } from 'lucide-react';
@@ -21,7 +22,6 @@ import { MONTHS, YEARS } from '../constants';
 import {
   BranchSelection,
   ComputedDirectionReportData,
-  DataSourceStatus,
   DirectionModuleId,
   DirectionReportDocument,
   DirectionTargets,
@@ -33,13 +33,10 @@ import {
 } from '../types/directionReport';
 import {
   DEFAULT_DIRECTION_TARGETS,
-  DIRECTION_MODULES,
   estimatePageCount,
   formatMetricAr,
   getSuggestedModules,
-  MODULE_CATEGORIES,
   QUARTER_LABELS,
-  QUARTER_MONTHS,
 } from '../services/directionReportData';
 import {
   deleteFavoritePreset,
@@ -76,33 +73,135 @@ interface DirectionReportConfigProps {
   onBackToReportCenter: () => void;
 }
 
-const SOURCE_STATUS_STYLE: Record<DataSourceStatus, { bg: string; text: string; dot: string }> = {
-  available: {
-    bg: 'bg-emerald-50 border-emerald-200',
-    text: 'text-emerald-700',
-    dot: 'bg-emerald-500',
+interface CleanModuleItem {
+  id: DirectionModuleId;
+  label: string;
+  shortDesc: string;
+  group: 'principales' | 'estudios' | 'auditorias' | 'gestion';
+  tag: string;
+}
+
+const CLEAN_MODULE_LIST: CleanModuleItem[] = [
+  // Principales
+  {
+    id: 'ventas_os',
+    label: 'OS de Marca — Ventas (CEM)',
+    shortDesc: 'Calificación oficial CEM, cumplimiento y evolución',
+    group: 'principales',
+    tag: 'Ventas',
   },
-  partial: {
-    bg: 'bg-amber-50 border-amber-200',
-    text: 'text-amber-800',
-    dot: 'bg-amber-500',
+  {
+    id: 'postventa_lvs',
+    label: 'LVS Satisfacción — Postventa',
+    shortDesc: 'Índice de satisfacción oficial, evolución y desvíos',
+    group: 'principales',
+    tag: 'Postventa',
   },
-  pending_validation: {
-    bg: 'bg-sky-50 border-sky-200',
-    text: 'text-[#0072CE]',
-    dot: 'bg-[#0072CE]',
+  {
+    id: 'lavado',
+    label: 'Calidad de Lavado y Entrega (CEM Q6)',
+    shortDesc: 'Calificación de entrega y acondicionamiento',
+    group: 'principales',
+    tag: 'Postventa',
   },
-  manual: {
-    bg: 'bg-slate-100 border-slate-200',
-    text: 'text-[#001E50]',
-    dot: 'bg-[#001E50]',
+  {
+    id: 'evolucion_indicadores',
+    label: 'Evolución Anual Comparativa',
+    shortDesc: 'Histórico mes a mes con escala desde 4,5',
+    group: 'principales',
+    tag: 'Consolidado',
   },
-  unavailable: {
-    bg: 'bg-rose-50 border-rose-200',
-    text: 'text-rose-700',
-    dot: 'bg-rose-500',
+  {
+    id: 'cumplimiento_objetivos',
+    label: 'Cumplimiento de Objetivos',
+    shortDesc: 'Semáforo de cumplimiento vs metas de marca',
+    group: 'principales',
+    tag: 'Consolidado',
   },
-};
+
+  // Gestión de Calidad
+  {
+    id: 'planes_accion_integrados',
+    label: 'Planes de Acción por Indicador',
+    shortDesc: 'Causas raíz y acciones correctivas en hoja dedicada',
+    group: 'gestion',
+    tag: 'Calidad',
+  },
+  {
+    id: 'proximos_pasos',
+    label: 'Resumen Ejecutivo y Próximos Pasos',
+    shortDesc: 'Síntesis final y compromisos clave para Dirección',
+    group: 'gestion',
+    tag: 'Dirección',
+  },
+  {
+    id: 'evidencias_fotograficas',
+    label: 'Fotografías y Evidencias',
+    shortDesc: 'Lámina visual para fotos, auditorías o capturas',
+    group: 'gestion',
+    tag: 'Evidencias',
+  },
+
+  // Estudios de Red
+  {
+    id: 'encuestas_ssi',
+    label: 'Estudio SSI (Ventas VW)',
+    shortDesc: 'Satisfacción y recomendación de red oficial',
+    group: 'estudios',
+    tag: 'Red VW',
+  },
+  {
+    id: 'encuestas_csi',
+    label: 'Estudio CSI (Postventa VW)',
+    shortDesc: 'Satisfacción oficial de clientes de taller',
+    group: 'estudios',
+    tag: 'Red VW',
+  },
+  {
+    id: 'club_ssi',
+    label: 'Club SSI Especial',
+    shortDesc: 'Módulo de fidelización y seguimiento exclusivo',
+    group: 'estudios',
+    tag: 'Red VW',
+  },
+
+  // Auditorías e Incentivos
+  {
+    id: 'pcgc_ventas',
+    label: 'Auditoría PCGC (Ventas / PV)',
+    shortDesc: 'Cumplimiento por capítulos y desvíos mandatorios',
+    group: 'auditorias',
+    tag: 'Auditoría',
+  },
+  {
+    id: 'auditoria_iso',
+    label: 'Auditoría ISO 9001',
+    shortDesc: 'Resultados y hallazgos del sistema de gestión',
+    group: 'auditorias',
+    tag: 'Calidad',
+  },
+  {
+    id: 'auditoria_gams',
+    label: 'Auditoría GAMS / Garantías',
+    shortDesc: 'Evaluación de procesos de garantía y taller',
+    group: 'auditorias',
+    tag: 'Postventa',
+  },
+  {
+    id: 'incentivos_ventas',
+    label: 'Incentivos de Ventas',
+    shortDesc: 'Resumen de cumplimiento de escalas y bonus',
+    group: 'auditorias',
+    tag: 'Comercial',
+  },
+  {
+    id: 'incentivos_postventa',
+    label: 'Incentivos de Postventa',
+    shortDesc: 'Resumen de escala y liquidación de taller',
+    group: 'auditorias',
+    tag: 'Comercial',
+  },
+];
 
 export const DirectionReportConfig: React.FC<DirectionReportConfigProps> = ({
   reportName,
@@ -131,13 +230,12 @@ export const DirectionReportConfig: React.FC<DirectionReportConfigProps> = ({
   onDuplicateExistingDraft,
   onBackToReportCenter,
 }) => {
-  const [presets, setPresets] = useState<FavoriteReportPreset[]>([]);
+  const [showTargetsModal, setShowTargetsModal] = useState(false);
+  const [showDraftsSection, setShowDraftsSection] = useState(false);
   const [savedDrafts, setSavedDrafts] = useState<DirectionReportDocument[]>([]);
-  const [newPresetName, setNewPresetName] = useState('');
-  const [showPresetForm, setShowPresetForm] = useState(false);
+  const [activeTab, setActiveTab] = useState<'principales' | 'todos'>('principales');
 
   useEffect(() => {
-    void listFavoritePresets().then(setPresets);
     void listDirectionReportDrafts().then(setSavedDrafts);
   }, []);
 
@@ -149,840 +247,647 @@ export const DirectionReportConfig: React.FC<DirectionReportConfigProps> = ({
     }
   };
 
-  const handleApplySuggested = (type: ReportPeriodType) => {
-    onChangePeriodType(type);
-    const suggested = getSuggestedModules(type, rawSources, year, quarter);
-    onChangeEnabledModules(suggested);
+  // Preset Shortcuts
+  const applyPresetMinimal = () => {
+    onChangeEnabledModules([
+      'ventas_os',
+      'postventa_lvs',
+      'lavado',
+      'evolucion_indicadores',
+      'planes_accion_integrados',
+      'proximos_pasos',
+    ]);
   };
 
-  const handleSaveFavoritePreset = async () => {
-    if (!newPresetName.trim()) return;
-    await saveFavoritePreset({
-      name: newPresetName.trim(),
-      description: `${periodType === 'monthly' ? 'Mensual' : 'Trimestral'} · ${enabledModules.length} módulos`,
-      periodType,
-      branchSelection,
-      enabledModules,
-      surveySubOptions,
-    });
-    setNewPresetName('');
-    setShowPresetForm(false);
-    setPresets(await listFavoritePresets());
+  const applyPresetOfficial = () => {
+    onChangeEnabledModules(getSuggestedModules(periodType, rawSources, year, quarter));
   };
 
-  const handleApplyPreset = (preset: FavoriteReportPreset) => {
-    onChangePeriodType(preset.periodType);
-    onChangeBranchSelection(preset.branchSelection);
-    onChangeEnabledModules(preset.enabledModules);
-    onChangeSurveySubOptions(preset.surveySubOptions);
-  };
-
-  const handleDeletePreset = async (id: string) => {
-    await deleteFavoritePreset(id);
-    setPresets(await listFavoritePresets());
+  const applyPresetComplete = () => {
+    onChangeEnabledModules([
+      'ventas_os',
+      'postventa_lvs',
+      'lavado',
+      'cumplimiento_objetivos',
+      'evolucion_indicadores',
+      'encuestas_ssi',
+      'encuestas_csi',
+      'pcgc_ventas',
+      'planes_accion_integrados',
+      'proximos_pasos',
+      'evidencias_fotograficas',
+    ]);
   };
 
   const pageEstimation = estimatePageCount(enabledModules, branchSelection);
 
+  const displayedModules =
+    activeTab === 'principales'
+      ? CLEAN_MODULE_LIST.filter(m => m.group === 'principales' || m.group === 'gestion')
+      : CLEAN_MODULE_LIST;
+
   return (
-    <div className="min-h-screen bg-[#F5F7FA] text-[#001E50] font-sans pb-24">
+    <div className="min-h-screen bg-[#F8FAFC] text-[#001E50] font-sans pb-28">
       {/* Top Institutional Header */}
-      <header className="sticky top-0 z-40 border-b border-slate-200/80 bg-white/95 backdrop-blur-md px-6 md:px-12 py-3.5">
-        <div className="mx-auto flex max-w-[1480px] items-center justify-between gap-4">
-          <div className="flex items-center gap-3.5">
+      <header className="sticky top-0 z-30 border-b border-slate-200/80 bg-white/95 backdrop-blur-md px-4 sm:px-8 py-3.5">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
             <button
               type="button"
               onClick={onBackToReportCenter}
               className="inline-flex items-center justify-center rounded-xl border border-slate-200 bg-slate-50 p-2 text-[#5A6A85] transition hover:border-[#0072CE] hover:text-[#001E50]"
-              title="Volver al Centro de Informes"
+              title="Volver"
             >
               <ArrowLeft className="h-4 w-4" />
             </button>
-            <div className="flex h-9 w-9 items-center justify-center rounded-full border-2 border-[#001E50] text-xs font-black italic text-[#001E50]">
+            <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-[#001E50] text-xs font-black text-white">
               VW
             </div>
             <div>
-              <div className="flex items-center gap-2">
-                <span className="text-base font-extrabold text-[#001E50]">
-                  Informe Ejecutivo para Dirección
-                </span>
-                <span className="rounded-md bg-[#001E50]/8 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-[#0072CE]">
-                  Paso 1 · Configuración
-                </span>
-              </div>
+              <h1 className="text-sm sm:text-base font-extrabold text-[#001E50]">
+                Nuevo Informe para Dirección
+              </h1>
               <p className="text-[11px] text-[#5A6A85]">
-                Definí el período, sucursales y módulos antes de componer el diseño A4 horizontal
+                Configuración rápida · A4 Horizontal
               </p>
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
-            <div className="hidden md:flex flex-col items-end text-right">
-              <span className="text-[10px] font-bold uppercase tracking-wider text-[#5A6A85]">
-                Estimación de extensión
-              </span>
-              <span className="text-xs font-extrabold text-[#001E50]">
-                {pageEstimation.label} (A4 Horizontal)
-              </span>
-            </div>
+          <div className="flex items-center gap-2 sm:gap-3">
+            <span className="hidden sm:inline-block rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-bold text-[#5A6A85]">
+              {pageEstimation.label}
+            </span>
 
             <button
               type="button"
               onClick={onGenerateAndOpenEditor}
-              className="inline-flex items-center gap-2.5 rounded-xl bg-[#001E50] px-5 py-2.5 text-xs font-extrabold uppercase tracking-wider text-white shadow-lg shadow-[#001E50]/20 transition hover:bg-[#0072CE]"
+              className="inline-flex items-center gap-2 rounded-xl bg-[#001E50] px-4 sm:px-5 py-2.5 text-xs font-extrabold text-white shadow-md shadow-[#001E50]/15 transition hover:bg-[#0072CE]"
             >
-              <span>Generar Diseño y Abrir Editor</span>
+              <span>Generar Informe</span>
               <ArrowRight className="h-4 w-4" />
             </button>
           </div>
         </div>
       </header>
 
-      <main className="mx-auto max-w-[1480px] px-6 md:px-12 pt-8 space-y-8">
-        {/* Source Warning if any failed */}
-        {rawSources && rawSources.failedSources.length > 0 && (
-          <div className="rounded-2xl border border-amber-300 bg-amber-50 px-5 py-3.5 text-xs text-amber-900 flex items-center justify-between gap-4">
-            <div className="flex items-center gap-2.5 font-semibold">
-              <AlertCircle className="h-4 w-4 text-amber-600 shrink-0" />
-              <span>
-                Algunas fuentes secundarias no respondieron ({rawSources.failedSources.join(', ')}). Podés continuar con el informe utilizando las fuentes disponibles y los bloques editables sin datos ficticios.
-              </span>
+      {/* Main Container */}
+      <main className="mx-auto max-w-5xl px-4 sm:px-8 pt-6 space-y-6">
+        {/* BLOQUE 1: PERÍODO Y SUCURSAL */}
+        <section className="rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs space-y-5">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+            <div className="flex items-center gap-2">
+              <Calendar className="h-4 w-4 text-[#0072CE]" />
+              <h2 className="text-sm font-extrabold uppercase tracking-wider text-[#001E50]">
+                1. Período y Concesionario
+              </h2>
             </div>
+            {/* Period Status Badge */}
+            <span
+              className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
+                computed.isClosedPeriod
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
+                  : 'bg-amber-50 text-amber-800 border border-amber-200'
+              }`}
+            >
+              <Clock className="h-3 w-3" />
+              {computed.periodClosureStatusLabel}
+            </span>
           </div>
-        )}
 
-        {/* STEP 1 & 2: PERIOD, BRANCHES & LIVE SNAPSHOT */}
-        <section className="grid grid-cols-1 lg:grid-cols-12 gap-6">
-          {/* Left 8 Cols: Period Type, Year, Month/Quarter & Branch Selector */}
-          <div className="lg:col-span-8 rounded-3xl border border-slate-200/90 bg-white p-6 md:p-8 shadow-xs space-y-6">
-            {/* Report Title */}
-            <div>
-              <label className="block text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#0072CE]">
-                Nombre identificatorio del informe
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+            {/* Modalidad: Mensual vs Trimestral */}
+            <div className="space-y-3">
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-[#5A6A85]">
+                Tipo de Período
               </label>
-              <input
-                type="text"
-                value={reportName}
-                onChange={e => onChangeReportName(e.target.value)}
-                placeholder="Ej: Informe Ejecutivo Dirección — Q3 2026"
-                className="mt-1.5 w-full rounded-xl border border-slate-200 bg-[#F5F7FA] px-4 py-2.5 text-base font-extrabold text-[#001E50] outline-none transition focus:border-[#0072CE] focus:bg-white"
-              />
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2 border-t border-slate-100">
-              {/* 3.1 Tipo de Informe */}
-              <div className="space-y-3">
-                <label className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-[#001E50]">
-                  <Calendar className="h-4 w-4 text-[#0072CE]" />
-                  1. Tipo de Informe y Período
-                </label>
+              {/* Segmented Control */}
+              <div className="grid grid-cols-2 gap-1 rounded-xl bg-slate-100 p-1">
+                <button
+                  type="button"
+                  onClick={() => onChangePeriodType('monthly')}
+                  className={`rounded-lg py-2 text-xs font-extrabold transition ${
+                    periodType === 'monthly'
+                      ? 'bg-white text-[#001E50] shadow-xs'
+                      : 'text-[#5A6A85] hover:text-[#001E50]'
+                  }`}
+                >
+                  Mensual
+                </button>
+                <button
+                  type="button"
+                  onClick={() => onChangePeriodType('quarterly')}
+                  className={`rounded-lg py-2 text-xs font-extrabold transition ${
+                    periodType === 'quarterly'
+                      ? 'bg-white text-[#001E50] shadow-xs'
+                      : 'text-[#5A6A85] hover:text-[#001E50]'
+                  }`}
+                >
+                  Trimestral
+                </button>
+              </div>
 
-                <div className="grid grid-cols-2 gap-2.5">
-                  <button
-                    type="button"
-                    onClick={() => handleApplySuggested('monthly')}
-                    className={`flex flex-col items-start rounded-2xl border-2 p-3.5 text-left transition ${
-                      periodType === 'monthly'
-                        ? 'border-[#001E50] bg-[#001E50] text-white shadow-md'
-                        : 'border-slate-200 bg-[#F5F7FA] text-[#001E50] hover:border-slate-300'
-                    }`}
+              {/* Selectores Año y Mes/Trimestre */}
+              <div className="grid grid-cols-2 gap-2.5 pt-1">
+                <div>
+                  <label className="block text-[10px] font-bold text-[#5A6A85] mb-1">
+                    Año
+                  </label>
+                  <select
+                    aria-label="Año del informe"
+                    value={year}
+                    onChange={e => onChangeYear(Number(e.target.value))}
+                    className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-[#001E50] outline-none focus:border-[#0072CE] focus:bg-white"
                   >
-                    <span className="text-xs font-extrabold uppercase tracking-wider">
-                      Informe Mensual
-                    </span>
-                    <span
-                      className={`mt-1 text-[11px] leading-snug ${
-                        periodType === 'monthly' ? 'text-sky-200' : 'text-[#5A6A85]'
-                      }`}
-                    >
-                      Seguimiento operativo de un mes específico
-                    </span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleApplySuggested('quarterly')}
-                    className={`flex flex-col items-start rounded-2xl border-2 p-3.5 text-left transition ${
-                      periodType === 'quarterly'
-                        ? 'border-[#001E50] bg-[#001E50] text-white shadow-md'
-                        : 'border-slate-200 bg-[#F5F7FA] text-[#001E50] hover:border-slate-300'
-                    }`}
-                  >
-                    <span className="text-xs font-extrabold uppercase tracking-wider">
-                      Informe Trimestral
-                    </span>
-                    <span
-                      className={`mt-1 text-[11px] leading-snug ${
-                        periodType === 'quarterly' ? 'text-sky-200' : 'text-[#5A6A85]'
-                      }`}
-                    >
-                      Consolidado real Q1, Q2, Q3 o Q4 sobre registros válidos
-                    </span>
-                  </button>
+                    {YEARS.map(y => (
+                      <option key={y} value={y}>
+                        Año {y}
+                      </option>
+                    ))}
+                  </select>
                 </div>
 
-                {/* Year & Month / Quarter Selectors */}
-                <div className="grid grid-cols-2 gap-3 pt-1">
+                {periodType === 'monthly' ? (
                   <div>
-                    <span className="block text-[10px] font-bold uppercase tracking-wider text-[#5A6A85] mb-1">
-                      Año de Estudio
-                    </span>
+                    <label className="block text-[10px] font-bold text-[#5A6A85] mb-1">
+                      Mes
+                    </label>
                     <select
-                      aria-label="Año del informe"
-                      value={year}
-                      onChange={e => onChangeYear(Number(e.target.value))}
-                      className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-extrabold text-[#001E50] outline-none focus:border-[#0072CE]"
+                      aria-label="Mes del informe"
+                      value={month}
+                      onChange={e => onChangeMonth(e.target.value)}
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-[#001E50] outline-none focus:border-[#0072CE] focus:bg-white"
                     >
-                      {YEARS.map(y => (
-                        <option key={y} value={y}>
-                          Año {y}
+                      {MONTHS.map(m => (
+                        <option key={m} value={m}>
+                          {m}
                         </option>
                       ))}
                     </select>
                   </div>
-
-                  {periodType === 'monthly' ? (
-                    <div>
-                      <span className="block text-[10px] font-bold uppercase tracking-wider text-[#5A6A85] mb-1">
-                        Mes de Estudio
-                      </span>
-                      <select
-                        aria-label="Mes del informe"
-                        value={month}
-                        onChange={e => onChangeMonth(e.target.value)}
-                        className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-extrabold text-[#001E50] outline-none focus:border-[#0072CE]"
-                      >
-                        {MONTHS.map(m => (
-                          <option key={m} value={m}>
-                            {m}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  ) : (
-                    <div>
-                      <span className="block text-[10px] font-bold uppercase tracking-wider text-[#5A6A85] mb-1">
-                        Trimestre Consolidado
-                      </span>
-                      <select
-                        aria-label="Trimestre del informe"
-                        value={quarter}
-                        onChange={e => onChangeQuarter(e.target.value as QuarterCode)}
-                        className="w-full rounded-xl border border-slate-200 bg-white px-3.5 py-2.5 text-xs font-extrabold text-[#001E50] outline-none focus:border-[#0072CE]"
-                      >
-                        {(['Q1', 'Q2', 'Q3', 'Q4'] as QuarterCode[]).map(q => (
-                          <option key={q} value={q}>
-                            {QUARTER_LABELS[q]}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-                  )}
-                </div>
+                ) : (
+                  <div>
+                    <label className="block text-[10px] font-bold text-[#5A6A85] mb-1">
+                      Trimestre
+                    </label>
+                    <select
+                      aria-label="Trimestre del informe"
+                      value={quarter}
+                      onChange={e => onChangeQuarter(e.target.value as QuarterCode)}
+                      className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-xs font-bold text-[#001E50] outline-none focus:border-[#0072CE] focus:bg-white"
+                    >
+                      {(['Q1', 'Q2', 'Q3', 'Q4'] as QuarterCode[]).map(q => (
+                        <option key={q} value={q}>
+                          {QUARTER_LABELS[q]}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
               </div>
+            </div>
 
-              {/* 3.2 Selección de Sucursales */}
-              <div className="space-y-3">
-                <label className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wider text-[#001E50]">
-                  <Building2 className="h-4 w-4 text-[#0072CE]" />
-                  2. Selección de Sucursales
-                </label>
+            {/* Sucursales */}
+            <div className="space-y-3">
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-[#5A6A85]">
+                Concesionario
+              </label>
 
-                <div className="space-y-2">
-                  {[
-                    {
-                      id: 'BOTH' as BranchSelection,
-                      title: 'Ambas Sucursales (Comparativo Jujuy / Salta)',
-                      desc: 'Compara Jujuy (3059) y Salta (3087) y evalúa desvíos individualmente',
-                    },
-                    {
-                      id: 'JUJUY' as BranchSelection,
-                      title: 'Autosol Jujuy (CE 3059)',
-                      desc: 'Informe exclusivo para la operación de Jujuy',
-                    },
-                    {
-                      id: 'SALTA' as BranchSelection,
-                      title: 'Autosol Salta (CE 3087)',
-                      desc: 'Informe exclusivo para la operación de Salta',
-                    },
-                  ].map(opt => (
-                    <button
-                      key={opt.id}
-                      type="button"
-                      onClick={() => onChangeBranchSelection(opt.id)}
-                      className={`w-full flex items-center justify-between rounded-xl border px-4 py-2.5 text-left transition ${
-                        branchSelection === opt.id
-                          ? 'border-[#0072CE] bg-sky-50/70 ring-1 ring-[#0072CE]'
-                          : 'border-slate-200 bg-[#F5F7FA]/60 hover:bg-white'
+              <div className="space-y-2">
+                {[
+                  {
+                    id: 'BOTH' as BranchSelection,
+                    label: 'Ambas Sucursales',
+                    desc: 'Jujuy (3059) y Salta (3087) por separado',
+                  },
+                  {
+                    id: 'JUJUY' as BranchSelection,
+                    label: 'Autosol Jujuy',
+                    desc: 'Concesionario 3059 únicamente',
+                  },
+                  {
+                    id: 'SALTA' as BranchSelection,
+                    label: 'Autosol Salta',
+                    desc: 'Concesionario 3087 únicamente',
+                  },
+                ].map(b => (
+                  <button
+                    key={b.id}
+                    type="button"
+                    onClick={() => onChangeBranchSelection(b.id)}
+                    className={`w-full flex items-center justify-between rounded-xl border px-3.5 py-2 text-left transition ${
+                      branchSelection === b.id
+                        ? 'border-[#0072CE] bg-sky-50/70 text-[#001E50] ring-1 ring-[#0072CE]'
+                        : 'border-slate-200 bg-slate-50/50 text-[#5A6A85] hover:bg-white hover:text-[#001E50]'
+                    }`}
+                  >
+                    <div>
+                      <p className="text-xs font-extrabold">{b.label}</p>
+                      <p className="text-[10px] text-slate-400">{b.desc}</p>
+                    </div>
+                    <span
+                      className={`flex h-4 w-4 items-center justify-center rounded-full border ${
+                        branchSelection === b.id
+                          ? 'border-[#0072CE] bg-[#0072CE] text-white'
+                          : 'border-slate-300 bg-white'
                       }`}
                     >
-                      <div>
-                        <p className="text-xs font-extrabold text-[#001E50]">{opt.title}</p>
-                        <p className="text-[10px] text-[#5A6A85]">{opt.desc}</p>
-                      </div>
-                      <span
-                        className={`flex h-5 w-5 items-center justify-center rounded-full border ${
-                          branchSelection === opt.id
-                            ? 'border-[#0072CE] bg-[#0072CE] text-white'
-                            : 'border-slate-300 bg-white'
-                        }`}
-                      >
-                        {branchSelection === opt.id && <Check className="h-3 w-3" />}
-                      </span>
-                    </button>
-                  ))}
-                </div>
+                      {branchSelection === b.id && <Check className="h-2.5 w-2.5" />}
+                    </span>
+                  </button>
+                ))}
               </div>
             </div>
           </div>
 
-          {/* Right 4 Cols: Live Period Status & Automatic Indicators Preview */}
-          <div className="lg:col-span-4 rounded-3xl border border-slate-200/90 bg-[#001E50] p-6 text-white flex flex-col justify-between shadow-lg">
-            <div>
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-[10px] font-extrabold uppercase tracking-[0.22em] text-sky-300">
-                  Diagnóstico del Período
-                </span>
-                <span
-                  className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-0.5 text-[10px] font-bold ${
-                    computed.isClosedPeriod
-                      ? 'bg-emerald-500/20 text-emerald-300 border border-emerald-400/30'
-                      : 'bg-amber-500/20 text-amber-200 border border-amber-400/30'
-                  }`}
-                >
-                  {computed.isClosedPeriod ? (
-                    <CheckCircle2 className="h-3 w-3" />
-                  ) : (
-                    <Clock className="h-3 w-3" />
-                  )}
-                  {computed.periodClosureStatusLabel}
-                </span>
-              </div>
-
-              <h3 className="mt-3 text-2xl font-extrabold tracking-tight">
-                {computed.periodLabel}
-              </h3>
-              <p className="mt-1 text-xs leading-relaxed text-slate-300">
-                {computed.periodClosureDetail}
-              </p>
-
-              {/* Quick Preview of Real Consolidated Metrics */}
-              <div className="mt-5 grid grid-cols-2 gap-3 border-t border-white/12 pt-4">
-                <div className="rounded-xl bg-white/8 p-3">
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-sky-300 block">
-                    OS Marca Consolidado
-                  </span>
-                  <p className="mt-1 text-xl font-extrabold tabular-nums">
-                    {isLoadingData ? '...' : formatMetricAr(computed.consolidated.osScore)}
-                  </p>
-                  <p className="text-[10px] text-slate-300">
-                    J: {formatMetricAr(computed.jujuy.osScore)} · S: {formatMetricAr(computed.salta.osScore)}
-                  </p>
-                </div>
-
-                <div className="rounded-xl bg-white/8 p-3">
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-sky-300 block">
-                    LVS Postventa (Q4)
-                  </span>
-                  <p className="mt-1 text-xl font-extrabold tabular-nums">
-                    {isLoadingData ? '...' : formatMetricAr(computed.consolidated.lvsScore)}
-                  </p>
-                  <p className="text-[10px] text-slate-300">
-                    J: {formatMetricAr(computed.jujuy.lvsScore)} · S: {formatMetricAr(computed.salta.lvsScore)}
-                  </p>
-                </div>
-
-                <div className="rounded-xl bg-white/8 p-3">
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-sky-300 block">
-                    Lavado CEM Q6
-                  </span>
-                  <p className="mt-1 text-xl font-extrabold tabular-nums">
-                    {isLoadingData ? '...' : formatMetricAr(computed.consolidated.lvsLavadoQ6)}
-                  </p>
-                  <p className="text-[10px] text-slate-300">
-                    Meta: {formatMetricAr(targets.lavado ?? 4.5)} pts
-                  </p>
-                </div>
-
-                <div className="rounded-xl bg-white/8 p-3">
-                  <span className="text-[9px] font-bold uppercase tracking-wider text-sky-300 block">
-                    Composición Estimada
-                  </span>
-                  <p className="mt-1 text-base font-extrabold text-sky-300">
-                    {pageEstimation.label}
-                  </p>
-                  <p className="text-[10px] text-slate-300">
-                    {enabledModules.length} módulos activos
-                  </p>
-                </div>
-              </div>
-            </div>
-
-            <div className="mt-5 pt-3 border-t border-white/12">
-              <button
-                type="button"
-                onClick={onGenerateAndOpenEditor}
-                className="w-full inline-flex items-center justify-between rounded-xl bg-[#0072CE] px-4 py-3 text-xs font-extrabold uppercase tracking-wider text-white transition hover:bg-sky-500"
-              >
-                <span>Ingresar al Editor Visual</span>
-                <ArrowRight className="h-4 w-4" />
-              </button>
-            </div>
+          {/* Nombre identificatorio */}
+          <div className="border-t border-slate-100 pt-3">
+            <label className="block text-[10px] font-bold uppercase tracking-wider text-[#5A6A85] mb-1">
+              Título del Informe
+            </label>
+            <input
+              type="text"
+              value={reportName}
+              onChange={e => onChangeReportName(e.target.value)}
+              placeholder="Ej: Informe Ejecutivo Dirección"
+              className="w-full rounded-xl border border-slate-200 bg-slate-50 px-3.5 py-2 text-xs font-bold text-[#001E50] outline-none focus:border-[#0072CE] focus:bg-white"
+            />
           </div>
         </section>
 
-        {/* STEP 2: OBJETIVOS VIGENTES DE MARCA */}
-        <section className="rounded-3xl border border-slate-200/90 bg-white p-6 md:p-8 shadow-xs space-y-4">
+        {/* BLOQUE 2: CONTENIDO DEL INFORME (SELECCIÓN RÁPIDA Y LIMPIA) */}
+        <section className="rounded-2xl border border-slate-200/90 bg-white p-5 sm:p-6 shadow-xs space-y-4">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
             <div>
-              <span className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#0072CE]">
-                2. Objetivos Oficiales de Marca
-              </span>
-              <h2 className="mt-0.5 text-lg font-extrabold text-[#001E50]">
-                Metas del Período para Dirección
-              </h2>
-              <p className="text-xs text-[#5A6A85]">
-                Definí los umbrales de cumplimiento de marca para este informe. Podés ajustarlos o usar los valores estándar.
+              <div className="flex items-center gap-2">
+                <Layers className="h-4 w-4 text-[#0072CE]" />
+                <h2 className="text-sm font-extrabold uppercase tracking-wider text-[#001E50]">
+                  2. Contenido a Incluir en el Informe
+                </h2>
+              </div>
+              <p className="text-[11px] text-[#5A6A85] mt-0.5">
+                Activá los módulos que querés mostrar. El informe se compondrá automáticamente.
               </p>
             </div>
+
+            {/* Accesos rápidos minimalistas */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              <button
+                type="button"
+                onClick={applyPresetMinimal}
+                className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-[#001E50] hover:bg-white hover:border-[#0072CE] transition"
+              >
+                <Sparkles className="h-3 w-3 text-[#0072CE]" />
+                Recomendado Dirección
+              </button>
+              <button
+                type="button"
+                onClick={applyPresetComplete}
+                className="rounded-lg border border-slate-200 bg-slate-50 px-2.5 py-1 text-[11px] font-bold text-[#5A6A85] hover:bg-white hover:text-[#001E50] transition"
+              >
+                Completo
+              </button>
+            </div>
+          </div>
+
+          {/* Filtro Principales vs Todos */}
+          <div className="flex items-center gap-2">
             <button
               type="button"
-              onClick={() => onChangeTargets(DEFAULT_DIRECTION_TARGETS)}
-              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-[#F5F7FA] px-3 py-1.5 text-xs font-bold text-[#001E50] hover:border-[#0072CE] hover:bg-white transition shrink-0"
+              onClick={() => setActiveTab('principales')}
+              className={`rounded-lg px-3 py-1 text-xs font-bold transition ${
+                activeTab === 'principales'
+                  ? 'bg-[#001E50] text-white'
+                  : 'bg-slate-100 text-[#5A6A85] hover:text-[#001E50]'
+              }`}
             >
-              <Sparkles className="h-3.5 w-3.5 text-[#0072CE]" />
-              Restablecer Metas Oficiales VW
+              Módulos Principales ({CLEAN_MODULE_LIST.filter(m => m.group === 'principales' || m.group === 'gestion').length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setActiveTab('todos')}
+              className={`rounded-lg px-3 py-1 text-xs font-bold transition ${
+                activeTab === 'todos'
+                  ? 'bg-[#001E50] text-white'
+                  : 'bg-slate-100 text-[#5A6A85] hover:text-[#001E50]'
+              }`}
+            >
+              Todos los Módulos ({CLEAN_MODULE_LIST.length})
             </button>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5 pt-1">
-            {/* CEM OS */}
-            <div className="rounded-2xl border border-slate-200 bg-[#F5F7FA]/70 p-3.5 hover:border-sky-300 transition">
-              <span className="text-[9px] font-extrabold uppercase tracking-wider text-[#5A6A85] block">
-                CEM OS Ventas
-              </span>
-              <div className="mt-1.5 flex items-baseline gap-1">
-                <input
-                  type="number"
-                  step="0.05"
-                  min="1"
-                  max="5"
-                  value={targets.os ?? ''}
-                  onChange={e =>
-                    onChangeTargets({
-                      ...targets,
-                      os: e.target.value === '' ? null : Number(e.target.value),
-                    })
-                  }
-                  className="w-20 rounded-lg border border-slate-200 bg-white px-2 py-1 text-base font-extrabold text-[#001E50] outline-none focus:border-[#0072CE]"
-                />
-                <span className="text-xs font-bold text-[#5A6A85]">/ 5.0</span>
-              </div>
-              <p className="mt-1 text-[10px] text-[#5A6A85]">Meta estándar: ≥ 4.60</p>
-            </div>
-
-            {/* CEM LVS */}
-            <div className="rounded-2xl border border-slate-200 bg-[#F5F7FA]/70 p-3.5 hover:border-sky-300 transition">
-              <span className="text-[9px] font-extrabold uppercase tracking-wider text-[#5A6A85] block">
-                CEM LVS Postventa (Q4)
-              </span>
-              <div className="mt-1.5 flex items-baseline gap-1">
-                <input
-                  type="number"
-                  step="0.05"
-                  min="1"
-                  max="5"
-                  value={targets.lvs ?? ''}
-                  onChange={e =>
-                    onChangeTargets({
-                      ...targets,
-                      lvs: e.target.value === '' ? null : Number(e.target.value),
-                    })
-                  }
-                  className="w-20 rounded-lg border border-slate-200 bg-white px-2 py-1 text-base font-extrabold text-[#001E50] outline-none focus:border-[#0072CE]"
-                />
-                <span className="text-xs font-bold text-[#5A6A85]">/ 5.0</span>
-              </div>
-              <p className="mt-1 text-[10px] text-[#5A6A85]">Meta estándar: ≥ 4.80</p>
-            </div>
-
-            {/* Lavado CEM Q6 */}
-            <div className="rounded-2xl border border-slate-200 bg-[#F5F7FA]/70 p-3.5 hover:border-sky-300 transition">
-              <span className="text-[9px] font-extrabold uppercase tracking-wider text-[#5A6A85] block">
-                Calidad Lavado (CEM Q6)
-              </span>
-              <div className="mt-1.5 flex items-baseline gap-1">
-                <input
-                  type="number"
-                  step="0.05"
-                  min="1"
-                  max="5"
-                  value={targets.lavado ?? ''}
-                  onChange={e =>
-                    onChangeTargets({
-                      ...targets,
-                      lavado: e.target.value === '' ? null : Number(e.target.value),
-                    })
-                  }
-                  className="w-20 rounded-lg border border-slate-200 bg-white px-2 py-1 text-base font-extrabold text-[#001E50] outline-none focus:border-[#0072CE]"
-                />
-                <span className="text-xs font-bold text-[#5A6A85]">/ 5.0</span>
-              </div>
-              <p className="mt-1 text-[10px] text-[#5A6A85]">Meta estándar: ≥ 4.50</p>
-            </div>
-
-            {/* SSI */}
-            <div className="rounded-2xl border border-slate-200 bg-[#F5F7FA]/70 p-3.5 hover:border-sky-300 transition">
-              <span className="text-[9px] font-extrabold uppercase tracking-wider text-[#5A6A85] block">
-                Estudio SSI Ventas
-              </span>
-              <div className="mt-1.5 flex items-baseline gap-1">
-                <input
-                  type="number"
-                  step="0.1"
-                  min="1"
-                  max="10"
-                  value={targets.ssi ?? ''}
-                  onChange={e =>
-                    onChangeTargets({
-                      ...targets,
-                      ssi: e.target.value === '' ? null : Number(e.target.value),
-                    })
-                  }
-                  className="w-20 rounded-lg border border-slate-200 bg-white px-2 py-1 text-base font-extrabold text-[#001E50] outline-none focus:border-[#0072CE]"
-                />
-                <span className="text-xs font-bold text-[#5A6A85]">/ 10</span>
-              </div>
-              <p className="mt-1 text-[10px] text-[#5A6A85]">Meta estándar: ≥ 8.80</p>
-            </div>
-
-            {/* CSI */}
-            <div className="rounded-2xl border border-slate-200 bg-[#F5F7FA]/70 p-3.5 hover:border-sky-300 transition">
-              <span className="text-[9px] font-extrabold uppercase tracking-wider text-[#5A6A85] block">
-                Estudio CSI Postventa
-              </span>
-              <div className="mt-1.5 flex items-baseline gap-1">
-                <input
-                  type="number"
-                  step="0.1"
-                  min="1"
-                  max="10"
-                  value={targets.csi ?? ''}
-                  onChange={e =>
-                    onChangeTargets({
-                      ...targets,
-                      csi: e.target.value === '' ? null : Number(e.target.value),
-                    })
-                  }
-                  className="w-20 rounded-lg border border-slate-200 bg-white px-2 py-1 text-base font-extrabold text-[#001E50] outline-none focus:border-[#0072CE]"
-                />
-                <span className="text-xs font-bold text-[#5A6A85]">/ 10</span>
-              </div>
-              <p className="mt-1 text-[10px] text-[#5A6A85]">Meta estándar: ≥ 8.80</p>
-            </div>
-          </div>
-        </section>
-
-        {/* STEP 3: CONTENT SELECTION (GROUPS A - F) + SMART PRESETS */}
-        <section className="rounded-3xl border border-slate-200/90 bg-white p-6 md:p-8 shadow-xs space-y-6">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 border-b border-slate-100 pb-5">
-            <div>
-              <div className="inline-flex items-center gap-2 text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#0072CE]">
-                <Layers className="h-3.5 w-3.5" />
-                3. Selección Libre de Módulos e Indicadores
-              </div>
-              <h2 className="mt-1 text-xl font-extrabold text-[#001E50]">
-                Marcá o desmarcá qué información incluirá el informe
-              </h2>
-              <p className="text-xs text-[#5A6A85]">
-                El documento A4 se compondrá dinámicamente según tu selección, sin páginas vacías ni secciones forzadas.
-              </p>
-            </div>
-
-            {/* Smart Presets & Favorites Toolbar */}
-            <div className="flex flex-wrap items-center gap-2">
-              <button
-                type="button"
-                onClick={() =>
-                  onChangeEnabledModules(getSuggestedModules('monthly', rawSources, year, quarter))
-                }
-                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-[#F5F7FA] px-3 py-2 text-xs font-bold text-[#001E50] transition hover:border-[#0072CE] hover:bg-white"
-              >
-                <Sparkles className="h-3.5 w-3.5 text-[#0072CE]" />
-                Sugerida Mensual
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  onChangeEnabledModules(getSuggestedModules('quarterly', rawSources, year, quarter))
-                }
-                className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-[#F5F7FA] px-3 py-2 text-xs font-bold text-[#001E50] transition hover:border-[#0072CE] hover:bg-white"
-              >
-                <Sparkles className="h-3.5 w-3.5 text-[#0072CE]" />
-                Sugerida Trimestral
-              </button>
-              <button
-                type="button"
-                onClick={() =>
-                  onChangeEnabledModules(['ventas_os', 'postventa_lvs', 'planes_accion_integrados'])
-                }
-                className="rounded-xl border border-slate-200 bg-white px-3 py-2 text-xs font-bold text-[#5A6A85] hover:border-slate-300 hover:text-[#001E50]"
-              >
-                Síntesis Breve (OS + LVS)
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowPresetForm(!showPresetForm)}
-                className="inline-flex items-center gap-1.5 rounded-xl bg-[#001E50] px-3 py-2 text-xs font-bold text-white hover:bg-[#0072CE]"
-              >
-                <Bookmark className="h-3.5 w-3.5" />
-                Guardar Favorita
-              </button>
-            </div>
-          </div>
-
-          {/* Save Favorite Configuration Form */}
-          {showPresetForm && (
-            <div className="flex flex-wrap items-center gap-3 rounded-2xl border border-sky-200 bg-sky-50/60 p-4">
-              <input
-                type="text"
-                value={newPresetName}
-                onChange={e => setNewPresetName(e.target.value)}
-                placeholder="Nombre de la configuración favorita (ej: Cierre Trimestral Completo)..."
-                className="flex-1 min-w-[240px] rounded-xl border border-slate-200 bg-white px-3.5 py-2 text-xs font-bold text-[#001E50] outline-none"
-              />
-              <button
-                type="button"
-                onClick={handleSaveFavoritePreset}
-                className="rounded-xl bg-[#0072CE] px-4 py-2 text-xs font-bold text-white hover:bg-[#001E50]"
-              >
-                Guardar configuración
-              </button>
-              <button
-                type="button"
-                onClick={() => setShowPresetForm(false)}
-                className="text-xs font-semibold text-[#5A6A85] hover:text-[#001E50]"
-              >
-                Cancelar
-              </button>
-            </div>
-          )}
-
-          {/* Saved Favorite Presets Pills */}
-          {presets.length > 0 && (
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#5A6A85] mr-1">
-                Favoritas guardadas:
-              </span>
-              {presets.map(preset => (
-                <div
-                  key={preset.id}
-                  className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-[#F5F7FA] pl-3 pr-1.5 py-1 text-xs"
-                >
-                  <button
-                    type="button"
-                    onClick={() => handleApplyPreset(preset)}
-                    className="font-bold text-[#001E50] hover:text-[#0072CE] flex items-center gap-1"
-                  >
-                    <BookmarkCheck className="h-3.5 w-3.5 text-[#0072CE]" />
-                    <span>{preset.name}</span>
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => handleDeletePreset(preset.id)}
-                    className="rounded p-1 text-slate-400 hover:text-red-600"
-                    title="Eliminar configuración favorita"
-                  >
-                    <Trash2 className="h-3 w-3" />
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {/* Module Groups A through F */}
-          <div className="space-y-8">
-            {MODULE_CATEGORIES.map(category => {
-              const catModules = DIRECTION_MODULES.filter(m => m.category === category.key);
-
+          {/* Grilla compacta de módulos */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 pt-1">
+            {displayedModules.map(mod => {
+              const isChecked = enabledModules.includes(mod.id);
               return (
-                <div key={category.key} className="space-y-3">
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#001E50] text-xs font-extrabold text-white">
-                      {category.letter}
-                    </span>
-                    <div>
-                      <h3 className="text-sm font-extrabold text-[#001E50]">{category.title}</h3>
-                      <p className="text-[11px] text-[#5A6A85]">{category.subtitle}</p>
+                <div
+                  key={mod.id}
+                  onClick={() => toggleModule(mod.id)}
+                  role="checkbox"
+                  aria-checked={isChecked}
+                  tabIndex={0}
+                  onKeyDown={e => {
+                    if (e.key === ' ' || e.key === 'Enter') {
+                      e.preventDefault();
+                      toggleModule(mod.id);
+                    }
+                  }}
+                  className={`cursor-pointer rounded-xl border p-3 transition select-none flex items-start gap-2.5 ${
+                    isChecked
+                      ? 'border-[#0072CE] bg-sky-50/50 ring-1 ring-[#0072CE]/60'
+                      : 'border-slate-200 bg-white hover:border-slate-300 hover:bg-slate-50/50'
+                  }`}
+                >
+                  <span
+                    className={`mt-0.5 flex h-4 w-4 shrink-0 items-center justify-center rounded border transition ${
+                      isChecked
+                        ? 'border-[#001E50] bg-[#001E50] text-white'
+                        : 'border-slate-300 bg-white'
+                    }`}
+                  >
+                    {isChecked && <Check className="h-3 w-3" />}
+                  </span>
+
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-1.5">
+                      <p className="text-xs font-bold text-[#001E50] truncate">{mod.label}</p>
+                      <span className="shrink-0 rounded px-1.5 py-0.2 bg-slate-100 text-[9px] font-semibold text-slate-500">
+                        {mod.tag}
+                      </span>
                     </div>
+                    <p className="text-[10px] text-[#5A6A85] line-clamp-1 mt-0.5">{mod.shortDesc}</p>
                   </div>
-
-                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3.5">
-                    {catModules.map(mod => {
-                      const isChecked = enabledModules.includes(mod.id);
-                      const modStatus = computed.moduleStatuses[mod.id] || {
-                        status: mod.defaultSourceType,
-                        badgeLabel: 'Disponible',
-                        detail: '',
-                        recordCount: 0,
-                      };
-                      const style = SOURCE_STATUS_STYLE[modStatus.status];
-
-                      return (
-                        <div
-                          key={mod.id}
-                          onClick={() => toggleModule(mod.id)}
-                          role="checkbox"
-                          aria-checked={isChecked}
-                          tabIndex={0}
-                          onKeyDown={e => {
-                            if (e.key === ' ' || e.key === 'Enter') {
-                              e.preventDefault();
-                              toggleModule(mod.id);
-                            }
-                          }}
-                          className={`group cursor-pointer rounded-2xl border p-4 transition select-none flex flex-col justify-between ${
-                            isChecked
-                              ? 'border-[#0072CE] bg-sky-50/40 ring-1 ring-[#0072CE] shadow-xs'
-                              : 'border-slate-200 bg-[#F5F7FA]/50 hover:border-slate-300 hover:bg-white'
-                          }`}
-                        >
-                          <div>
-                            <div className="flex items-start justify-between gap-3">
-                              <div className="flex items-center gap-2.5">
-                                <span
-                                  className={`flex h-5 w-5 shrink-0 items-center justify-center rounded-md border transition ${
-                                    isChecked
-                                      ? 'border-[#001E50] bg-[#001E50] text-white'
-                                      : 'border-slate-300 bg-white'
-                                  }`}
-                                >
-                                  {isChecked && <Check className="h-3.5 w-3.5" />}
-                                </span>
-                                <span className="text-xs font-extrabold text-[#001E50]">
-                                  {mod.label}
-                                </span>
-                              </div>
-                            </div>
-
-                            <p className="mt-2 text-[11px] leading-relaxed text-[#5A6A85]">
-                              {mod.description}
-                            </p>
-                          </div>
-
-                          <div className="mt-3 flex items-center justify-between gap-2 border-t border-slate-200/60 pt-2.5">
-                            <span
-                              className={`inline-flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[9px] font-bold ${style.bg} ${style.text}`}
-                            >
-                              <span className={`h-1.5 w-1.5 rounded-full ${style.dot}`} />
-                              {modStatus.badgeLabel}
-                            </span>
-                            <span className="text-[10px] font-medium text-[#5A6A85] truncate max-w-[160px]">
-                              {modStatus.detail}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {/* Sub-options for Group B (Encuestas SSI / CSI) */}
-                  {category.key === 'B_encuestas' &&
-                    (enabledModules.includes('encuestas_ssi') ||
-                      enabledModules.includes('encuestas_csi') ||
-                      enabledModules.includes('club_ssi')) && (
-                      <div className="mt-2 rounded-2xl border border-slate-200 bg-[#F5F7FA] p-4">
-                        <p className="text-[10px] font-extrabold uppercase tracking-wider text-[#001E50] mb-2.5">
-                          Métricas a visualizar dentro de las láminas de Encuestas (SSI / CSI):
-                        </p>
-                        <div className="flex flex-wrap gap-3">
-                          {[
-                            { key: 'showGeneralSatisfaction' as const, label: 'Satisfacción general' },
-                            { key: 'showRecommendation' as const, label: 'Recomendación' },
-                            { key: 'showMarketComparison' as const, label: 'Comparación Media de Mercado' },
-                            { key: 'showTop5Comparison' as const, label: 'Comparación Top 5' },
-                            { key: 'showDissatisfactionReasons' as const, label: 'Principales motivos de insatisfacción' },
-                          ].map(sub => (
-                            <label
-                              key={sub.key}
-                              className="inline-flex items-center gap-2 rounded-xl border border-slate-200 bg-white px-3 py-1.5 text-xs font-semibold text-[#001E50] cursor-pointer"
-                            >
-                              <input
-                                type="checkbox"
-                                checked={surveySubOptions[sub.key]}
-                                onChange={e =>
-                                  onChangeSurveySubOptions({
-                                    ...surveySubOptions,
-                                    [sub.key]: e.target.checked,
-                                  })
-                                }
-                                className="rounded text-[#001E50]"
-                              />
-                              <span>{sub.label}</span>
-                            </label>
-                          ))}
-                        </div>
-                      </div>
-                    )}
                 </div>
               );
             })}
           </div>
+
+          {/* Sub-opciones de Encuestas SSI / CSI si están activas */}
+          {(enabledModules.includes('encuestas_ssi') || enabledModules.includes('encuestas_csi')) && (
+            <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 p-3">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-[#001E50] mb-2">
+                Métricas visibles en Encuestas de Red:
+              </p>
+              <div className="flex flex-wrap gap-2 text-xs">
+                {[
+                  { key: 'showGeneralSatisfaction' as const, label: 'Satisfacción general' },
+                  { key: 'showRecommendation' as const, label: 'Recomendación' },
+                  { key: 'showMarketComparison' as const, label: 'Media de Mercado' },
+                  { key: 'showTop5Comparison' as const, label: 'Top 5' },
+                ].map(sub => (
+                  <label
+                    key={sub.key}
+                    className="inline-flex items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-medium text-[#001E50] cursor-pointer"
+                  >
+                    <input
+                      type="checkbox"
+                      checked={surveySubOptions[sub.key]}
+                      onChange={e =>
+                        onChangeSurveySubOptions({
+                          ...surveySubOptions,
+                          [sub.key]: e.target.checked,
+                        })
+                      }
+                      className="rounded text-[#001E50]"
+                    />
+                    <span>{sub.label}</span>
+                  </label>
+                ))}
+              </div>
+            </div>
+          )}
         </section>
 
-        {/* Quick Access to Existing Drafts to Open or Duplicate */}
-        {savedDrafts.length > 0 && (
-          <section className="rounded-3xl border border-slate-200/90 bg-white p-6 md:p-8 shadow-xs">
-            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
-              <div className="flex items-center gap-2.5">
-                <FolderOpen className="h-5 w-5 text-[#0072CE]" />
-                <div>
-                  <h3 className="text-base font-extrabold text-[#001E50]">
-                    Reutilizar o Duplicar un Informe Anterior
-                  </h3>
-                  <p className="text-xs text-[#5A6A85]">
-                    Al duplicar un informe anterior se conserva todo su diseño e imágenes, se actualizan los indicadores automáticos al nuevo período y los textos manuales quedan marcados para revisión.
-                  </p>
+        {/* BLOQUE 3: OBJETIVOS DE MARCA (COLAPSABLE / MINIMALISTA) */}
+        <section className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-xs">
+          <div
+            onClick={() => setShowTargetsModal(!showTargetsModal)}
+            className="flex items-center justify-between cursor-pointer select-none"
+          >
+            <div className="flex items-center gap-2">
+              <Settings2 className="h-4 w-4 text-[#0072CE]" />
+              <div>
+                <span className="text-xs font-bold text-[#001E50]">
+                  Metas y Objetivos Oficiales de Marca
+                </span>
+                <span className="ml-2 text-[11px] text-[#5A6A85] hidden sm:inline">
+                  (OS ≥ {targets.os ?? 4.6} · LVS ≥ {targets.lvs ?? 4.8} · Lavado ≥ {targets.lavado ?? 4.5})
+                </span>
+              </div>
+            </div>
+            <div className="flex items-center gap-1.5 text-xs font-semibold text-[#0072CE]">
+              <span>{showTargetsModal ? 'Ocultar' : 'Ajustar metas'}</span>
+              {showTargetsModal ? (
+                <ChevronUp className="h-4 w-4" />
+              ) : (
+                <ChevronDown className="h-4 w-4" />
+              )}
+            </div>
+          </div>
+
+          {showTargetsModal && (
+            <div className="mt-4 pt-3 border-t border-slate-100 space-y-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-2.5">
+                  <span className="text-[10px] font-bold text-[#5A6A85] block">CEM OS Ventas</span>
+                  <input
+                    type="number"
+                    step="0.05"
+                    min="1"
+                    max="5"
+                    value={targets.os ?? ''}
+                    onChange={e =>
+                      onChangeTargets({
+                        ...targets,
+                        os: e.target.value === '' ? null : Number(e.target.value),
+                      })
+                    }
+                    className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-bold text-[#001E50]"
+                  />
+                  <span className="text-[9px] text-slate-400 block mt-0.5">Oficial: ≥ 4.60</span>
                 </div>
+
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-2.5">
+                  <span className="text-[10px] font-bold text-[#5A6A85] block">CEM LVS Postventa</span>
+                  <input
+                    type="number"
+                    step="0.05"
+                    min="1"
+                    max="5"
+                    value={targets.lvs ?? ''}
+                    onChange={e =>
+                      onChangeTargets({
+                        ...targets,
+                        lvs: e.target.value === '' ? null : Number(e.target.value),
+                      })
+                    }
+                    className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-bold text-[#001E50]"
+                  />
+                  <span className="text-[9px] text-slate-400 block mt-0.5">Oficial: ≥ 4.80</span>
+                </div>
+
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-2.5">
+                  <span className="text-[10px] font-bold text-[#5A6A85] block">Calidad Lavado Q6</span>
+                  <input
+                    type="number"
+                    step="0.05"
+                    min="1"
+                    max="5"
+                    value={targets.lavado ?? ''}
+                    onChange={e =>
+                      onChangeTargets({
+                        ...targets,
+                        lavado: e.target.value === '' ? null : Number(e.target.value),
+                      })
+                    }
+                    className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-bold text-[#001E50]"
+                  />
+                  <span className="text-[9px] text-slate-400 block mt-0.5">Oficial: ≥ 4.50</span>
+                </div>
+
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-2.5">
+                  <span className="text-[10px] font-bold text-[#5A6A85] block">Estudio SSI Ventas</span>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="1"
+                    max="10"
+                    value={targets.ssi ?? ''}
+                    onChange={e =>
+                      onChangeTargets({
+                        ...targets,
+                        ssi: e.target.value === '' ? null : Number(e.target.value),
+                      })
+                    }
+                    className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-bold text-[#001E50]"
+                  />
+                  <span className="text-[9px] text-slate-400 block mt-0.5">Oficial: ≥ 8.80</span>
+                </div>
+
+                <div className="rounded-xl border border-slate-200 bg-slate-50 p-2.5">
+                  <span className="text-[10px] font-bold text-[#5A6A85] block">Estudio CSI Postventa</span>
+                  <input
+                    type="number"
+                    step="0.1"
+                    min="1"
+                    max="10"
+                    value={targets.csi ?? ''}
+                    onChange={e =>
+                      onChangeTargets({
+                        ...targets,
+                        csi: e.target.value === '' ? null : Number(e.target.value),
+                      })
+                    }
+                    className="mt-1 w-full rounded-lg border border-slate-200 bg-white px-2 py-1 text-xs font-bold text-[#001E50]"
+                  />
+                  <span className="text-[9px] text-slate-400 block mt-0.5">Oficial: ≥ 8.80</span>
+                </div>
+              </div>
+
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={() => onChangeTargets(DEFAULT_DIRECTION_TARGETS)}
+                  className="text-xs font-bold text-[#0072CE] hover:underline"
+                >
+                  Restablecer valores oficiales estándar
+                </button>
+              </div>
+            </div>
+          )}
+        </section>
+
+        {/* BORRADORES ANTERIORES (COMPACTO Y COLAPSABLE) */}
+        {savedDrafts.length > 0 && (
+          <section className="rounded-2xl border border-slate-200/90 bg-white p-4 shadow-xs">
+            <div
+              onClick={() => setShowDraftsSection(!showDraftsSection)}
+              className="flex items-center justify-between cursor-pointer select-none"
+            >
+              <div className="flex items-center gap-2">
+                <FolderOpen className="h-4 w-4 text-[#5A6A85]" />
+                <span className="text-xs font-bold text-[#001E50]">
+                  Borradores e Informes Guardados ({savedDrafts.length})
+                </span>
+              </div>
+              <div className="flex items-center gap-1.5 text-xs font-semibold text-[#5A6A85]">
+                <span>{showDraftsSection ? 'Ocultar' : 'Ver borradores'}</span>
+                {showDraftsSection ? (
+                  <ChevronUp className="h-4 w-4" />
+                ) : (
+                  <ChevronDown className="h-4 w-4" />
+                )}
               </div>
             </div>
 
-            <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-3.5">
-              {savedDrafts.slice(0, 6).map(d => (
-                <div
-                  key={d.id}
-                  className="flex items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-[#F5F7FA]/60 p-4"
-                >
-                  <div className="min-w-0">
-                    <p className="text-xs font-extrabold text-[#001E50] truncate">{d.name}</p>
-                    <p className="text-[10px] text-[#5A6A85]">
-                      {d.periodType === 'monthly' ? `${d.month} ${d.year}` : `${d.quarter} ${d.year}`} ·{' '}
-                      {d.pages.filter(p => p.visible).length} págs.
-                    </p>
+            {showDraftsSection && (
+              <div className="mt-3 pt-3 border-t border-slate-100 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+                {savedDrafts.map(d => (
+                  <div
+                    key={d.id}
+                    className="flex items-center justify-between gap-2 rounded-xl border border-slate-200 bg-slate-50 p-2.5"
+                  >
+                    <div className="min-w-0">
+                      <p className="text-xs font-bold text-[#001E50] truncate">{d.name}</p>
+                      <p className="text-[10px] text-slate-500">
+                        {d.periodType === 'monthly' ? `${d.month} ${d.year}` : `${d.quarter} ${d.year}`} ·{' '}
+                        {d.pages.filter(p => p.visible).length} págs.
+                      </p>
+                    </div>
+                    <div className="flex items-center gap-1 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => onOpenExistingDraft(d)}
+                        className="rounded-lg bg-[#001E50] px-2 py-1 text-[10px] font-bold text-white hover:bg-[#0072CE]"
+                      >
+                        Abrir
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onDuplicateExistingDraft(d)}
+                        className="rounded-lg border border-slate-200 bg-white p-1 text-slate-600 hover:text-[#001E50]"
+                        title="Duplicar"
+                      >
+                        <Copy className="h-3 w-3" />
+                      </button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => onOpenExistingDraft(d)}
-                      className="rounded-lg bg-[#001E50] px-2.5 py-1.5 text-[10px] font-bold text-white hover:bg-[#0072CE]"
-                    >
-                      Abrir
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => onDuplicateExistingDraft(d)}
-                      className="inline-flex items-center gap-1 rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-[10px] font-bold text-[#001E50] hover:border-[#0072CE]"
-                    >
-                      <Copy className="h-3 w-3 text-[#0072CE]" />
-                      Duplicar
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </section>
         )}
       </main>
+
+      {/* Floating Bottom Action Bar */}
+      <div className="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200/90 bg-white/95 backdrop-blur-md px-4 py-3 shadow-lg">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-4">
+          <div className="min-w-0">
+            <p className="text-xs font-extrabold text-[#001E50] truncate">
+              {reportName}
+            </p>
+            <p className="text-[11px] text-[#5A6A85] truncate">
+              {periodType === 'monthly' ? `${month} ${year}` : `${QUARTER_LABELS[quarter]} ${year}`} ·{' '}
+              {branchSelection === 'BOTH'
+                ? 'Ambas Sucursales'
+                : branchSelection === 'JUJUY'
+                  ? 'Autosol Jujuy'
+                  : 'Autosol Salta'}{' '}
+              · Extensión estimada: {pageEstimation.label} ({enabledModules.length} módulos)
+            </p>
+          </div>
+
+          <button
+            type="button"
+            onClick={onGenerateAndOpenEditor}
+            className="inline-flex shrink-0 items-center gap-2 rounded-xl bg-[#001E50] px-6 py-2.5 text-xs font-extrabold text-white shadow-md shadow-[#001E50]/20 transition hover:bg-[#0072CE]"
+          >
+            <span>Generar y Abrir Editor</span>
+            <ArrowRight className="h-4 w-4" />
+          </button>
+        </div>
+      </div>
     </div>
   );
 };

@@ -1118,6 +1118,21 @@ export const DirectionPageTemplateRenderer: React.FC<DirectionPageTemplateRender
 
   // 2. PLANTILLA 2: RESUMEN EJECUTIVO
   if (page.templateType === 'executive_summary') {
+    const ssiResult =
+      computed.ssiStudy.validSurveysCount > 0
+        ? `${formatMetricAr(computed.ssiStudy.satisfactionAvg)} pts (${computed.ssiStudy.t2bPercent ?? 0}% T2B)`
+        : computed.csiStudy.validSurveysCount > 0
+          ? `${formatMetricAr(computed.csiStudy.satisfactionAvg)} pts (${computed.csiStudy.t2bPercent ?? 0}% T2B)`
+          : 'Sin registros';
+
+    const ssiTargetVal = doc.targets?.ssi ?? 8.8;
+    const ssiStatus =
+      computed.ssiStudy.validSurveysCount > 0
+        ? computed.ssiStudy.compliance
+        : computed.csiStudy.validSurveysCount > 0
+          ? computed.csiStudy.compliance
+          : ('pending_evaluation' as ComplianceStatus);
+
     const summaryCards = [
       {
         name: 'Ventas · OS de Marca (CEM)',
@@ -1152,71 +1167,30 @@ export const DirectionPageTemplateRenderer: React.FC<DirectionPageTemplateRender
           : null,
       },
       {
-        name: 'Postventa · Calidad de Lavado',
-        result: formatMetricAr(activeSnap.lvsLavadoQ6 ?? activeSnap.internalPvLavado),
+        name: 'Postventa · Calidad de Lavado (Q6)',
+        result: formatMetricAr(activeSnap.lvsLavadoQ6),
         target: formatMetricAr(activeSnap.lavadoTarget),
         diff:
-          (activeSnap.lvsLavadoQ6 ?? activeSnap.internalPvLavado) !== null &&
-          activeSnap.lavadoTarget !== null
-            ? `${
-                (activeSnap.lvsLavadoQ6 ?? activeSnap.internalPvLavado)! - activeSnap.lavadoTarget >= 0
-                  ? '+'
-                  : ''
-              }${formatMetricAr(
-                (activeSnap.lvsLavadoQ6 ?? activeSnap.internalPvLavado)! - activeSnap.lavadoTarget
+          activeSnap.lvsLavadoQ6 !== null && activeSnap.lavadoTarget !== null
+            ? `${activeSnap.lvsLavadoQ6 - activeSnap.lavadoTarget >= 0 ? '+' : ''}${formatMetricAr(
+                activeSnap.lvsLavadoQ6 - activeSnap.lavadoTarget
               )}`
             : '—',
-        status: activeSnap.lavadoCompliance,
-        meta: `CEM Q6: ${formatMetricAr(activeSnap.lvsLavadoQ6)} · Interna: ${formatMetricAr(activeSnap.internalPvLavado)}`,
+        status: evaluateCompliance(activeSnap.lvsLavadoQ6, activeSnap.lavadoTarget, 'up'),
+        meta: `Pregunta Q6 Encuesta Oficial Volkswagen`,
         branchCompare: isComparative
-          ? `Jujuy: ${formatMetricAr(computed.jujuy.lvsLavadoQ6 ?? computed.jujuy.internalPvLavado)} | Salta: ${formatMetricAr(
-              computed.salta.lvsLavadoQ6 ?? computed.salta.internalPvLavado
-            )}`
+          ? `Jujuy: ${formatMetricAr(computed.jujuy.lvsLavadoQ6)} | Salta: ${formatMetricAr(computed.salta.lvsLavadoQ6)}`
           : null,
       },
       {
-        name: 'Reclamos de Ventas',
-        result: `${activeSnap.salesClaimsTotal} casos`,
-        target: '0 pendientes',
-        diff: `${activeSnap.salesClaimsPending} pend.`,
-        status:
-          activeSnap.salesClaimsPending === 0
-            ? ('compliant' as ComplianceStatus)
-            : ('deviated' as ComplianceStatus),
-        meta: `${activeSnap.salesClaimsResolved} resueltos en el período`,
+        name: 'Estudios de Red · SSI / CSI',
+        result: ssiResult,
+        target: `>= ${formatMetricAr(ssiTargetVal)}`,
+        diff: `${computed.ssiStudy.validSurveysCount + computed.csiStudy.validSurveysCount} enc.`,
+        status: ssiStatus,
+        meta: `Muestra oficial de red: ${computed.ssiStudy.validSurveysCount} SSI / ${computed.csiStudy.validSurveysCount} CSI`,
         branchCompare: isComparative
-          ? `Jujuy: ${computed.jujuy.salesClaimsTotal} | Salta: ${computed.salta.salesClaimsTotal}`
-          : null,
-      },
-      {
-        name: 'Reclamos de Postventa',
-        result: `${activeSnap.pvClaimsTotal} reclamos`,
-        target: '>= 90% resueltos',
-        diff:
-          activeSnap.pvClaimsResolutionRatePct !== null
-            ? `${formatMetricAr(activeSnap.pvClaimsResolutionRatePct, 1, '%')}`
-            : '—',
-        status:
-          activeSnap.pvClaimsTotal === 0
-            ? ('compliant' as ComplianceStatus)
-            : evaluateCompliance(activeSnap.pvClaimsResolutionRatePct, 90, 'up'),
-        meta: `${activeSnap.pvClaimsUniqueOr} OR únicas · ${activeSnap.pvClaimsPending} pendientes`,
-        branchCompare: isComparative
-          ? `Jujuy: ${computed.jujuy.pvClaimsTotal} (${computed.jujuy.pvClaimsUniqueOr} OR) | Salta: ${computed.salta.pvClaimsTotal} (${computed.salta.pvClaimsUniqueOr} OR)`
-          : null,
-      },
-      {
-        name: 'Encuestas Internas (Ventas / PV)',
-        result: `V: ${formatMetricAr(activeSnap.internalSalesOsScore)} · PV: ${formatMetricAr(activeSnap.internalPvService)}`,
-        target: '>= 4,50',
-        diff: `${activeSnap.internalSalesCount + activeSnap.internalPvCount} resp.`,
-        status:
-          activeSnap.internalSalesOsScore !== null || activeSnap.internalPvService !== null
-            ? ('compliant' as ComplianceStatus)
-            : ('pending_evaluation' as ComplianceStatus),
-        meta: `Muestra interna: ${activeSnap.internalSalesCount} Ventas / ${activeSnap.internalPvCount} Postventa`,
-        branchCompare: isComparative
-          ? `Jujuy PV: ${formatMetricAr(computed.jujuy.internalPvService)} | Salta PV: ${formatMetricAr(computed.salta.internalPvService)}`
+          ? `Jujuy: ${formatMetricAr(computed.ssiStudy.byBranch.JUJUY.satisfactionAvg)} | Salta: ${formatMetricAr(computed.ssiStudy.byBranch.SALTA.satisfactionAvg)}`
           : null,
       },
     ];
@@ -1238,8 +1212,8 @@ export const DirectionPageTemplateRenderer: React.FC<DirectionPageTemplateRender
             onConfirmReview={() => onUpdatePage({ isInheritedPendingReview: false })}
           />
 
-          {/* 6 Executive KPI Cards Grid */}
-          <div className="grid grid-cols-3 gap-3">
+          {/* 4 Executive KPI Cards Grid */}
+          <div className="grid grid-cols-4 gap-3">
             {summaryCards.map(card => (
               <div
                 key={card.name}
@@ -1386,7 +1360,7 @@ export const DirectionPageTemplateRenderer: React.FC<DirectionPageTemplateRender
       : isLavado
         ? [
             { label: 'Lavado CEM (Q6)', value: formatMetricAr(activeSnap.lvsLavadoQ6), hint: 'Encuesta oficial marca' },
-            { label: 'Lavado Enc. Interna', value: formatMetricAr(activeSnap.internalPvLavado), hint: 'Post-servicio interno' },
+            { label: 'Objetivo Oficial VW', value: `>= ${formatMetricAr(mainTarget)}`, hint: 'Meta de marca' },
             { label: 'Jujuy (3059)', value: formatMetricAr(jujuyVal), hint: 'Promedio sede Jujuy' },
             { label: 'Salta (3087)', value: formatMetricAr(saltaVal), hint: 'Promedio sede Salta' },
           ]
@@ -1732,25 +1706,25 @@ export const DirectionPageTemplateRenderer: React.FC<DirectionPageTemplateRender
 
           <div className="rounded-lg bg-[#F5F7FA] p-2.5">
             <span className="text-[9px] font-bold uppercase text-[#5A6A85] block">
-              Calidad de Lavado
+              Calidad de Lavado (CEM Q6)
             </span>
             <p className="mt-1 text-base font-extrabold text-[#001E50] tabular-nums">
-              {formatMetricAr(snap.lvsLavadoQ6 ?? snap.internalPvLavado)}
+              {formatMetricAr(snap.lvsLavadoQ6)}
             </p>
             <p className="text-[9px] text-[#5A6A85]">
-              Interna PV: {formatMetricAr(snap.internalPvService)} ({snap.internalPvCount} enc.)
+              Meta oficial: ≥ {formatMetricAr(doc.targets?.lavado ?? 4.5)} pts
             </p>
           </div>
 
           <div className="rounded-lg bg-[#F5F7FA] p-2.5">
             <span className="text-[9px] font-bold uppercase text-[#5A6A85] block">
-              Reclamos del Período
+              Conversión CEM OS
             </span>
             <p className="mt-1 text-base font-extrabold text-[#001E50] tabular-nums">
-              V: {snap.salesClaimsTotal} · PV: {snap.pvClaimsTotal}
+              {snap.osResponseConversionPct !== null ? `${snap.osResponseConversionPct}%` : '—'}
             </p>
             <p className="text-[9px] text-[#5A6A85]">
-              {snap.pvClaimsUniqueOr} OR únicas · {snap.pvClaimsResolved} resueltos
+              {snap.osValidCount} válidas de {snap.osDeclaredCount} declarados
             </p>
           </div>
         </div>
@@ -2116,180 +2090,7 @@ export const DirectionPageTemplateRenderer: React.FC<DirectionPageTemplateRender
     );
   }
 
-  // 6. GESTIÓN DE RECLAMOS VENTAS Y POSTVENTA + PLAN DE ACCIÓN INTEGRADO
-  if (page.templateType === 'claims_module') {
-    const showSales = doc.enabledModules.includes('reclamos_ventas');
-    const showPv = doc.enabledModules.includes('reclamos_postventa') || !showSales;
-
-    return (
-      <PageFrameA4
-        page={page}
-        pageNumber={pageNumber}
-        totalPages={totalPages}
-        doc={doc}
-        computed={computed}
-        isPrintMode={isPrintMode}
-        onUpdatePage={onUpdatePage}
-      >
-        <div className="flex flex-col justify-between h-full gap-2.5">
-          {/* Top Summary Strip */}
-          <div className="grid grid-cols-4 gap-3">
-            <div className="rounded-xl bg-[#001E50] p-3 text-white">
-              <span className="text-[9px] font-bold uppercase tracking-wider text-sky-300 block">
-                Reclamos Postventa
-              </span>
-              <p className="mt-1 text-2xl font-extrabold tabular-nums">
-                {activeSnap.pvClaimsTotal}
-              </p>
-              <p className="text-[9px] text-slate-300">
-                {activeSnap.pvClaimsUniqueOr} órdenes de reparación (OR) únicas
-              </p>
-            </div>
-
-            <div className="rounded-xl border border-slate-200 bg-[#F5F7FA] p-3">
-              <span className="text-[9px] font-bold uppercase tracking-wider text-[#5A6A85] block">
-                Resolución Postventa
-              </span>
-              <p className="mt-1 text-2xl font-extrabold text-[#15803D] tabular-nums">
-                {activeSnap.pvClaimsResolved} resueltos
-              </p>
-              <p className="text-[9px] text-[#5A6A85]">
-                {activeSnap.pvClaimsPending} pendientes ({formatMetricAr(activeSnap.pvClaimsResolutionRatePct, 1, '%')})
-              </p>
-            </div>
-
-            <div className="rounded-xl border border-slate-200 bg-[#F5F7FA] p-3">
-              <span className="text-[9px] font-bold uppercase tracking-wider text-[#5A6A85] block">
-                Reclamos Ventas
-              </span>
-              <p className="mt-1 text-2xl font-extrabold text-[#001E50] tabular-nums">
-                {activeSnap.salesClaimsTotal}
-              </p>
-              <p className="text-[9px] text-[#5A6A85]">
-                {activeSnap.salesClaimsResolved} cerrados · {activeSnap.salesClaimsPending} en gestión
-              </p>
-            </div>
-
-            <div className="rounded-xl border border-slate-200 bg-white p-3">
-              <span className="text-[9px] font-bold uppercase tracking-wider text-[#5A6A85] block">
-                Apertura por Sucursal
-              </span>
-              <p className="mt-1 text-xs font-extrabold text-[#001E50]">
-                Jujuy: {computed.jujuy.pvClaimsTotal} PV / {computed.jujuy.salesClaimsTotal} V
-              </p>
-              <p className="mt-0.5 text-xs font-extrabold text-[#0072CE]">
-                Salta: {computed.salta.pvClaimsTotal} PV / {computed.salta.salesClaimsTotal} V
-              </p>
-            </div>
-          </div>
-
-          {/* Charts for Top Claim Reasons */}
-          <div className="grid grid-cols-2 gap-4 flex-1 min-h-0">
-            <div className="rounded-xl border border-slate-200 bg-[#F5F7FA]/60 p-3 flex flex-col min-h-0">
-              <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-[#001E50] mb-1">
-                Principales Motivos de Reclamo — Postventa
-              </h4>
-              {activeSnap.pvClaimsTopReasons.length === 0 ? (
-                <div className="flex-1 flex items-center justify-center text-xs text-[#5A6A85]">
-                  Sin motivos de reclamo Postventa registrados en el período.
-                </div>
-              ) : (
-                <div className="flex-1 min-h-[115px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={activeSnap.pvClaimsTopReasons}
-                      layout="vertical"
-                      margin={{ top: 4, right: 24, left: 8, bottom: 4 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E2E8F0" />
-                      <XAxis type="number" hide />
-                      <YAxis
-                        type="category"
-                        dataKey="name"
-                        width={155}
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fontSize: 9.5, fontWeight: 700, fill: '#001E50' }}
-                      />
-                      <Tooltip />
-                      <Bar dataKey="value" fill="#001E50" radius={[0, 5, 5, 0]} barSize={15}>
-                        <LabelList dataKey="value" position="right" style={{ fill: '#001E50', fontSize: 10, fontWeight: 800 }} />
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-            </div>
-
-            <div className="rounded-xl border border-slate-200 bg-[#F5F7FA]/60 p-3 flex flex-col min-h-0">
-              <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-[#001E50] mb-1">
-                {showSales ? 'Principales Motivos de Reclamo — Ventas' : 'Evolución Anual de Reclamos Postventa'}
-              </h4>
-              {showSales ? (
-                activeSnap.salesClaimsTopReasons.length === 0 ? (
-                  <div className="flex-1 flex items-center justify-center text-xs text-[#5A6A85]">
-                    Sin motivos de reclamo Comercial registrados en el período.
-                  </div>
-                ) : (
-                  <div className="flex-1 min-h-[115px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                      <BarChart
-                        data={activeSnap.salesClaimsTopReasons}
-                        layout="vertical"
-                        margin={{ top: 4, right: 24, left: 8, bottom: 4 }}
-                      >
-                        <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E2E8F0" />
-                        <XAxis type="number" hide />
-                        <YAxis
-                          type="category"
-                          dataKey="name"
-                          width={155}
-                          axisLine={false}
-                          tickLine={false}
-                          tick={{ fontSize: 9.5, fontWeight: 700, fill: '#001E50' }}
-                        />
-                        <Tooltip />
-                        <Bar dataKey="value" fill="#0072CE" radius={[0, 5, 5, 0]} barSize={15}>
-                          <LabelList dataKey="value" position="right" style={{ fill: '#0072CE', fontSize: 10, fontWeight: 800 }} />
-                        </Bar>
-                      </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-                )
-              ) : (
-                <div className="flex-1 min-h-[115px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={computed.evolution} margin={{ top: 14, right: 12, left: -16, bottom: 0 }}>
-                      <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
-                      <XAxis dataKey="shortMonth" axisLine={false} tickLine={false} tick={{ fontSize: 9, fontWeight: 700, fill: '#001E50' }} />
-                      <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 9, fill: '#5A6A85' }} />
-                      <Tooltip />
-                      <Bar dataKey="pvClaimsConsolidated" fill="#001E50" radius={[4, 4, 0, 0]} barSize={18}>
-                        <LabelList dataKey="pvClaimsConsolidated" position="top" style={{ fill: '#001E50', fontSize: 9, fontWeight: 800 }} />
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Integrated Action Plan for Claims */}
-          {page.actionBlock && (
-            <IntegratedIndicatorActionSection
-              block={page.actionBlock}
-              branchSelection={doc.branchSelection}
-              matchingPlans={computed.matchingActionPlans}
-              isPrintMode={isPrintMode}
-              onUpdateBlock={nextBlock => onUpdatePage({ actionBlock: nextBlock })}
-            />
-          )}
-        </div>
-      </PageFrameA4>
-    );
-  }
-
-  // 7. PLANTILLA 6: AUDITORÍAS (PCGC / ISO 9001 / GAMS) + PLAN DE ACCIÓN INTEGRADO
+  // 6. PLANTILLA 6: AUDITORÍAS (PCGC / ISO 9001 / GAMS) + PLAN DE ACCIÓN INTEGRADO
   if (page.templateType === 'audits') {
     const entries = page.auditEntries || [];
 

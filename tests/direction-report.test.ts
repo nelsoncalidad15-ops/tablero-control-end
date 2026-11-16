@@ -397,3 +397,38 @@ test('Composición dinámica de páginas incluye solo módulos seleccionados y d
   assert.equal(duplicatedDoc.duplicatedFromPeriod, 'Q3 2026');
   assert.equal(duplicatedDoc.pages[1].isInheritedPendingReview, true);
 });
+
+test('Objetivos de marca configurables (customTargets) actualizan metas y evaluación de cumplimiento', () => {
+  const raw = createMockRawSources();
+
+  // Caso 1: Salta tiene 4.20 en OS. Con meta estándar 4.60 está desviada
+  const defaultComputed = computeDirectionReportData(raw, {
+    periodType: 'quarterly',
+    year: 2026,
+    month: 'Septiembre',
+    quarter: 'Q3',
+    branchSelection: 'SALTA',
+  });
+  assert.equal(defaultComputed.salta.osTarget, 4.6);
+  assert.equal(defaultComputed.salta.osCompliance, 'deviated');
+
+  // Caso 2: Con objetivo personalizado más flexible 4.10, Salta pasa a compliant
+  const customComputed = computeDirectionReportData(raw, {
+    periodType: 'quarterly',
+    year: 2026,
+    month: 'Septiembre',
+    quarter: 'Q3',
+    branchSelection: 'SALTA',
+    customTargets: {
+      os: 4.1,
+      lvs: 4.5,
+      lavado: 4.0,
+      ssi: 8.5,
+      csi: 8.5,
+    },
+  });
+  assert.equal(customComputed.salta.osTarget, 4.1);
+  assert.equal(customComputed.salta.osCompliance, 'compliant');
+  assert.equal(customComputed.salta.lvsTarget, 4.5);
+  assert.equal(customComputed.salta.lavadoTarget, 4.0);
+});

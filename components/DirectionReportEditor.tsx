@@ -88,11 +88,10 @@ const TEMPLATE_CATALOG: Array<{
   desc: string;
 }> = [
   { type: 'cover', name: 'Plantilla 1: Portada Ejecutiva', desc: 'Identidad Autosol, período, sucursales y fecha de emisión' },
-  { type: 'executive_summary', name: 'Plantilla 2: Resumen Ejecutivo', desc: '6 indicadores principales vs. objetivo y síntesis editable' },
+  { type: 'executive_summary', name: 'Plantilla 2: Resumen Ejecutivo', desc: '4 indicadores principales de marca vs. objetivo y síntesis directiva' },
   { type: 'indicator_evolution', name: 'Plantilla 3: Indicador + Evolución + Plan', desc: 'KPI protagonista, gráfico histórico y plan de acción integrado' },
   { type: 'branch_comparison', name: 'Plantilla 4: Comparación Jujuy / Salta', desc: 'Diseño simétrico comparativo entre ambas sucursales' },
   { type: 'survey_study', name: 'Plantilla 5: Encuestas SSI / CSI / Club SSI', desc: 'Métricas del estudio seleccionado, brechas y causas' },
-  { type: 'claims_module', name: 'Gestión de Reclamos + Plan Integrado', desc: 'Volumen, OR únicas, motivos principales y acciones' },
   { type: 'audits', name: 'Plantilla 6: Auditorías (PCGC / ISO / GAMS)', desc: 'Resultados, desvíos mandatorios, evidencia y acciones' },
   { type: 'incentives', name: 'Plantilla 7: Resumen de Incentivos', desc: 'Escalas, porcentaje aplicable, penalización e importe estimado' },
   { type: 'analysis_causes', name: 'Plantilla 8: Matriz y Análisis de Causas', desc: 'Matriz de objetivos y composición en dos columnas' },

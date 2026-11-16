@@ -6,6 +6,7 @@ import {
   BranchSelection,
   DirectionModuleId,
   DirectionReportDocument,
+  DirectionTargets,
   QuarterCode,
   RawDirectionDataSources,
   ReportPage,
@@ -17,6 +18,7 @@ import {
   buildIntegratedActionBlock,
   composeDirectionReportPages,
   computeDirectionReportData,
+  DEFAULT_DIRECTION_TARGETS,
   DEFAULT_SURVEY_SUB_OPTIONS,
   duplicateDirectionReportForNewPeriod,
   getSuggestedModules,
@@ -81,6 +83,7 @@ export const DirectionReport: React.FC<DirectionReportProps> = ({ config, onBack
   const [surveySubOptions, setSurveySubOptions] = useState<SurveyDisplaySubOptions>(
     DEFAULT_SURVEY_SUB_OPTIONS
   );
+  const [targets, setTargets] = useState<DirectionTargets>(DEFAULT_DIRECTION_TARGETS);
   const [reportName, setReportName] = useState<string>(
     'Informe Ejecutivo Dirección — Q3 2026'
   );
@@ -133,8 +136,9 @@ export const DirectionReport: React.FC<DirectionReportProps> = ({ config, onBack
       month: doc ? doc.month : month,
       quarter: doc ? doc.quarter : quarter,
       branchSelection: doc ? doc.branchSelection : branchSelection,
+      customTargets: doc?.targets ?? targets,
     }),
-    [doc, periodType, year, month, quarter, branchSelection]
+    [doc, periodType, year, month, quarter, branchSelection, targets]
   );
 
   const computed = useMemo(
@@ -161,6 +165,9 @@ export const DirectionReport: React.FC<DirectionReportProps> = ({ config, onBack
           setBranchSelection(found.branchSelection);
           setEnabledModules(found.enabledModules);
           setSurveySubOptions(found.surveySubOptions);
+          if (found.targets) {
+            setTargets(found.targets);
+          }
           setReportName(found.name);
           setDoc(found);
           setUndoStack([]);
@@ -281,6 +288,7 @@ export const DirectionReport: React.FC<DirectionReportProps> = ({ config, onBack
       month,
       quarter,
       branchSelection,
+      customTargets: targets,
     });
 
     const pages = composeDirectionReportPages(
@@ -310,6 +318,7 @@ export const DirectionReport: React.FC<DirectionReportProps> = ({ config, onBack
       branchSelection,
       enabledModules,
       surveySubOptions,
+      targets,
       pages,
     };
 
@@ -344,7 +353,6 @@ export const DirectionReport: React.FC<DirectionReportProps> = ({ config, onBack
         images: [],
         actionBlock:
           templateType === 'indicator_evolution' ||
-          templateType === 'claims_module' ||
           templateType === 'survey_study' ||
           templateType === 'audits' ||
           templateType === 'action_plan_continuation'
@@ -528,6 +536,7 @@ export const DirectionReport: React.FC<DirectionReportProps> = ({ config, onBack
             branchSelection={branchSelection}
             enabledModules={enabledModules}
             surveySubOptions={surveySubOptions}
+            targets={targets}
             computed={computed}
             rawSources={rawSources}
             isLoadingData={isLoadingData}
@@ -539,6 +548,7 @@ export const DirectionReport: React.FC<DirectionReportProps> = ({ config, onBack
             onChangeBranchSelection={setBranchSelection}
             onChangeEnabledModules={setEnabledModules}
             onChangeSurveySubOptions={setSurveySubOptions}
+            onChangeTargets={setTargets}
             onGenerateAndOpenEditor={handleGenerateAndOpenEditor}
             onOpenExistingDraft={existing => {
               setPeriodType(existing.periodType);
@@ -548,6 +558,9 @@ export const DirectionReport: React.FC<DirectionReportProps> = ({ config, onBack
               setBranchSelection(existing.branchSelection);
               setEnabledModules(existing.enabledModules);
               setSurveySubOptions(existing.surveySubOptions);
+              if (existing.targets) {
+                setTargets(existing.targets);
+              }
               setReportName(existing.name);
               setDoc(existing);
               setUndoStack([]);

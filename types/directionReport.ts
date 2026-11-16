@@ -46,8 +46,6 @@ export type DirectionModuleId =
   | 'lavado'
   | 'cumplimiento_objetivos'
   | 'evolucion_indicadores'
-  | 'reclamos_ventas'
-  | 'reclamos_postventa'
   // B. Encuestas y estudios (diferenciados, nunca mezclados)
   | 'encuestas_ssi'
   | 'club_ssi'
@@ -66,6 +64,15 @@ export type DirectionModuleId =
   | 'evidencias_fotograficas'
   | 'conclusiones_ejecutivas'
   | 'pagina_personalizada';
+
+/** Objetivos vigentes del período, configurables desde la pantalla inicial. */
+export interface DirectionTargets {
+  os: number | null; // CEM OS Ventas (1–5)
+  lvs: number | null; // CEM LVS Postventa (1–5)
+  lavado: number | null; // CEM Lavado Q6 (1–5)
+  ssi: number | null; // SSI Satisfacción general (0–10)
+  csi: number | null; // CSI Satisfacción general (0–10)
+}
 
 export interface SurveyDisplaySubOptions {
   showGeneralSatisfaction: boolean;
@@ -254,7 +261,6 @@ export type ReportTemplateType =
   | 'audits' // Plantilla 6: Auditorías (PCGC / ISO / GAMS) + Plan integrado
   | 'incentives' // Plantilla 7: Incentivos
   | 'analysis_causes' // Plantilla 8: Cumplimiento objetivos / Análisis y causas
-  | 'claims_module' // Reclamos Ventas / Postventa + Plan integrado
   | 'action_plan_continuation' // Plantilla 9 / Continuación de Plan de Acción vinculado a indicador
   | 'photo_evidences' // Plantilla 10: Fotografías y evidencias
   | 'next_steps' // Plantilla 11: Cierre ejecutivo / 3 prioridades para Dirección
@@ -314,6 +320,7 @@ export interface DirectionReportDocument {
   branchSelection: BranchSelection;
   enabledModules: DirectionModuleId[];
   surveySubOptions: SurveyDisplaySubOptions;
+  targets?: DirectionTargets;
   pages: ReportPage[];
   duplicatedFromId?: string;
   duplicatedFromPeriod?: string;

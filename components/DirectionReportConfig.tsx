@@ -24,6 +24,7 @@ import {
   DataSourceStatus,
   DirectionModuleId,
   DirectionReportDocument,
+  DirectionTargets,
   FavoriteReportPreset,
   QuarterCode,
   RawDirectionDataSources,
@@ -31,6 +32,7 @@ import {
   SurveyDisplaySubOptions,
 } from '../types/directionReport';
 import {
+  DEFAULT_DIRECTION_TARGETS,
   DIRECTION_MODULES,
   estimatePageCount,
   formatMetricAr,
@@ -55,6 +57,7 @@ interface DirectionReportConfigProps {
   branchSelection: BranchSelection;
   enabledModules: DirectionModuleId[];
   surveySubOptions: SurveyDisplaySubOptions;
+  targets: DirectionTargets;
   computed: ComputedDirectionReportData;
   rawSources: RawDirectionDataSources | null;
   isLoadingData: boolean;
@@ -66,6 +69,7 @@ interface DirectionReportConfigProps {
   onChangeBranchSelection: (branch: BranchSelection) => void;
   onChangeEnabledModules: (modules: DirectionModuleId[]) => void;
   onChangeSurveySubOptions: (opts: SurveyDisplaySubOptions) => void;
+  onChangeTargets: (targets: DirectionTargets) => void;
   onGenerateAndOpenEditor: () => void;
   onOpenExistingDraft: (draft: DirectionReportDocument) => void;
   onDuplicateExistingDraft: (draft: DirectionReportDocument) => void;
@@ -109,6 +113,7 @@ export const DirectionReportConfig: React.FC<DirectionReportConfigProps> = ({
   branchSelection,
   enabledModules,
   surveySubOptions,
+  targets,
   computed,
   rawSources,
   isLoadingData,
@@ -120,6 +125,7 @@ export const DirectionReportConfig: React.FC<DirectionReportConfigProps> = ({
   onChangeBranchSelection,
   onChangeEnabledModules,
   onChangeSurveySubOptions,
+  onChangeTargets,
   onGenerateAndOpenEditor,
   onOpenExistingDraft,
   onDuplicateExistingDraft,
@@ -488,13 +494,13 @@ export const DirectionReportConfig: React.FC<DirectionReportConfigProps> = ({
 
                 <div className="rounded-xl bg-white/8 p-3">
                   <span className="text-[9px] font-bold uppercase tracking-wider text-sky-300 block">
-                    Reclamos Período
+                    Lavado CEM Q6
                   </span>
-                  <p className="mt-1 text-base font-extrabold tabular-nums">
-                    {computed.consolidated.salesClaimsTotal} V · {computed.consolidated.pvClaimsTotal} PV
+                  <p className="mt-1 text-xl font-extrabold tabular-nums">
+                    {isLoadingData ? '...' : formatMetricAr(computed.consolidated.lvsLavadoQ6)}
                   </p>
                   <p className="text-[10px] text-slate-300">
-                    {computed.consolidated.pvClaimsUniqueOr} OR únicas en taller
+                    Meta: {formatMetricAr(targets.lavado ?? 4.5)} pts
                   </p>
                 </div>
 
@@ -521,6 +527,158 @@ export const DirectionReportConfig: React.FC<DirectionReportConfigProps> = ({
                 <span>Ingresar al Editor Visual</span>
                 <ArrowRight className="h-4 w-4" />
               </button>
+            </div>
+          </div>
+        </section>
+
+        {/* STEP 2: OBJETIVOS VIGENTES DE MARCA */}
+        <section className="rounded-3xl border border-slate-200/90 bg-white p-6 md:p-8 shadow-xs space-y-4">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-100 pb-3">
+            <div>
+              <span className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#0072CE]">
+                2. Objetivos Oficiales de Marca
+              </span>
+              <h2 className="mt-0.5 text-lg font-extrabold text-[#001E50]">
+                Metas del Período para Dirección
+              </h2>
+              <p className="text-xs text-[#5A6A85]">
+                Definí los umbrales de cumplimiento de marca para este informe. Podés ajustarlos o usar los valores estándar.
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => onChangeTargets(DEFAULT_DIRECTION_TARGETS)}
+              className="inline-flex items-center gap-1.5 rounded-xl border border-slate-200 bg-[#F5F7FA] px-3 py-1.5 text-xs font-bold text-[#001E50] hover:border-[#0072CE] hover:bg-white transition shrink-0"
+            >
+              <Sparkles className="h-3.5 w-3.5 text-[#0072CE]" />
+              Restablecer Metas Oficiales VW
+            </button>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3.5 pt-1">
+            {/* CEM OS */}
+            <div className="rounded-2xl border border-slate-200 bg-[#F5F7FA]/70 p-3.5 hover:border-sky-300 transition">
+              <span className="text-[9px] font-extrabold uppercase tracking-wider text-[#5A6A85] block">
+                CEM OS Ventas
+              </span>
+              <div className="mt-1.5 flex items-baseline gap-1">
+                <input
+                  type="number"
+                  step="0.05"
+                  min="1"
+                  max="5"
+                  value={targets.os ?? ''}
+                  onChange={e =>
+                    onChangeTargets({
+                      ...targets,
+                      os: e.target.value === '' ? null : Number(e.target.value),
+                    })
+                  }
+                  className="w-20 rounded-lg border border-slate-200 bg-white px-2 py-1 text-base font-extrabold text-[#001E50] outline-none focus:border-[#0072CE]"
+                />
+                <span className="text-xs font-bold text-[#5A6A85]">/ 5.0</span>
+              </div>
+              <p className="mt-1 text-[10px] text-[#5A6A85]">Meta estándar: ≥ 4.60</p>
+            </div>
+
+            {/* CEM LVS */}
+            <div className="rounded-2xl border border-slate-200 bg-[#F5F7FA]/70 p-3.5 hover:border-sky-300 transition">
+              <span className="text-[9px] font-extrabold uppercase tracking-wider text-[#5A6A85] block">
+                CEM LVS Postventa (Q4)
+              </span>
+              <div className="mt-1.5 flex items-baseline gap-1">
+                <input
+                  type="number"
+                  step="0.05"
+                  min="1"
+                  max="5"
+                  value={targets.lvs ?? ''}
+                  onChange={e =>
+                    onChangeTargets({
+                      ...targets,
+                      lvs: e.target.value === '' ? null : Number(e.target.value),
+                    })
+                  }
+                  className="w-20 rounded-lg border border-slate-200 bg-white px-2 py-1 text-base font-extrabold text-[#001E50] outline-none focus:border-[#0072CE]"
+                />
+                <span className="text-xs font-bold text-[#5A6A85]">/ 5.0</span>
+              </div>
+              <p className="mt-1 text-[10px] text-[#5A6A85]">Meta estándar: ≥ 4.80</p>
+            </div>
+
+            {/* Lavado CEM Q6 */}
+            <div className="rounded-2xl border border-slate-200 bg-[#F5F7FA]/70 p-3.5 hover:border-sky-300 transition">
+              <span className="text-[9px] font-extrabold uppercase tracking-wider text-[#5A6A85] block">
+                Calidad Lavado (CEM Q6)
+              </span>
+              <div className="mt-1.5 flex items-baseline gap-1">
+                <input
+                  type="number"
+                  step="0.05"
+                  min="1"
+                  max="5"
+                  value={targets.lavado ?? ''}
+                  onChange={e =>
+                    onChangeTargets({
+                      ...targets,
+                      lavado: e.target.value === '' ? null : Number(e.target.value),
+                    })
+                  }
+                  className="w-20 rounded-lg border border-slate-200 bg-white px-2 py-1 text-base font-extrabold text-[#001E50] outline-none focus:border-[#0072CE]"
+                />
+                <span className="text-xs font-bold text-[#5A6A85]">/ 5.0</span>
+              </div>
+              <p className="mt-1 text-[10px] text-[#5A6A85]">Meta estándar: ≥ 4.50</p>
+            </div>
+
+            {/* SSI */}
+            <div className="rounded-2xl border border-slate-200 bg-[#F5F7FA]/70 p-3.5 hover:border-sky-300 transition">
+              <span className="text-[9px] font-extrabold uppercase tracking-wider text-[#5A6A85] block">
+                Estudio SSI Ventas
+              </span>
+              <div className="mt-1.5 flex items-baseline gap-1">
+                <input
+                  type="number"
+                  step="0.1"
+                  min="1"
+                  max="10"
+                  value={targets.ssi ?? ''}
+                  onChange={e =>
+                    onChangeTargets({
+                      ...targets,
+                      ssi: e.target.value === '' ? null : Number(e.target.value),
+                    })
+                  }
+                  className="w-20 rounded-lg border border-slate-200 bg-white px-2 py-1 text-base font-extrabold text-[#001E50] outline-none focus:border-[#0072CE]"
+                />
+                <span className="text-xs font-bold text-[#5A6A85]">/ 10</span>
+              </div>
+              <p className="mt-1 text-[10px] text-[#5A6A85]">Meta estándar: ≥ 8.80</p>
+            </div>
+
+            {/* CSI */}
+            <div className="rounded-2xl border border-slate-200 bg-[#F5F7FA]/70 p-3.5 hover:border-sky-300 transition">
+              <span className="text-[9px] font-extrabold uppercase tracking-wider text-[#5A6A85] block">
+                Estudio CSI Postventa
+              </span>
+              <div className="mt-1.5 flex items-baseline gap-1">
+                <input
+                  type="number"
+                  step="0.1"
+                  min="1"
+                  max="10"
+                  value={targets.csi ?? ''}
+                  onChange={e =>
+                    onChangeTargets({
+                      ...targets,
+                      csi: e.target.value === '' ? null : Number(e.target.value),
+                    })
+                  }
+                  className="w-20 rounded-lg border border-slate-200 bg-white px-2 py-1 text-base font-extrabold text-[#001E50] outline-none focus:border-[#0072CE]"
+                />
+                <span className="text-xs font-bold text-[#5A6A85]">/ 10</span>
+              </div>
+              <p className="mt-1 text-[10px] text-[#5A6A85]">Meta estándar: ≥ 8.80</p>
             </div>
           </div>
         </section>

@@ -40,6 +40,7 @@ import {
   DataSourceStatus,
   DirectionModuleId,
   DirectionReportDocument,
+  DirectionTargets,
   EvolutionPoint,
   IncentiveEntryData,
   IntegratedActionBlock,
@@ -77,8 +78,8 @@ export const MODULE_CATEGORIES: Array<{
   {
     key: 'A_indicadores',
     letter: 'A',
-    title: 'Indicadores Principales',
-    subtitle: 'OS de marca, LVS, Lavado, evolución y gestión de reclamos',
+    title: 'Indicadores Principales de Marca',
+    subtitle: 'CEM OS de marca, CEM LVS Postventa, Calidad de Lavado y Evolución',
   },
   {
     key: 'B_encuestas',
@@ -166,28 +167,6 @@ export const DIRECTION_MODULES: ModuleDefinition[] = [
     description: 'Tendencias históricas y comparativa Jujuy (3059) vs. Salta (3087) a lo largo del año.',
     defaultSourceType: 'available',
     suggestedMonthly: false,
-    suggestedQuarterly: true,
-    estimatedPages: 1,
-  },
-  {
-    id: 'reclamos_ventas',
-    category: 'A_indicadores',
-    label: 'Reclamos de Ventas',
-    shortLabel: 'Reclamos Ventas',
-    description: 'Volumen de reclamos comerciales, casos pendientes, motivos principales y acciones correctivas.',
-    defaultSourceType: 'available',
-    suggestedMonthly: true,
-    suggestedQuarterly: true,
-    estimatedPages: 1,
-  },
-  {
-    id: 'reclamos_postventa',
-    category: 'A_indicadores',
-    label: 'Reclamos de Postventa',
-    shortLabel: 'Reclamos Postventa',
-    description: 'Reclamos de taller, OR únicas afectadas, tasa de resolución, ranking de motivos y plan de acción.',
-    defaultSourceType: 'available',
-    suggestedMonthly: true,
     suggestedQuarterly: true,
     estimatedPages: 1,
   },
@@ -341,6 +320,14 @@ export const DIRECTION_MODULES: ModuleDefinition[] = [
   },
 ];
 
+export const DEFAULT_DIRECTION_TARGETS: DirectionTargets = {
+  os: 4.6,
+  lvs: 4.8,
+  lavado: 4.5,
+  ssi: 8.8,
+  csi: 8.8,
+};
+
 export const DEFAULT_SURVEY_SUB_OPTIONS: SurveyDisplaySubOptions = {
   showGeneralSatisfaction: true,
   showRecommendation: true,
@@ -361,8 +348,6 @@ export function getSuggestedModules(
       'postventa_lvs',
       'lavado',
       'cumplimiento_objetivos',
-      'reclamos_ventas',
-      'reclamos_postventa',
       'planes_accion_integrados',
       'proximos_pasos',
     ];
@@ -373,8 +358,6 @@ export function getSuggestedModules(
     'postventa_lvs',
     'cumplimiento_objetivos',
     'evolucion_indicadores',
-    'reclamos_ventas',
-    'reclamos_postventa',
     'incentivos_ventas',
     'incentivos_postventa',
     'planes_accion_integrados',
@@ -679,9 +662,10 @@ export function computeDirectionReportData(
     month: string;
     quarter: QuarterCode;
     branchSelection: BranchSelection;
+    customTargets?: DirectionTargets;
   }
 ): ComputedDirectionReportData {
-  const { periodType, year, month, quarter } = params;
+  const { periodType, year, month, quarter, customTargets } = params;
   const monthsInPeriod = periodType === 'monthly' ? [month] : QUARTER_MONTHS[quarter];
   const periodLabel =
     periodType === 'monthly'
@@ -690,13 +674,16 @@ export function computeDirectionReportData(
   const periodShortLabel =
     periodType === 'monthly' ? `${month.slice(0, 3)} ${year}` : `${quarter} ${year}`;
 
-  // Resolve official targets from quality_objectives_summary or standard VW definitions
-  const osTarget = resolveIndicatorTarget(raw.objectivesSummary, ['cem', 'os'], 4.6);
+  // Resolve official targets (prioritizing custom user-configured targets, then quality_objectives_summary, then defaults)
+  const osTarget =
+    customTargets?.os ?? resolveIndicatorTarget(raw.objectivesSummary, ['cem', 'os'], 4.6);
   const lvsDef = KPI_DEFS.find(k => k.id === 'lvs');
-  const lvsTarget = resolveIndicatorTarget(raw.objectivesSummary, ['lvs'], lvsDef?.target ?? 4.8);
-  const lavadoTarget = resolveIndicatorTarget(raw.objectivesSummary, ['lavado'], 4.5);
-  const ssiTargetScore = 8.8;
-  const csiTargetScore = 8.8;
+  const lvsTarget =
+    customTargets?.lvs ?? resolveIndicatorTarget(raw.objectivesSummary, ['lvs'], lvsDef?.target ?? 4.8);
+  const lavadoTarget =
+    customTargets?.lavado ?? resolveIndicatorTarget(raw.objectivesSummary, ['lavado'], 4.5);
+  const ssiTargetScore = customTargets?.ssi ?? 8.8;
+  const csiTargetScore = customTargets?.csi ?? 8.8;
 
   // Check which months in the period actually have data in main sheets
   const monthsWithData = monthsInPeriod.filter(m => {
@@ -1124,30 +1111,44 @@ export function computeDirectionReportData(
     {
       indicatorKey: 'lavado',
       area: 'Postventa',
-      name: 'Calidad de Lavado (Q6 / Interna)',
+      name: 'Calidad de Lavado (CEM Q6)',
       unit: 'pts',
       targetValue: lavadoTarget,
       targetText: `>= ${formatMetricAr(lavadoTarget)}`,
-      jujuyValue: jujuy.lvsLavadoQ6 ?? jujuy.internalPvLavado,
-      saltaValue: salta.lvsLavadoQ6 ?? salta.internalPvLavado,
-      consolidatedValue: consolidated.lvsLavadoQ6 ?? consolidated.internalPvLavado,
-      jujuyStatus: jujuy.lavadoCompliance,
-      saltaStatus: salta.lavadoCompliance,
-      consolidatedStatus: consolidated.lavadoCompliance,
+      jujuyValue: jujuy.lvsLavadoQ6,
+      saltaValue: salta.lvsLavadoQ6,
+      consolidatedValue: consolidated.lvsLavadoQ6,
+      jujuyStatus: evaluateCompliance(jujuy.lvsLavadoQ6, lavadoTarget, 'up'),
+      saltaStatus: evaluateCompliance(salta.lvsLavadoQ6, lavadoTarget, 'up'),
+      consolidatedStatus: evaluateCompliance(consolidated.lvsLavadoQ6, lavadoTarget, 'up'),
     },
     {
-      indicatorKey: 'reclamos_postventa',
+      indicatorKey: 'encuestas_ssi',
+      area: 'Ventas',
+      name: 'Estudio de Red SSI (Ventas)',
+      unit: 'pts',
+      targetValue: ssiTargetScore,
+      targetText: `>= ${formatMetricAr(ssiTargetScore)}`,
+      jujuyValue: ssiStudy.byBranch.JUJUY.satisfactionAvg,
+      saltaValue: ssiStudy.byBranch.SALTA.satisfactionAvg,
+      consolidatedValue: ssiStudy.satisfactionAvg,
+      jujuyStatus: ssiStudy.byBranch.JUJUY.compliance,
+      saltaStatus: ssiStudy.byBranch.SALTA.compliance,
+      consolidatedStatus: ssiStudy.compliance,
+    },
+    {
+      indicatorKey: 'encuestas_csi',
       area: 'Postventa',
-      name: 'Tasa de Resolución Reclamos PV',
-      unit: '%',
-      targetValue: 90,
-      targetText: '>= 90,0%',
-      jujuyValue: jujuy.pvClaimsResolutionRatePct,
-      saltaValue: salta.pvClaimsResolutionRatePct,
-      consolidatedValue: consolidated.pvClaimsResolutionRatePct,
-      jujuyStatus: evaluateCompliance(jujuy.pvClaimsResolutionRatePct, 90, 'up'),
-      saltaStatus: evaluateCompliance(salta.pvClaimsResolutionRatePct, 90, 'up'),
-      consolidatedStatus: evaluateCompliance(consolidated.pvClaimsResolutionRatePct, 90, 'up'),
+      name: 'Estudio de Red CSI (Postventa)',
+      unit: 'pts',
+      targetValue: csiTargetScore,
+      targetText: `>= ${formatMetricAr(csiTargetScore)}`,
+      jujuyValue: csiStudy.byBranch.JUJUY.satisfactionAvg,
+      saltaValue: csiStudy.byBranch.SALTA.satisfactionAvg,
+      consolidatedValue: csiStudy.satisfactionAvg,
+      jujuyStatus: csiStudy.byBranch.JUJUY.compliance,
+      saltaStatus: csiStudy.byBranch.SALTA.compliance,
+      consolidatedStatus: csiStudy.compliance,
     },
   ];
 
@@ -1167,15 +1168,15 @@ export function computeDirectionReportData(
     },
     lavado: {
       status:
-        consolidated.lvsLavadoQ6 !== null || consolidated.internalPvLavado !== null
+        consolidated.lvsLavadoQ6 !== null
           ? 'available'
           : 'unavailable',
       badgeLabel:
-        consolidated.lvsLavadoQ6 !== null || consolidated.internalPvLavado !== null
+        consolidated.lvsLavadoQ6 !== null
           ? 'Automático disponible'
           : 'Sin registros de lavado',
-      detail: `CEM Q6: ${formatMetricAr(consolidated.lvsLavadoQ6)} · Interna: ${formatMetricAr(consolidated.internalPvLavado)}`,
-      recordCount: consolidated.lvsValidCount + consolidated.internalPvCount,
+      detail: `CEM Q6: ${formatMetricAr(consolidated.lvsLavadoQ6)}`,
+      recordCount: consolidated.lvsValidCount,
     },
     cumplimiento_objetivos: {
       status: raw.objectivesSummary.length > 0 ? 'available' : 'partial',
@@ -1190,18 +1191,6 @@ export function computeDirectionReportData(
       badgeLabel: 'Automático disponible',
       detail: 'Serie histórica anual Jujuy y Salta',
       recordCount: evolution.filter(e => e.osConsolidated !== null || e.lvsConsolidated !== null).length,
-    },
-    reclamos_ventas: {
-      status: consolidated.salesClaimsTotal > 0 ? 'available' : 'partial',
-      badgeLabel: consolidated.salesClaimsTotal > 0 ? 'Automático disponible' : '0 reclamos registrados',
-      detail: `${consolidated.salesClaimsTotal} reclamos comerciales en ${periodShortLabel}`,
-      recordCount: consolidated.salesClaimsTotal,
-    },
-    reclamos_postventa: {
-      status: consolidated.pvClaimsTotal > 0 ? 'available' : 'partial',
-      badgeLabel: consolidated.pvClaimsTotal > 0 ? 'Automático disponible' : '0 reclamos registrados',
-      detail: `${consolidated.pvClaimsTotal} reclamos (${consolidated.pvClaimsUniqueOr} OR únicas)`,
-      recordCount: consolidated.pvClaimsTotal,
     },
     encuestas_ssi: {
       status: ssiStudy.sourceStatus === 'available' ? 'pending_validation' : ssiStudy.sourceStatus,
@@ -1639,61 +1628,7 @@ export function composeDirectionReportPages(
     });
   }
 
-  // 7. RECLAMOS DE VENTAS Y/O POSTVENTA
-  if (enabledModules.includes('reclamos_ventas') || enabledModules.includes('reclamos_postventa')) {
-    const bothClaims =
-      enabledModules.includes('reclamos_ventas') && enabledModules.includes('reclamos_postventa');
-    const claimsModuleId: DirectionModuleId = bothClaims
-      ? 'reclamos_postventa'
-      : enabledModules.includes('reclamos_ventas')
-        ? 'reclamos_ventas'
-        : 'reclamos_postventa';
-
-    const jClaimsDev: ComplianceStatus =
-      computed.jujuy.pvClaimsPending > 0 || computed.jujuy.salesClaimsPending > 0
-        ? 'deviated'
-        : 'compliant';
-    const sClaimsDev: ComplianceStatus =
-      computed.salta.pvClaimsPending > 0 || computed.salta.salesClaimsPending > 0
-        ? 'deviated'
-        : 'compliant';
-    const allClaimsDev: ComplianceStatus =
-      jClaimsDev === 'deviated' || sClaimsDev === 'deviated' ? 'deviated' : 'compliant';
-
-    pages.push({
-      id: 'page-claims',
-      templateType: 'claims_module',
-      moduleId: claimsModuleId,
-      linkedIndicatorKey: claimsModuleId,
-      title: bothClaims
-        ? `Gestión de Reclamos Ventas y Postventa — ${computed.periodLabel}`
-        : enabledModules.includes('reclamos_ventas')
-          ? `Gestión de Reclamos de Ventas — ${computed.periodLabel}`
-          : `Gestión de Reclamos de Postventa — ${computed.periodLabel}`,
-      subtitle: 'Volumen del período, OR únicas, tasa de resolución, motivos principales y acciones correctivas',
-      sectionTag: 'GESTIÓN DE RECLAMOS',
-      visible: true,
-      exportSelected: true,
-      layoutVariant: 'balanced_split',
-      chartType: 'bar',
-      showChartLabels: true,
-      narrativeTitle: 'Síntesis de Tratamiento de Reclamos',
-      narrativeBody: '',
-      actionBlock: buildIntegratedActionBlock(
-        claimsModuleId,
-        bothClaims ? 'Reclamos Ventas y Postventa' : 'Gestión de Reclamos',
-        jClaimsDev,
-        sClaimsDev,
-        allClaimsDev,
-        branchSelection,
-        computed.matchingActionPlans,
-        includeIntegratedPlans
-      ),
-      images: [],
-    });
-  }
-
-  // 8. ENCUESTAS SSI (Plantilla 5 - Estudio Diferenciado SSI)
+  // 7. ENCUESTAS SSI (Plantilla 5 - Estudio Diferenciado SSI)
   if (enabledModules.includes('encuestas_ssi')) {
     pages.push({
       id: 'page-survey-ssi',

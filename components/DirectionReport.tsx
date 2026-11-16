@@ -536,7 +536,13 @@ export const DirectionReport: React.FC<DirectionReportProps> = ({ config, onBack
             ? 'Calidad de Lavado (CEM Q6)'
             : sourcePage.moduleId === 'postventa_lvs'
               ? 'LVS Satisfacción (CEM Postventa)'
-              : sourcePage.title.split('—')[0].trim();
+              : sourcePage.moduleId === 'encuestas_ssi'
+                ? 'Estudio SSI (Ventas)'
+                : sourcePage.moduleId === 'encuestas_csi'
+                  ? 'Estudio CSI (Postventa)'
+                  : sourcePage.moduleId === 'club_ssi'
+                    ? 'Club SSI'
+                    : sourcePage.title.split('—')[0].trim();
 
       const newActionPage: ReportPage = {
         id: `page-action-plan-${Date.now().toString(36)}`,

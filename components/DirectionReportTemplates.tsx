@@ -82,12 +82,12 @@ export const ComplianceBadge: React.FC<{
   if (status === 'compliant') {
     return (
       <span
-        className={`inline-flex items-center gap-1.5 rounded-full border border-[#BBF7D0] bg-[#F0FDF4] font-bold uppercase tracking-wider text-[#15803D] ${
+        className={`inline-flex items-center gap-1.5 rounded-full border border-[#BBF7D0] bg-[#F0FDF4] font-bold uppercase tracking-wider text-[#15803D] whitespace-nowrap shrink-0 ${
           compact ? 'px-2 py-0.5 text-[9px]' : 'px-2.5 py-1 text-[10px]'
         }`}
       >
         <CheckCircle2 className={compact ? 'h-3 w-3' : 'h-3.5 w-3.5'} />
-        {customLabel || 'Cumple objetivo'}
+        {customLabel || (compact ? 'Cumple' : 'Cumple objetivo')}
       </span>
     );
   }
@@ -95,24 +95,24 @@ export const ComplianceBadge: React.FC<{
   if (status === 'deviated') {
     return (
       <span
-        className={`inline-flex items-center gap-1.5 rounded-full border border-[#FECACA] bg-[#FEF2F2] font-bold uppercase tracking-wider text-[#B91C1C] ${
+        className={`inline-flex items-center gap-1.5 rounded-full border border-[#FECACA] bg-[#FEF2F2] font-bold uppercase tracking-wider text-[#B91C1C] whitespace-nowrap shrink-0 ${
           compact ? 'px-2 py-0.5 text-[9px]' : 'px-2.5 py-1 text-[10px]'
         }`}
       >
         <AlertTriangle className={compact ? 'h-3 w-3' : 'h-3.5 w-3.5'} />
-        {customLabel || 'Desvío vs. objetivo'}
+        {customLabel || (compact ? 'Desvío' : 'Desvío vs. objetivo')}
       </span>
     );
   }
 
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-100 font-bold uppercase tracking-wider text-[#5A6A85] ${
+      className={`inline-flex items-center gap-1.5 rounded-full border border-slate-200 bg-slate-100 font-bold uppercase tracking-wider text-[#5A6A85] whitespace-nowrap shrink-0 ${
         compact ? 'px-2 py-0.5 text-[9px]' : 'px-2.5 py-1 text-[10px]'
       }`}
     >
       <Clock className={compact ? 'h-3 w-3' : 'h-3.5 w-3.5'} />
-      {customLabel || 'Pendiente de evaluación'}
+      {customLabel || (compact ? 'Pendiente' : 'Pendiente de evaluación')}
     </span>
   );
 };
@@ -869,7 +869,7 @@ export const PageFrameA4: React.FC<PageFrameA4Props> = ({
           )}
 
           {/* Key Executive Summary Pills on Cover */}
-          <div className="grid grid-cols-4 gap-4 pt-4 max-w-3xl">
+          <div className="grid grid-cols-3 gap-4 pt-4 max-w-2xl">
             <div className="rounded-xl border border-white/12 bg-white/6 px-4 py-3">
               <p className="text-[9px] font-bold uppercase tracking-widest text-slate-300">
                 OS de Marca
@@ -878,7 +878,7 @@ export const PageFrameA4: React.FC<PageFrameA4Props> = ({
                 {formatMetricAr(computed.consolidated.osScore)}
               </p>
               <p className="text-[10px] text-sky-300">
-                Meta: {formatMetricAr(computed.consolidated.osTarget)}
+                Meta: ≥ {formatMetricAr(computed.consolidated.osTarget)}
               </p>
             </div>
             <div className="rounded-xl border border-white/12 bg-white/6 px-4 py-3">
@@ -889,7 +889,7 @@ export const PageFrameA4: React.FC<PageFrameA4Props> = ({
                 {formatMetricAr(computed.consolidated.lvsScore)}
               </p>
               <p className="text-[10px] text-sky-300">
-                Meta: {formatMetricAr(computed.consolidated.lvsTarget)}
+                Meta: ≥ {formatMetricAr(computed.consolidated.lvsTarget)}
               </p>
             </div>
             <div className="rounded-xl border border-white/12 bg-white/6 px-4 py-3">
@@ -903,36 +903,29 @@ export const PageFrameA4: React.FC<PageFrameA4Props> = ({
                 {doc.branchSelection === 'BOTH' ? '3059 y 3087' : doc.branchSelection === 'JUJUY' ? 'CE 3059' : 'CE 3087'}
               </p>
             </div>
-            <div className="rounded-xl border border-white/12 bg-white/6 px-4 py-3">
-              <p className="text-[9px] font-bold uppercase tracking-widest text-slate-300">
-                Emisión
-              </p>
-              <p className="mt-1 text-base font-extrabold text-white">
-                {doc.emittedDate}
-              </p>
-              <p className="text-[10px] text-sky-300">
-                {totalPages} láminas ejecutivas
-              </p>
-            </div>
           </div>
         </div>
 
         {/* Bottom Note & Footer */}
         <div className="relative z-10 flex items-end justify-between gap-8 border-t border-white/15 pt-4">
           <div className="flex-1 max-w-3xl">
-            <p className="text-[9px] font-bold uppercase tracking-widest text-sky-300 mb-1">
-              {page.narrativeTitle || 'Nota metodológica y corte del período'}
-            </p>
-            {isPrintMode ? (
-              <p className="text-xs leading-relaxed text-slate-300">{page.narrativeBody}</p>
-            ) : (
-              <textarea
-                value={page.narrativeBody}
-                onChange={e => onUpdatePage({ narrativeBody: e.target.value })}
-                rows={2}
-                className="w-full resize-none bg-transparent text-xs leading-relaxed text-slate-200 outline-none border border-transparent focus:border-white/20 rounded p-1"
-              />
-            )}
+            {page.narrativeBody ? (
+              <>
+                <p className="text-[9px] font-bold uppercase tracking-widest text-sky-300 mb-1">
+                  {page.narrativeTitle || 'Nota del Período'}
+                </p>
+                {isPrintMode ? (
+                  <p className="text-xs leading-relaxed text-slate-300">{page.narrativeBody}</p>
+                ) : (
+                  <textarea
+                    value={page.narrativeBody}
+                    onChange={e => onUpdatePage({ narrativeBody: e.target.value })}
+                    rows={2}
+                    className="w-full resize-none bg-transparent text-xs leading-relaxed text-slate-200 outline-none border border-transparent focus:border-white/20 rounded p-1"
+                  />
+                )}
+              </>
+            ) : null}
           </div>
 
           <div className="text-right shrink-0">
@@ -1190,7 +1183,7 @@ export const DirectionPageTemplateRenderer: React.FC<DirectionPageTemplateRender
         isPrintMode={isPrintMode}
         onUpdatePage={onUpdatePage}
       >
-        <div className="flex flex-col justify-between h-full gap-3">
+        <div className="flex flex-col justify-center h-full gap-5 py-4">
           <InheritedReviewBanner
             isInherited={page.isInheritedPendingReview}
             isPrintMode={isPrintMode}
@@ -1198,7 +1191,7 @@ export const DirectionPageTemplateRenderer: React.FC<DirectionPageTemplateRender
           />
 
           {/* Tarjetas Ejecutivas Principales: Jujuy y Salta por separado, sin promediar juntos */}
-          <div className={`grid ${executiveCards.length === 4 ? 'grid-cols-4' : 'grid-cols-3'} gap-3`}>
+          <div className={`grid ${executiveCards.length === 4 ? 'grid-cols-4' : 'grid-cols-3'} gap-4`}>
             {executiveCards.map(card => {
               const singleVal = doc.branchSelection === 'SALTA' ? card.saltaScore : card.jujuyScore;
               const singleStatus = doc.branchSelection === 'SALTA' ? card.saltaStatus : card.jujuyStatus;
@@ -1206,11 +1199,11 @@ export const DirectionPageTemplateRenderer: React.FC<DirectionPageTemplateRender
               return (
                 <div
                   key={card.id}
-                  className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-[#F5F7FA]/80 p-3.5 shadow-2xs"
+                  className="flex flex-col justify-between rounded-2xl border border-slate-200 bg-[#F5F7FA]/80 p-4 shadow-2xs min-h-[220px]"
                 >
                   {/* Encabezado: Nombre del Indicador y Meta */}
-                  <div className="flex items-center justify-between gap-2 border-b border-slate-200/70 pb-2">
-                    <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#001E50] line-clamp-1">
+                  <div className="flex items-center justify-between gap-2 border-b border-slate-200/70 pb-2.5">
+                    <span className="text-[11px] font-extrabold uppercase tracking-wider text-[#001E50] line-clamp-1">
                       {card.name}
                     </span>
                     <span className="text-[10px] font-extrabold text-[#0072CE] shrink-0">
@@ -1220,20 +1213,20 @@ export const DirectionPageTemplateRenderer: React.FC<DirectionPageTemplateRender
 
                   {/* Cuerpo: Si es ambas sucursales, mostrar Jujuy y Salta por separado */}
                   {isComparative ? (
-                    <div className="my-2.5 grid grid-cols-2 gap-2">
+                    <div className="my-3 grid grid-cols-2 gap-2.5">
                       {/* Autosol Jujuy */}
-                      <div className="rounded-xl border border-slate-200/60 bg-white p-2.5">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[9px] font-extrabold uppercase text-[#001E50]">Jujuy (3059)</span>
+                      <div className="rounded-xl border border-slate-200/60 bg-white p-3">
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="text-[9px] font-extrabold uppercase text-[#001E50] truncate">Jujuy (3059)</span>
                           {isLoadingData && card.jujuyScore == null ? (
-                            <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[8px] font-bold text-amber-700 border border-amber-200 animate-pulse">
+                            <span className="rounded-full bg-amber-50 px-1.5 py-0.5 text-[8px] font-bold text-amber-700 border border-amber-200 animate-pulse whitespace-nowrap">
                               Cargando...
                             </span>
                           ) : (
                             <ComplianceBadge status={card.jujuyStatus} compact />
                           )}
                         </div>
-                        <p className="mt-1 text-2xl font-black text-[#001E50] tabular-nums">
+                        <p className="mt-1.5 text-2xl font-black text-[#001E50] tabular-nums">
                           {isLoadingData && card.jujuyScore == null ? (
                             <span className="text-xs font-bold text-amber-600 animate-pulse">Sincronizando...</span>
                           ) : (
@@ -1243,18 +1236,18 @@ export const DirectionPageTemplateRenderer: React.FC<DirectionPageTemplateRender
                       </div>
 
                       {/* Autosol Salta */}
-                      <div className="rounded-xl border border-slate-200/60 bg-white p-2.5">
-                        <div className="flex items-center justify-between">
-                          <span className="text-[9px] font-extrabold uppercase text-[#0072CE]">Salta (3087)</span>
+                      <div className="rounded-xl border border-slate-200/60 bg-white p-3">
+                        <div className="flex items-center justify-between gap-1">
+                          <span className="text-[9px] font-extrabold uppercase text-[#0072CE] truncate">Salta (3087)</span>
                           {isLoadingData && card.saltaScore == null ? (
-                            <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[8px] font-bold text-amber-700 border border-amber-200 animate-pulse">
+                            <span className="rounded-full bg-amber-50 px-1.5 py-0.5 text-[8px] font-bold text-amber-700 border border-amber-200 animate-pulse whitespace-nowrap">
                               Cargando...
                             </span>
                           ) : (
                             <ComplianceBadge status={card.saltaStatus} compact />
                           )}
                         </div>
-                        <p className="mt-1 text-2xl font-black text-[#001E50] tabular-nums">
+                        <p className="mt-1.5 text-2xl font-black text-[#001E50] tabular-nums">
                           {isLoadingData && card.saltaScore == null ? (
                             <span className="text-xs font-bold text-amber-600 animate-pulse">Sincronizando...</span>
                           ) : (
@@ -1264,7 +1257,7 @@ export const DirectionPageTemplateRenderer: React.FC<DirectionPageTemplateRender
                       </div>
                     </div>
                   ) : (
-                    <div className="my-3 flex items-baseline justify-between rounded-xl border border-slate-200/60 bg-white p-3">
+                    <div className="my-3 flex items-baseline justify-between rounded-xl border border-slate-200/60 bg-white p-3.5">
                       <div>
                         <span className="text-[9px] font-extrabold uppercase text-[#5A6A85] block">
                           Autosol {doc.branchSelection === 'SALTA' ? 'Salta (3087)' : 'Jujuy (3059)'}
@@ -1287,76 +1280,13 @@ export const DirectionPageTemplateRenderer: React.FC<DirectionPageTemplateRender
                     </div>
                   )}
 
-                  <div className="text-[9px] font-semibold text-[#5A6A85] flex items-center justify-between pt-1 border-t border-slate-200/50">
+                  <div className="text-[9px] font-semibold text-[#5A6A85] flex items-center justify-between pt-2 border-t border-slate-200/50">
                     <span>Resultado Oficial de Marca</span>
                     <span className="text-[#001E50] font-bold">Autosol S.R.L.</span>
                   </div>
                 </div>
               );
             })}
-          </div>
-
-          {/* Editable Executive Narrative Blocks */}
-          <div className="grid grid-cols-2 gap-4 flex-1 min-h-0">
-            <div className="flex flex-col rounded-xl border border-slate-200 bg-white p-4">
-              <div className="flex items-center justify-between border-b border-slate-100 pb-2">
-                {isPrintMode ? (
-                  <h3 className="text-xs font-extrabold uppercase tracking-wider text-[#001E50]">
-                    {page.narrativeTitle || 'Síntesis de Resultados del Período'}
-                  </h3>
-                ) : (
-                  <input
-                    type="text"
-                    value={page.narrativeTitle}
-                    onChange={e => onUpdatePage({ narrativeTitle: e.target.value })}
-                    className="w-full bg-transparent text-xs font-extrabold uppercase tracking-wider text-[#001E50] outline-none"
-                  />
-                )}
-              </div>
-              {isPrintMode ? (
-                <p className="mt-2.5 text-xs leading-relaxed text-[#001E50] whitespace-pre-wrap">
-                  {page.narrativeBody ||
-                    `Resumen consolidado de ${computed.periodLabel}. Los indicadores automáticos provienen de las bases oficiales de CEM Ventas, CEM Postventa y registros internos de Calidad.`}
-                </p>
-              ) : (
-                <textarea
-                  value={page.narrativeBody}
-                  onChange={e => onUpdatePage({ narrativeBody: e.target.value })}
-                  placeholder="Hacé clic aquí para redactar el resumen ejecutivo de los principales resultados del período..."
-                  className="mt-2.5 flex-1 w-full resize-none bg-transparent text-xs leading-relaxed text-[#001E50] outline-none placeholder:text-slate-400"
-                />
-              )}
-            </div>
-
-            <div className="flex flex-col rounded-xl border border-slate-200 bg-[#001E50] p-4 text-white">
-              <div className="flex items-center justify-between border-b border-white/15 pb-2">
-                {isPrintMode ? (
-                  <h3 className="text-xs font-extrabold uppercase tracking-wider text-sky-300">
-                    {page.secondaryNarrativeTitle || 'Foco Directivo y Decisiones Clave'}
-                  </h3>
-                ) : (
-                  <input
-                    type="text"
-                    value={page.secondaryNarrativeTitle || 'Foco Directivo y Decisiones Clave'}
-                    onChange={e => onUpdatePage({ secondaryNarrativeTitle: e.target.value })}
-                    className="w-full bg-transparent text-xs font-extrabold uppercase tracking-wider text-sky-300 outline-none"
-                  />
-                )}
-              </div>
-              {isPrintMode ? (
-                <p className="mt-2.5 text-xs leading-relaxed text-slate-100 whitespace-pre-wrap">
-                  {page.secondaryNarrativeBody ||
-                    'Cada indicador incluido en este informe incorpora debajo de sus resultados su evaluación de cumplimiento y, cuando existe desvío, su causa raíz y plan de acción correctivo.'}
-                </p>
-              ) : (
-                <textarea
-                  value={page.secondaryNarrativeBody || ''}
-                  onChange={e => onUpdatePage({ secondaryNarrativeBody: e.target.value })}
-                  placeholder="Hacé clic aquí para destacar los puntos de atención prioritaria o decisiones requeridas de Dirección..."
-                  className="mt-2.5 flex-1 w-full resize-none bg-transparent text-xs leading-relaxed text-white outline-none placeholder:text-slate-400"
-                />
-              )}
-            </div>
           </div>
         </div>
       </PageFrameA4>
@@ -2138,15 +2068,35 @@ export const DirectionPageTemplateRenderer: React.FC<DirectionPageTemplateRender
             </div>
           </div>
 
-          {/* Integrated Action Plan for this Survey Study */}
-          {page.actionBlock && (
-            <IntegratedIndicatorActionSection
-              block={page.actionBlock}
-              branchSelection={doc.branchSelection}
-              matchingPlans={computed.matchingActionPlans}
-              isPrintMode={isPrintMode}
-              onUpdateBlock={nextBlock => onUpdatePage({ actionBlock: nextBlock })}
-            />
+          {/* Botón o Aviso para Plan de Acción en Hoja Siguiente si hay desvío */}
+          {!isPrintMode && activeBranchStudy.compliance === 'deviated' && (
+            <div className="pt-2">
+              {doc.pages.some(
+                p =>
+                  p.templateType === 'action_plan_continuation' &&
+                  (p.linkedIndicatorKey === page.linkedIndicatorKey || p.moduleId === page.moduleId)
+              ) ? (
+                <div className="rounded-xl border border-emerald-300 bg-emerald-50 px-4 py-2.5 text-xs font-bold text-emerald-900 flex items-center gap-2">
+                  <CheckCircle2 className="h-4 w-4 text-emerald-600 shrink-0" />
+                  <span>Plan de Acción documentado en la hoja siguiente</span>
+                </div>
+              ) : (
+                <div className="rounded-xl border border-rose-200 bg-rose-50/80 p-3 flex items-center justify-between gap-3 shadow-2xs">
+                  <div className="flex items-center gap-2 text-xs font-bold text-rose-800">
+                    <AlertTriangle className="h-4 w-4 text-rose-600 shrink-0" />
+                    <span>Se detectó desvío en el estudio {prog === 'CLUB_SSI' ? 'Club SSI' : prog}</span>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => onAddActionPlanPage?.(page.id)}
+                    className="inline-flex items-center gap-1.5 rounded-xl bg-rose-600 hover:bg-rose-700 px-4 py-2 text-xs font-extrabold uppercase tracking-wider text-white shadow-xs transition"
+                  >
+                    <Plus className="h-4 w-4" />
+                    <span>Agregar hoja de Plan de Acción</span>
+                  </button>
+                </div>
+              )}
+            </div>
           )}
         </div>
       </PageFrameA4>
@@ -2823,13 +2773,13 @@ export const DirectionPageTemplateRenderer: React.FC<DirectionPageTemplateRender
           </div>
 
           {/* Bloque Central de Conclusiones Finales */}
-          <div className="flex-1 my-4 rounded-2xl border border-slate-200 bg-white p-6 flex flex-col justify-between shadow-xs">
+          <div className="flex-1 my-6 rounded-2xl border border-slate-200 bg-white p-8 flex flex-col justify-between shadow-xs">
             <div>
               <span className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#0072CE] block">
                 {page.narrativeTitle || 'Conclusiones y Consideraciones Finales de Calidad'}
               </span>
               {isPrintMode ? (
-                <p className="mt-3 text-xs leading-relaxed text-[#001E50] whitespace-pre-wrap">
+                <p className="mt-4 text-sm leading-relaxed text-[#001E50] whitespace-pre-wrap">
                   {page.narrativeBody ||
                     'El presente informe consolida los resultados oficiales de Calidad y Experiencia del Cliente correspondientes al período evaluado. Se ratifica el compromiso con los estándares de excelencia de marca Volkswagen, manteniendo el seguimiento riguroso de cada oportunidad de mejora a través de sus respectivos planes de acción.'}
                 </p>
@@ -2837,35 +2787,16 @@ export const DirectionPageTemplateRenderer: React.FC<DirectionPageTemplateRender
                 <textarea
                   value={page.narrativeBody}
                   onChange={e => onUpdatePage({ narrativeBody: e.target.value })}
-                  rows={5}
+                  rows={6}
                   placeholder="Redactar palabras de cierre, conclusiones o agradecimiento para Dirección..."
-                  className="mt-3 w-full resize-none rounded-xl border border-slate-200 bg-[#F5F7FA]/60 p-4 text-xs leading-relaxed text-[#001E50] outline-none focus:border-[#0072CE] focus:bg-white placeholder:text-slate-400"
+                  className="mt-4 w-full resize-none rounded-xl border border-slate-200 bg-[#F5F7FA]/60 p-5 text-sm leading-relaxed text-[#001E50] outline-none focus:border-[#0072CE] focus:bg-white placeholder:text-slate-400"
                 />
               )}
             </div>
 
-            {/* Firmas / Conformidad Directiva */}
-            <div className="mt-6 border-t border-slate-100 pt-6">
-              <span className="text-[9px] font-bold uppercase tracking-wider text-[#5A6A85] block mb-6 text-center">
-                Conformidad y Revisión de Dirección
-              </span>
-              <div className="grid grid-cols-3 gap-8 text-center">
-                <div className="border-t border-slate-300 pt-2">
-                  <p className="text-xs font-extrabold text-[#001E50]">Nelson Tolaba</p>
-                  <p className="text-[10px] text-[#5A6A85]">Responsable de Calidad</p>
-                  <p className="text-[9px] text-slate-400">Autosol Jujuy y Salta</p>
-                </div>
-                <div className="border-t border-slate-300 pt-2">
-                  <p className="text-xs font-extrabold text-[#001E50]">Gerencia General</p>
-                  <p className="text-[10px] text-[#5A6A85]">Operaciones Autosol</p>
-                  <p className="text-[9px] text-slate-400">Revisión de Cumplimiento</p>
-                </div>
-                <div className="border-t border-slate-300 pt-2">
-                  <p className="text-xs font-extrabold text-[#001E50]">Dirección General</p>
-                  <p className="text-[10px] text-[#5A6A85]">Autosol S.R.L.</p>
-                  <p className="text-[9px] text-slate-400">Aprobación Final</p>
-                </div>
-              </div>
+            <div className="pt-6 border-t border-slate-100 flex items-center justify-between text-xs text-[#5A6A85]">
+              <span>Sistema de Gestión de Calidad · Autosol S.R.L.</span>
+              <span className="font-extrabold text-[#001E50]">Documento Oficial de Seguimiento</span>
             </div>
           </div>
 

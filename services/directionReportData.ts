@@ -140,9 +140,9 @@ export const DIRECTION_MODULES: ModuleDefinition[] = [
   {
     id: 'lavado',
     category: 'A_indicadores',
-    label: 'Calidad de Lavado y Entrega',
+    label: 'Calidad de Lavado',
     shortLabel: 'Lavado',
-    description: 'Desempeño de lavado en CEM Postventa (Q6) y Encuesta Interna, comparativa por sucursal y acciones correctivas.',
+    description: 'Desempeño de lavado en CEM Postventa (Pregunta Q6), comparativa por sucursal y plan de acción.',
     defaultSourceType: 'available',
     suggestedMonthly: true,
     suggestedQuarterly: false,
@@ -356,7 +356,6 @@ export function getSuggestedModules(
     'ventas_os',
     'postventa_lvs',
     'lavado',
-    'evolucion_indicadores',
     'planes_accion_integrados',
     'proximos_pasos',
   ];
@@ -376,18 +375,15 @@ export function estimatePageCount(
   enabledModules: DirectionModuleId[],
   branchSelection: BranchSelection
 ): { minPages: number; maxPages: number; label: string } {
-  // Always includes Cover (1) + Executive Summary (1)
-  let base = 2;
+  // Always includes Cover (1)
+  let base = 1;
   for (const modId of enabledModules) {
     const def = DIRECTION_MODULES.find(m => m.id === modId);
     if (def) {
       base += def.estimatedPages;
     }
   }
-  if (branchSelection === 'BOTH' && !enabledModules.includes('evolucion_indicadores')) {
-    base += 1; // Comparative Jujuy / Salta page
-  }
-  const minPages = Math.max(3, base);
+  const minPages = Math.max(2, base);
   const maxPages = minPages + (enabledModules.includes('planes_accion_integrados') ? 1 : 0);
   return {
     minPages,
@@ -1508,27 +1504,29 @@ export function composeDirectionReportPages(
     visible: true,
     exportSelected: true,
     layoutVariant: 'balanced_split',
-    narrativeTitle: 'Alcance y Corte Operativo del Informe',
-    narrativeBody: computed.periodClosureDetail,
+    narrativeTitle: '',
+    narrativeBody: '',
     images: [],
   });
 
-  // 2. PLANTILLA 2: RESUMEN EJECUTIVO
-  pages.push({
-    id: 'page-executive-summary',
-    templateType: 'executive_summary',
-    title: `Resumen Ejecutivo — ${computed.periodLabel}`,
-    subtitle: `Síntesis de resultados clave y estado de cumplimiento (${branchTitle})`,
-    sectionTag: 'SÍNTESIS DIRECTIVA',
-    visible: true,
-    exportSelected: true,
-    layoutVariant: 'four_kpi_grid',
-    narrativeTitle: 'Lectura Ejecutiva del Período',
-    narrativeBody: '',
-    secondaryNarrativeTitle: 'Foco de Gestión para Dirección',
-    secondaryNarrativeBody: '',
-    images: [],
-  });
+  // 2. PLANTILLA 2: RESUMEN EJECUTIVO (Solo si se seleccionó Cumplimiento de Objetivos)
+  if (enabledModules.includes('cumplimiento_objetivos')) {
+    pages.push({
+      id: 'page-executive-summary',
+      templateType: 'executive_summary',
+      title: `Resumen Ejecutivo — ${computed.periodLabel}`,
+      subtitle: `Síntesis de resultados clave y estado de cumplimiento (${branchTitle})`,
+      sectionTag: 'SÍNTESIS DIRECTIVA',
+      visible: true,
+      exportSelected: true,
+      layoutVariant: 'four_kpi_grid',
+      narrativeTitle: '',
+      narrativeBody: '',
+      secondaryNarrativeTitle: '',
+      secondaryNarrativeBody: '',
+      images: [],
+    });
+  }
 
   // 3. VENTAS: OS DE MARCA (Plantilla 3 + Plan de Acción Integrado)
   if (enabledModules.includes('ventas_os')) {
@@ -1601,8 +1599,8 @@ export function composeDirectionReportPages(
       templateType: 'indicator_evolution',
       moduleId: 'lavado',
       linkedIndicatorKey: 'lavado',
-      title: `Calidad de Lavado y Entrega — ${computed.periodLabel}`,
-      subtitle: 'Evaluación externa CEM (Q6) y Encuesta Interna Postventa',
+      title: `Calidad de Lavado — ${computed.periodLabel}`,
+      subtitle: 'Evaluación externa CEM Postventa (Pregunta Q6)',
       sectionTag: 'POSTVENTA · LAVADO',
       visible: true,
       exportSelected: true,
@@ -1626,8 +1624,8 @@ export function composeDirectionReportPages(
     });
   }
 
-  // 6. COMPARACIÓN JUJUY / SALTA E INDICADORES EN EVOLUCIÓN (Plantilla 4)
-  if (enabledModules.includes('evolucion_indicadores') || branchSelection === 'BOTH') {
+  // 6. COMPARACIÓN JUJUY / SALTA E INDICADORES EN EVOLUCIÓN (Plantilla 4 - Solo si fue activado)
+  if (enabledModules.includes('evolucion_indicadores')) {
     pages.push({
       id: 'page-branch-comparison',
       templateType: 'branch_comparison',

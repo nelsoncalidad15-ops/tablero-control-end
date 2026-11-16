@@ -342,7 +342,7 @@ test('Composición dinámica de páginas incluye solo módulos seleccionados y d
       month: 'Septiembre',
       quarter: 'Q3',
       branchSelection: 'JUJUY',
-      enabledModules: ['ventas_os', 'postventa_lvs', 'planes_accion_integrados'],
+      enabledModules: ['cumplimiento_objetivos', 'ventas_os', 'postventa_lvs', 'planes_accion_integrados'],
       surveySubOptions: DEFAULT_SURVEY_SUB_OPTIONS,
     },
     computedQ3

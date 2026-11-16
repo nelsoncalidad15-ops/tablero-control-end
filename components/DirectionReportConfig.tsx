@@ -104,8 +104,8 @@ const CLEAN_MODULE_LIST: CleanModuleItem[] = [
   },
   {
     id: 'lavado',
-    label: 'Calidad de Lavado y Entrega (CEM Q6)',
-    shortDesc: 'Calificación de entrega y acondicionamiento',
+    label: 'Calidad de Lavado (CEM Q6)',
+    shortDesc: 'Calificación oficial de lavado en taller',
     group: 'principales',
     tag: 'Postventa',
   },

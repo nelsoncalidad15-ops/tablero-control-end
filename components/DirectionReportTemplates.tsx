@@ -2028,77 +2028,81 @@ export const DirectionPageTemplateRenderer: React.FC<DirectionPageTemplateRender
             )}
           </div>
 
-          {/* Middle Section: Dissatisfaction Reasons Ranking + Narrative Analysis */}
+          {/* Middle Section: Clean Study Interpretation & Concessionaire Breakdown */}
           <div className="grid grid-cols-12 gap-4 flex-1 min-h-0">
-            <div className="col-span-7 rounded-xl border border-slate-200 bg-[#F5F7FA]/60 p-3.5 flex flex-col min-h-0">
-              <h4 className="text-[10px] font-extrabold uppercase tracking-wider text-[#001E50] mb-1">
-                Principales Motivos de Insatisfacción / Categorización ({prog === 'CLUB_SSI' ? 'Club SSI' : prog})
-              </h4>
-              {activeBranchStudy.topReasons.length === 0 ? (
-                <div className="flex-1 flex items-center justify-center text-xs text-[#5A6A85]">
-                  No se registran motivos categorizados de insatisfacción en la muestra seleccionada.
+            <div className="col-span-5 rounded-xl border border-slate-200 bg-[#F5F7FA]/70 p-4 flex flex-col justify-between">
+              <div>
+                <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#001E50] block">
+                  Apertura por Concesionario ({prog === 'CLUB_SSI' ? 'Club SSI' : prog})
+                </span>
+                <p className="mt-1 text-xs text-[#5A6A85]">
+                  Muestra válida y satisfacción por punto de atención:
+                </p>
+
+                <div className="mt-3.5 space-y-2.5">
+                  <div className="flex items-center justify-between rounded-xl bg-white p-3 border border-slate-200 shadow-2xs">
+                    <div>
+                      <p className="text-xs font-extrabold text-[#001E50]">Autosol Jujuy (3059)</p>
+                      <p className="text-[10px] text-[#5A6A85]">{study.byBranch.JUJUY.validCount} encuestas válidas</p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-base font-extrabold text-[#001E50]">
+                        {study.byBranch.JUJUY.validCount > 0 ? formatMetricAr(study.byBranch.JUJUY.satisfactionAvg) : 'S/D'}
+                      </span>
+                      <span className="text-[10px] font-bold text-[#5A6A85] block">/ 10 pts</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between rounded-xl bg-white p-3 border border-slate-200 shadow-2xs">
+                    <div>
+                      <p className="text-xs font-extrabold text-[#0072CE]">Autosol Salta (3087)</p>
+                      <p className="text-[10px] text-[#5A6A85]">{study.byBranch.SALTA.validCount} encuestas válidas</p>
+                    </div>
+                    <div className="text-right">
+                      <span className="text-base font-extrabold text-[#0072CE]">
+                        {study.byBranch.SALTA.validCount > 0 ? formatMetricAr(study.byBranch.SALTA.satisfactionAvg) : 'S/D'}
+                      </span>
+                      <span className="text-[10px] font-bold text-[#5A6A85] block">/ 10 pts</span>
+                    </div>
+                  </div>
                 </div>
-              ) : (
-                <div className="flex-1 min-h-[120px]">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart
-                      data={activeBranchStudy.topReasons}
-                      layout="vertical"
-                      margin={{ top: 4, right: 28, left: 10, bottom: 4 }}
-                    >
-                      <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E2E8F0" />
-                      <XAxis type="number" hide />
-                      <YAxis
-                        type="category"
-                        dataKey="name"
-                        width={175}
-                        axisLine={false}
-                        tickLine={false}
-                        tick={{ fontSize: 10, fontWeight: 700, fill: '#001E50' }}
-                      />
-                      <Tooltip />
-                      <Bar dataKey="value" fill="#001E50" radius={[0, 6, 6, 0]} barSize={16}>
-                        <LabelList dataKey="value" position="right" style={{ fill: '#001E50', fontSize: 10, fontWeight: 800 }} />
-                      </Bar>
-                    </BarChart>
-                  </ResponsiveContainer>
-                </div>
-              )}
+              </div>
+
+              <div className="rounded-lg bg-sky-50 border border-sky-100 p-2.5 mt-2">
+                <span className="text-[9px] font-extrabold uppercase tracking-wider text-[#0072CE] block">
+                  Metodología Oficial Volkswagen
+                </span>
+                <p className="text-[10px] text-[#001E50]">
+                  Evaluación sobre clientes encuestados por la marca. Métrica Top 2 Boxes (T2B) sobre notas 9 y 10.
+                </p>
+              </div>
             </div>
 
-            <div className="col-span-5 rounded-xl border border-slate-200 bg-white p-3.5 flex flex-col justify-between">
+            <div className="col-span-7 rounded-xl border border-slate-200 bg-white p-4 flex flex-col justify-between">
               <div>
                 <span className="text-[10px] font-extrabold uppercase tracking-wider text-[#0072CE]">
-                  {page.narrativeTitle || `Lectura del Estudio ${prog}`}
+                  {page.narrativeTitle || `Lectura y Conclusiones del Estudio ${prog}`}
                 </span>
                 {isPrintMode ? (
-                  <p className="mt-2 text-xs leading-relaxed text-[#001E50] whitespace-pre-wrap">
+                  <p className="mt-3 text-xs leading-relaxed text-[#001E50] whitespace-pre-wrap">
                     {page.narrativeBody ||
-                      `Evaluación diferenciada del estudio ${prog}. Los datos de SSI, Club SSI y CSI se mantienen independientes para preservar la trazabilidad metodológica de cada programa.`}
+                      `Evaluación oficial del programa ${prog}. Los datos reflejan la percepción de clientes contactados por Volkswagen para el seguimiento de estándares de atención y servicio.`}
                   </p>
                 ) : (
                   <textarea
                     value={page.narrativeBody}
                     onChange={e => onUpdatePage({ narrativeBody: e.target.value })}
-                    rows={4}
+                    rows={5}
                     placeholder={`Redactar interpretación de resultados y hallazgos específicos de ${prog}...`}
-                    className="mt-2 w-full resize-none bg-transparent text-xs leading-relaxed text-[#001E50] outline-none placeholder:text-slate-300"
+                    className="mt-3 w-full resize-none rounded-xl border border-slate-200 bg-[#F5F7FA]/50 p-3 text-xs leading-relaxed text-[#001E50] outline-none focus:border-[#0072CE] focus:bg-white placeholder:text-slate-400"
                   />
                 )}
               </div>
 
-              {isComparative && (
-                <div className="mt-2 grid grid-cols-2 gap-2 border-t border-slate-100 pt-2 text-[10px]">
-                  <div className="rounded-lg bg-[#F5F7FA] p-2">
-                    <span className="font-bold text-[#001E50] block">Jujuy (3059)</span>
-                    <span>Sat: {formatMetricAr(study.byBranch.JUJUY.satisfactionAvg)} · T2B: {study.byBranch.JUJUY.t2bPercent ?? '—'}%</span>
-                  </div>
-                  <div className="rounded-lg bg-[#F5F7FA] p-2">
-                    <span className="font-bold text-[#0072CE] block">Salta (3087)</span>
-                    <span>Sat: {formatMetricAr(study.byBranch.SALTA.satisfactionAvg)} · T2B: {study.byBranch.SALTA.t2bPercent ?? '—'}%</span>
-                  </div>
-                </div>
-              )}
+              <div className="border-t border-slate-100 pt-3 flex items-center justify-between text-[10px] text-[#5A6A85]">
+                <span>Trazabilidad independiente de datos</span>
+                <span className="font-extrabold text-[#001E50]">{prog === 'CLUB_SSI' ? 'Club SSI' : prog}</span>
+              </div>
             </div>
           </div>
 
@@ -2745,37 +2749,8 @@ export const DirectionPageTemplateRenderer: React.FC<DirectionPageTemplateRender
     );
   }
 
-  // 12. PLANTILLA 11: CIERRE EJECUTIVO Y PRÓXIMOS PASOS (3 PRIORIDADES CLAVE PARA DIRECCIÓN)
+  // 12. PLANTILLA 11: CIERRE INSTITUCIONAL (FIN DEL INFORME)
   if (page.templateType === 'next_steps') {
-    const priorities = page.closingPriorities || [];
-
-    const updatePriority = (id: string, patch: Partial<ClosingPriorityItem>) => {
-      onUpdatePage({
-        closingPriorities: priorities.map(p => (p.id === id ? { ...p, ...patch } : p)),
-      });
-    };
-
-    const addPriority = () => {
-      if (priorities.length >= 4) return;
-      onUpdatePage({
-        closingPriorities: [
-          ...priorities,
-          {
-            id: `prio-${Date.now()}`,
-            priorityNumber: priorities.length + 1,
-            title: `Prioridad ${priorities.length + 1}`,
-            areaAndBranch: doc.branchSelection === 'BOTH' ? 'Jujuy y Salta' : doc.branchSelection,
-            KeyFinding: '',
-            commitmentAction: '',
-            responsible: 'Dirección / Calidad',
-            deadline: '',
-            decisionRequired: '',
-            status: 'Seguimiento',
-          },
-        ],
-      });
-    };
-
     return (
       <PageFrameA4
         page={page}
@@ -2786,171 +2761,86 @@ export const DirectionPageTemplateRenderer: React.FC<DirectionPageTemplateRender
         isPrintMode={isPrintMode}
         onUpdatePage={onUpdatePage}
       >
-        <div className="flex flex-col justify-between h-full gap-3">
+        <div className="flex flex-col justify-between h-full py-3">
           <InheritedReviewBanner
             isInherited={page.isInheritedPendingReview}
             isPrintMode={isPrintMode}
             onConfirmReview={() => onUpdatePage({ isInheritedPendingReview: false })}
           />
 
-          <div className="flex items-center justify-between rounded-xl bg-[#001E50] px-4 py-2.5 text-white">
+          {/* Banner Institucional de Cierre */}
+          <div className="rounded-2xl bg-gradient-to-r from-[#001E50] via-[#002868] to-[#001E50] p-6 text-white flex items-center justify-between shadow-md">
             <div>
-              <span className="text-[9px] font-extrabold uppercase tracking-[0.22em] text-sky-300 block">
-                Foco Directivo · Sin repetir planes operativos
+              <span className="text-[10px] font-extrabold uppercase tracking-[0.25em] text-sky-300 block">
+                Cierre de Informe · Dirección General
               </span>
-              <p className="text-xs font-medium text-slate-200">
-                Síntesis de las prioridades estratégicas del período que requieren seguimiento ejecutivo, asignación de recursos o decisiones de Dirección.
+              <h3 className="mt-1 text-2xl font-black tracking-tight text-white">
+                Fin del Informe Ejecutivo
+              </h3>
+              <p className="mt-1 text-xs text-slate-300">
+                Sistema de Gestión de Calidad y Experiencia al Cliente · {computed.periodLabel}
               </p>
             </div>
-            {!isPrintMode && priorities.length < 4 && (
-              <button
-                type="button"
-                onClick={addPriority}
-                className="inline-flex items-center gap-1 rounded-lg bg-[#0072CE] px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-white hover:bg-sky-500 shrink-0"
-              >
-                <Plus className="h-3 w-3" />
-                Agregar prioridad
-              </button>
-            )}
+            <div className="flex flex-col items-end text-right">
+              <span className="text-sm font-extrabold text-white">Autosol S.R.L.</span>
+              <span className="text-xs text-sky-200">Concesionario Oficial Volkswagen</span>
+              <span className="mt-1 rounded-md bg-white/10 px-2.5 py-0.5 text-[10px] font-bold text-slate-200">
+                Jujuy (3059) · Salta (3087)
+              </span>
+            </div>
           </div>
 
-          {/* 3-4 Priority Cards */}
-          <div className={`grid ${priorities.length === 4 ? 'grid-cols-2' : 'grid-cols-3'} gap-4 flex-1 min-h-0`}>
-            {priorities.map((prio, index) => (
-              <div
-                key={prio.id}
-                className="flex flex-col justify-between rounded-xl border border-slate-200 bg-[#F5F7FA]/80 p-4 shadow-2xs"
-              >
-                <div>
-                  <div className="flex items-center justify-between gap-2 border-b border-slate-200 pb-2.5">
-                    <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-[#001E50] text-xs font-extrabold text-white">
-                      0{index + 1}
-                    </span>
-                    {!isPrintMode ? (
-                      <select
-                        value={prio.status}
-                        onChange={e =>
-                          updatePriority(prio.id, {
-                            status: e.target.value as ClosingPriorityItem['status'],
-                          })
-                        }
-                        className="rounded-full border border-slate-200 bg-white px-2.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-[#0072CE]"
-                      >
-                        <option value="Prioridad Alta">Prioridad Alta</option>
-                        <option value="Seguimiento">Seguimiento</option>
-                        <option value="Decisión Dirección">Decisión Dirección</option>
-                      </select>
-                    ) : (
-                      <span className="rounded-full border border-slate-200 bg-white px-2.5 py-0.5 text-[9px] font-extrabold uppercase tracking-wider text-[#0072CE]">
-                        {prio.status}
-                      </span>
-                    )}
-                  </div>
+          {/* Bloque Central de Conclusiones Finales */}
+          <div className="flex-1 my-4 rounded-2xl border border-slate-200 bg-white p-6 flex flex-col justify-between shadow-xs">
+            <div>
+              <span className="text-[10px] font-extrabold uppercase tracking-[0.2em] text-[#0072CE] block">
+                {page.narrativeTitle || 'Conclusiones y Consideraciones Finales de Calidad'}
+              </span>
+              {isPrintMode ? (
+                <p className="mt-3 text-xs leading-relaxed text-[#001E50] whitespace-pre-wrap">
+                  {page.narrativeBody ||
+                    'El presente informe consolida los resultados oficiales de Calidad y Experiencia del Cliente correspondientes al período evaluado. Se ratifica el compromiso con los estándares de excelencia de marca Volkswagen, manteniendo el seguimiento riguroso de cada oportunidad de mejora a través de sus respectivos planes de acción.'}
+                </p>
+              ) : (
+                <textarea
+                  value={page.narrativeBody}
+                  onChange={e => onUpdatePage({ narrativeBody: e.target.value })}
+                  rows={5}
+                  placeholder="Redactar palabras de cierre, conclusiones o agradecimiento para Dirección..."
+                  className="mt-3 w-full resize-none rounded-xl border border-slate-200 bg-[#F5F7FA]/60 p-4 text-xs leading-relaxed text-[#001E50] outline-none focus:border-[#0072CE] focus:bg-white placeholder:text-slate-400"
+                />
+              )}
+            </div>
 
-                  {isPrintMode ? (
-                    <h4 className="mt-3 text-sm font-extrabold text-[#001E50]">{prio.title}</h4>
-                  ) : (
-                    <input
-                      type="text"
-                      value={prio.title}
-                      onChange={e => updatePriority(prio.id, { title: e.target.value })}
-                      className="mt-3 w-full bg-transparent text-sm font-extrabold text-[#001E50] outline-none border-b border-transparent focus:border-[#0072CE]"
-                    />
-                  )}
-
-                  <div className="mt-3 space-y-2">
-                    <div className="rounded-lg bg-white p-2.5 border border-slate-200/70">
-                      <span className="text-[8px] font-extrabold uppercase tracking-wider text-[#5A6A85] block">
-                        Compromiso / Acción Clave
-                      </span>
-                      {isPrintMode ? (
-                        <p className="mt-1 text-xs font-medium text-[#001E50] leading-snug">
-                          {prio.commitmentAction || 'Definir compromiso prioritario del área.'}
-                        </p>
-                      ) : (
-                        <textarea
-                          value={prio.commitmentAction}
-                          onChange={e => updatePriority(prio.id, { commitmentAction: e.target.value })}
-                          rows={2}
-                          placeholder="Hacé clic para describir el compromiso clave..."
-                          className="mt-1 w-full resize-none bg-transparent text-xs font-medium text-[#001E50] outline-none placeholder:text-slate-300"
-                        />
-                      )}
-                    </div>
-
-                    <div className="rounded-lg bg-white p-2.5 border border-slate-200/70">
-                      <span className="text-[8px] font-extrabold uppercase tracking-wider text-[#0072CE] block">
-                        Decisión / Recurso Requerido de Dirección
-                      </span>
-                      {isPrintMode ? (
-                        <p className="mt-1 text-xs font-medium text-[#001E50] leading-snug">
-                          {prio.decisionRequired || 'Seguimiento en reunión mensual de resultados.'}
-                        </p>
-                      ) : (
-                        <textarea
-                          value={prio.decisionRequired}
-                          onChange={e => updatePriority(prio.id, { decisionRequired: e.target.value })}
-                          rows={2}
-                          placeholder="¿Qué definición o soporte necesita de Dirección?"
-                          className="mt-1 w-full resize-none bg-transparent text-xs font-medium text-[#001E50] outline-none placeholder:text-slate-300"
-                        />
-                      )}
-                    </div>
-                  </div>
+            {/* Firmas / Conformidad Directiva */}
+            <div className="mt-6 border-t border-slate-100 pt-6">
+              <span className="text-[9px] font-bold uppercase tracking-wider text-[#5A6A85] block mb-6 text-center">
+                Conformidad y Revisión de Dirección
+              </span>
+              <div className="grid grid-cols-3 gap-8 text-center">
+                <div className="border-t border-slate-300 pt-2">
+                  <p className="text-xs font-extrabold text-[#001E50]">Nelson Tolaba</p>
+                  <p className="text-[10px] text-[#5A6A85]">Responsable de Calidad</p>
+                  <p className="text-[9px] text-slate-400">Autosol Jujuy y Salta</p>
                 </div>
-
-                <div className="mt-3 grid grid-cols-2 gap-2 border-t border-slate-200/80 pt-2 text-[10px]">
-                  <div>
-                    <span className="text-[8px] font-bold uppercase text-[#5A6A85] block">Responsable</span>
-                    {isPrintMode ? (
-                      <strong className="text-[#001E50]">{prio.responsible}</strong>
-                    ) : (
-                      <input
-                        type="text"
-                        value={prio.responsible}
-                        onChange={e => updatePriority(prio.id, { responsible: e.target.value })}
-                        className="w-full bg-transparent font-bold text-[#001E50] outline-none"
-                      />
-                    )}
-                  </div>
-                  <div>
-                    <span className="text-[8px] font-bold uppercase text-[#5A6A85] block">Fecha Revisión</span>
-                    {isPrintMode ? (
-                      <strong className="text-[#0072CE]">{prio.deadline || 'Próximo comité'}</strong>
-                    ) : (
-                      <input
-                        type="text"
-                        value={prio.deadline}
-                        onChange={e => updatePriority(prio.id, { deadline: e.target.value })}
-                        placeholder="Ej: 15/mes sig."
-                        className="w-full bg-transparent font-bold text-[#0072CE] outline-none"
-                      />
-                    )}
-                  </div>
+                <div className="border-t border-slate-300 pt-2">
+                  <p className="text-xs font-extrabold text-[#001E50]">Gerencia General</p>
+                  <p className="text-[10px] text-[#5A6A85]">Operaciones Autosol</p>
+                  <p className="text-[9px] text-slate-400">Revisión de Cumplimiento</p>
+                </div>
+                <div className="border-t border-slate-300 pt-2">
+                  <p className="text-xs font-extrabold text-[#001E50]">Dirección General</p>
+                  <p className="text-[10px] text-[#5A6A85]">Autosol S.R.L.</p>
+                  <p className="text-[9px] text-slate-400">Aprobación Final</p>
                 </div>
               </div>
-            ))}
+            </div>
           </div>
 
-          {/* Final Executive Conclusion */}
-          <div className="rounded-xl border border-slate-200 bg-white px-4 py-2.5">
-            <span className="text-[9px] font-extrabold uppercase tracking-wider text-[#001E50] block">
-              {page.narrativeTitle || 'Acuerdos y Conclusión General del Comité'}
-            </span>
-            {isPrintMode ? (
-              <p className="mt-0.5 text-xs text-[#001E50]">
-                {page.narrativeBody ||
-                  'Informe elaborado por el Área de Calidad de Autosol S.R.L. para revisión y toma de decisiones de Dirección.'}
-              </p>
-            ) : (
-              <input
-                type="text"
-                value={page.narrativeBody}
-                onChange={e => onUpdatePage({ narrativeBody: e.target.value })}
-                placeholder="Redactar conclusión final o acuerdo de cierre de la presentación..."
-                className="mt-0.5 w-full bg-transparent text-xs text-[#001E50] outline-none"
-              />
-            )}
+          {/* Pie Institucional */}
+          <div className="flex items-center justify-between text-[10px] text-[#5A6A85] px-2">
+            <span>Documento confidencial para uso exclusivo de Dirección</span>
+            <span className="font-semibold text-[#001E50]">¡Muchas Gracias! · Autosol S.R.L.</span>
           </div>
         </div>
       </PageFrameA4>

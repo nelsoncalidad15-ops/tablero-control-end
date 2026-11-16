@@ -347,7 +347,6 @@ export function getSuggestedModules(
       'ventas_os',
       'postventa_lvs',
       'lavado',
-      'cumplimiento_objetivos',
       'planes_accion_integrados',
       'proximos_pasos',
     ];
@@ -356,10 +355,8 @@ export function getSuggestedModules(
   const baseQuarterly: DirectionModuleId[] = [
     'ventas_os',
     'postventa_lvs',
-    'cumplimiento_objetivos',
+    'lavado',
     'evolucion_indicadores',
-    'incentivos_ventas',
-    'incentivos_postventa',
     'planes_accion_integrados',
     'proximos_pasos',
   ];
@@ -1862,12 +1859,12 @@ export function composeDirectionReportPages(
     });
   }
 
-  // 13. MATRIZ DE CUMPLIMIENTO DE OBJETIVOS / ANÁLISIS Y CAUSAS (Plantilla 8)
-  if (enabledModules.includes('cumplimiento_objetivos') || enabledModules.includes('conclusiones_ejecutivas')) {
+  // 13. MATRIZ DE CUMPLIMIENTO DE OBJETIVOS / ANÁLISIS Y CAUSAS (Plantilla 8) — Solo si se solicita explícitamente conclusiones ejecutivas
+  if (enabledModules.includes('conclusiones_ejecutivas')) {
     pages.push({
       id: 'page-objectives-analysis',
       templateType: 'analysis_causes',
-      moduleId: enabledModules.includes('cumplimiento_objetivos') ? 'cumplimiento_objetivos' : 'conclusiones_ejecutivas',
+      moduleId: 'conclusiones_ejecutivas',
       title: `Matriz de Cumplimiento y Análisis de Causas — ${computed.periodLabel}`,
       subtitle: 'Evaluación integral frente a objetivos vigentes, hallazgos estratégicos y propuestas',
       sectionTag: 'CUMPLIMIENTO DE OBJETIVOS',

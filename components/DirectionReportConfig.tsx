@@ -129,8 +129,8 @@ const CLEAN_MODULE_LIST: CleanModuleItem[] = [
   },
   {
     id: 'proximos_pasos',
-    label: 'Resumen Ejecutivo y Próximos Pasos',
-    shortDesc: 'Síntesis final y compromisos clave para Dirección',
+    label: 'Cierre Institucional / Fin de Informe',
+    shortDesc: 'Carátula de cierre, conformidad de Dirección y firmas',
     group: 'gestion',
     tag: 'Dirección',
   },
@@ -268,7 +268,6 @@ export const DirectionReportConfig: React.FC<DirectionReportConfigProps> = ({
       'ventas_os',
       'postventa_lvs',
       'lavado',
-      'cumplimiento_objetivos',
       'evolucion_indicadores',
       'encuestas_ssi',
       'encuestas_csi',

@@ -129,8 +129,8 @@ export const DirectionReportEditor: React.FC<DirectionReportEditorProps> = ({
   const [selectedPageId, setSelectedPageId] = useState<string>(doc.pages[0]?.id || '');
   const [selectedImageId, setSelectedImageId] = useState<string | null>(null);
   const [editMode, setEditMode] = useState<'quick' | 'advanced'>('quick');
-  const [viewAllPagesMode, setViewAllPagesMode] = useState<boolean>(false);
-  const [zoomScale, setZoomScale] = useState<number>(0.85);
+  const [viewAllPagesMode, setViewAllPagesMode] = useState<boolean>(true);
+  const [zoomScale, setZoomScale] = useState<number>(0.75);
   const [leftPanelOpen, setLeftPanelOpen] = useState<boolean>(true);
   const [rightPanelOpen, setRightPanelOpen] = useState<boolean>(true);
 
@@ -407,6 +407,10 @@ export const DirectionReportEditor: React.FC<DirectionReportEditorProps> = ({
                     onClick={() => {
                       setSelectedPageId(page.id);
                       setSelectedImageId(null);
+                      const el = document.getElementById(`editor-page-${page.id}`);
+                      if (el) {
+                        el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                      }
                     }}
                     className={`group cursor-pointer rounded-xl border p-2.5 transition ${
                       isSelected
@@ -530,59 +534,79 @@ export const DirectionReportEditor: React.FC<DirectionReportEditorProps> = ({
         {/* ÁREA CENTRAL: DOCUMENTO A4 HORIZONTAL */}
         <main className="flex-1 overflow-auto p-6 flex flex-col items-center">
           {viewAllPagesMode ? (
-            <div className="space-y-8 pb-12">
+            <div className="space-y-8 pb-16 flex flex-col items-center">
               {visiblePages.map((p, idx) => (
                 <div
                   key={p.id}
+                  id={`editor-page-${p.id}`}
                   onClick={() => setSelectedPageId(p.id)}
                   style={{
-                    transform: `scale(${zoomScale})`,
-                    transformOrigin: 'top center',
-                    marginBottom: `${(zoomScale - 1) * 210}mm`,
+                    width: `${297 * zoomScale}mm`,
+                    height: `${210 * zoomScale}mm`,
                   }}
-                  className={`rounded-xl bg-white shadow-[0_20px_55px_rgba(0,30,80,0.12)] transition ${
-                    p.id === activePage?.id ? 'ring-2 ring-[#0072CE]' : ''
+                  className={`relative shrink-0 transition cursor-pointer ${
+                    p.id === activePage?.id ? 'ring-4 ring-[#0072CE]/60 rounded-xl' : ''
                   }`}
                 >
+                  <div
+                    style={{
+                      width: '297mm',
+                      height: '210mm',
+                      transform: `scale(${zoomScale})`,
+                      transformOrigin: 'top left',
+                    }}
+                    className="rounded-xl bg-white shadow-[0_15px_45px_rgba(0,30,80,0.14)] overflow-hidden"
+                  >
+                    <DirectionPageTemplateRenderer
+                      page={p}
+                      pageNumber={idx + 1}
+                      totalPages={visiblePages.length}
+                      doc={doc}
+                      computed={computed}
+                      isPrintMode={false}
+                      selectedImageId={selectedImageId}
+                      onSelectImage={setSelectedImageId}
+                      onUpdatePage={patch => onUpdatePage(p.id, patch)}
+                      onSplitActionPlanToContinuation={onSplitActionPlanToContinuation}
+                      onAddActionPlanPage={onAddActionPlanPage}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          ) : activePage ? (
+            <div className="pb-16 flex flex-col items-center">
+              <div
+                id={`editor-page-${activePage.id}`}
+                style={{
+                  width: `${297 * zoomScale}mm`,
+                  height: `${210 * zoomScale}mm`,
+                }}
+                className="relative shrink-0"
+              >
+                <div
+                  style={{
+                    width: '297mm',
+                    height: '210mm',
+                    transform: `scale(${zoomScale})`,
+                    transformOrigin: 'top left',
+                  }}
+                  className="rounded-xl bg-white shadow-[0_15px_45px_rgba(0,30,80,0.14)] overflow-hidden"
+                >
                   <DirectionPageTemplateRenderer
-                    page={p}
-                    pageNumber={idx + 1}
+                    page={activePage}
+                    pageNumber={activePageNumber}
                     totalPages={visiblePages.length}
                     doc={doc}
                     computed={computed}
                     isPrintMode={false}
                     selectedImageId={selectedImageId}
                     onSelectImage={setSelectedImageId}
-                    onUpdatePage={patch => onUpdatePage(p.id, patch)}
+                    onUpdatePage={patch => onUpdatePage(activePage.id, patch)}
                     onSplitActionPlanToContinuation={onSplitActionPlanToContinuation}
                     onAddActionPlanPage={onAddActionPlanPage}
                   />
                 </div>
-              ))}
-            </div>
-          ) : activePage ? (
-            <div className="pb-12 flex flex-col items-center">
-              <div
-                style={{
-                  transform: `scale(${zoomScale})`,
-                  transformOrigin: 'top center',
-                  marginBottom: `${(zoomScale - 1) * 210}mm`,
-                }}
-                className="rounded-xl bg-white shadow-[0_20px_60px_rgba(0,30,80,0.14)] ring-1 ring-slate-200/90 overflow-hidden"
-              >
-                <DirectionPageTemplateRenderer
-                  page={activePage}
-                  pageNumber={activePageNumber}
-                  totalPages={visiblePages.length}
-                  doc={doc}
-                  computed={computed}
-                  isPrintMode={false}
-                  selectedImageId={selectedImageId}
-                  onSelectImage={setSelectedImageId}
-                  onUpdatePage={patch => onUpdatePage(activePage.id, patch)}
-                  onSplitActionPlanToContinuation={onSplitActionPlanToContinuation}
-                  onAddActionPlanPage={onAddActionPlanPage}
-                />
               </div>
             </div>
           ) : null}

@@ -23,6 +23,7 @@ import {
   Plus,
   Printer,
   Redo2,
+  RefreshCw,
   RotateCcw,
   Save,
   Settings2,
@@ -53,6 +54,11 @@ import { ComplianceBadge, DirectionPageTemplateRenderer } from './DirectionRepor
 interface DirectionReportEditorProps {
   doc: DirectionReportDocument;
   computed: ComputedDirectionReportData;
+  isLoadingData?: boolean;
+  dataSyncStatus?: 'idle' | 'loading' | 'success' | 'error';
+  syncProgress?: { loaded: number; total: number };
+  lastSyncTime?: Date | null;
+  onReloadData?: () => void;
   canUndo: boolean;
   canRedo: boolean;
   lastSavedAt: string | null;
@@ -105,6 +111,11 @@ const TEMPLATE_CATALOG: Array<{
 export const DirectionReportEditor: React.FC<DirectionReportEditorProps> = ({
   doc,
   computed,
+  isLoadingData = false,
+  dataSyncStatus = 'idle',
+  syncProgress,
+  lastSyncTime,
+  onReloadData,
   canUndo,
   canRedo,
   lastSavedAt,
@@ -223,6 +234,57 @@ export const DirectionReportEditor: React.FC<DirectionReportEditorProps> = ({
                     : 'Autoguardado activo'}
               </span>
             </div>
+          </div>
+
+          {/* Sync Status Badge & Reload Button */}
+          <div className="flex items-center gap-1.5 pl-1 hidden sm:flex">
+            {isLoadingData || dataSyncStatus === 'loading' ? (
+              <span
+                className="inline-flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[10px] font-bold text-amber-900 shadow-2xs"
+                title="Cargando y sincronizando datos desde Google Sheets..."
+              >
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75"></span>
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-500"></span>
+                </span>
+                <span>
+                  Sincronizando {syncProgress ? `(${syncProgress.loaded}/${syncProgress.total})` : ''}...
+                </span>
+              </span>
+            ) : dataSyncStatus === 'error' ? (
+              <button
+                type="button"
+                onClick={onReloadData}
+                className="inline-flex items-center gap-1.5 rounded-full border border-rose-300 bg-rose-50 px-2.5 py-1 text-[10px] font-bold text-rose-800 hover:bg-rose-100"
+                title="Hubo un error al conectar con Google Sheets. Clic para reintentar."
+              >
+                <span className="h-2 w-2 rounded-full bg-rose-500" />
+                <span>Error de conexión · Reintentar</span>
+              </button>
+            ) : (
+              <span
+                className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300 bg-emerald-50 px-2.5 py-1 text-[10px] font-bold text-emerald-800"
+                title={lastSyncTime ? `Última sincronización: ${lastSyncTime.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}` : 'Datos sincronizados'}
+              >
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                <span>Datos sincronizados</span>
+              </span>
+            )}
+
+            {onReloadData && (
+              <button
+                type="button"
+                onClick={onReloadData}
+                disabled={isLoadingData}
+                title="Volver a consultar las planillas oficiales en Google Sheets"
+                className="inline-flex items-center gap-1 rounded-xl border border-slate-200 bg-white px-2 py-1 text-xs font-bold text-[#001E50] transition hover:border-[#0072CE] hover:text-[#0072CE] disabled:opacity-50"
+              >
+                <RefreshCw
+                  className={`h-3 w-3 ${isLoadingData ? 'animate-spin text-amber-600' : 'text-[#0072CE]'}`}
+                />
+                <span className="hidden xl:inline">Actualizar</span>
+              </button>
+            )}
           </div>
         </div>
 
@@ -563,6 +625,7 @@ export const DirectionReportEditor: React.FC<DirectionReportEditorProps> = ({
                       totalPages={visiblePages.length}
                       doc={doc}
                       computed={computed}
+                      isLoadingData={isLoadingData}
                       isPrintMode={false}
                       selectedImageId={selectedImageId}
                       onSelectImage={setSelectedImageId}
@@ -599,6 +662,7 @@ export const DirectionReportEditor: React.FC<DirectionReportEditorProps> = ({
                     totalPages={visiblePages.length}
                     doc={doc}
                     computed={computed}
+                    isLoadingData={isLoadingData}
                     isPrintMode={false}
                     selectedImageId={selectedImageId}
                     onSelectImage={setSelectedImageId}

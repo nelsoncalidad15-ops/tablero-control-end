@@ -14,6 +14,7 @@ import {
   FileText,
   FolderOpen,
   Layers,
+  RefreshCw,
   Settings2,
   Sparkles,
   Trash2,
@@ -58,6 +59,10 @@ interface DirectionReportConfigProps {
   computed: ComputedDirectionReportData;
   rawSources: RawDirectionDataSources | null;
   isLoadingData: boolean;
+  dataSyncStatus?: 'idle' | 'loading' | 'success' | 'error';
+  syncProgress?: { loaded: number; total: number };
+  lastSyncTime?: Date | null;
+  onReloadData?: () => void;
   onChangeReportName: (name: string) => void;
   onChangePeriodType: (type: ReportPeriodType) => void;
   onChangeYear: (year: number) => void;
@@ -216,6 +221,10 @@ export const DirectionReportConfig: React.FC<DirectionReportConfigProps> = ({
   computed,
   rawSources,
   isLoadingData,
+  dataSyncStatus = 'idle',
+  syncProgress,
+  lastSyncTime,
+  onReloadData,
   onChangeReportName,
   onChangePeriodType,
   onChangeYear,
@@ -313,6 +322,45 @@ export const DirectionReportConfig: React.FC<DirectionReportConfigProps> = ({
           </div>
 
           <div className="flex items-center gap-2 sm:gap-3">
+            {/* Live Sync Status Indicator */}
+            {isLoadingData || dataSyncStatus === 'loading' ? (
+              <span
+                className="inline-flex items-center gap-1.5 rounded-full border border-amber-300 bg-amber-50 px-2.5 py-1 text-[11px] font-bold text-amber-900 shadow-2xs"
+                title="Sincronizando datos desde Google Sheets..."
+              >
+                <span className="relative flex h-2 w-2">
+                  <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-amber-400 opacity-75"></span>
+                  <span className="relative inline-flex h-2 w-2 rounded-full bg-amber-500"></span>
+                </span>
+                <span>
+                  Sincronizando {syncProgress ? `(${syncProgress.loaded}/${syncProgress.total})` : ''}...
+                </span>
+              </span>
+            ) : dataSyncStatus === 'error' ? (
+              <button
+                type="button"
+                onClick={onReloadData}
+                className="inline-flex items-center gap-1.5 rounded-full border border-rose-300 bg-rose-50 px-2.5 py-1 text-[11px] font-bold text-rose-800 hover:bg-rose-100"
+                title="Error al sincronizar. Clic para reintentar."
+              >
+                <span className="h-2 w-2 rounded-full bg-rose-500" />
+                <span>Error · Reintentar</span>
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={onReloadData}
+                className="inline-flex items-center gap-1.5 rounded-full border border-emerald-300 bg-emerald-50 px-2.5 py-1 text-[11px] font-bold text-emerald-800 hover:bg-emerald-100 transition"
+                title={lastSyncTime ? `Última sincronización: ${lastSyncTime.toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' })}. Clic para refrescar.` : 'Datos sincronizados. Clic para refrescar.'}
+              >
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                <span>Datos sincronizados</span>
+                {onReloadData && (
+                  <RefreshCw className="h-2.5 w-2.5 ml-0.5 text-emerald-700" />
+                )}
+              </button>
+            )}
+
             <span className="hidden sm:inline-block rounded-lg bg-slate-100 px-3 py-1.5 text-xs font-bold text-[#5A6A85]">
               {pageEstimation.label}
             </span>

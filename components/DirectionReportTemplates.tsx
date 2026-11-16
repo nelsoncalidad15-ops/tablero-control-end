@@ -1072,6 +1072,7 @@ interface DirectionPageTemplateRendererProps {
   doc: DirectionReportDocument;
   computed: ComputedDirectionReportData;
   isPrintMode?: boolean;
+  isLoadingData?: boolean;
   selectedImageId?: string | null;
   onSelectImage?: (id: string | null) => void;
   onUpdatePage: (patch: Partial<ReportPage>) => void;
@@ -1086,6 +1087,7 @@ export const DirectionPageTemplateRenderer: React.FC<DirectionPageTemplateRender
   doc,
   computed,
   isPrintMode = false,
+  isLoadingData = false,
   selectedImageId,
   onSelectImage,
   onUpdatePage,
@@ -1223,10 +1225,20 @@ export const DirectionPageTemplateRenderer: React.FC<DirectionPageTemplateRender
                       <div className="rounded-xl border border-slate-200/60 bg-white p-2.5">
                         <div className="flex items-center justify-between">
                           <span className="text-[9px] font-extrabold uppercase text-[#001E50]">Jujuy (3059)</span>
-                          <ComplianceBadge status={card.jujuyStatus} compact />
+                          {isLoadingData && card.jujuyScore == null ? (
+                            <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[8px] font-bold text-amber-700 border border-amber-200 animate-pulse">
+                              Cargando...
+                            </span>
+                          ) : (
+                            <ComplianceBadge status={card.jujuyStatus} compact />
+                          )}
                         </div>
                         <p className="mt-1 text-2xl font-black text-[#001E50] tabular-nums">
-                          {formatMetricAr(card.jujuyScore)}
+                          {isLoadingData && card.jujuyScore == null ? (
+                            <span className="text-xs font-bold text-amber-600 animate-pulse">Sincronizando...</span>
+                          ) : (
+                            formatMetricAr(card.jujuyScore)
+                          )}
                         </p>
                       </div>
 
@@ -1234,10 +1246,20 @@ export const DirectionPageTemplateRenderer: React.FC<DirectionPageTemplateRender
                       <div className="rounded-xl border border-slate-200/60 bg-white p-2.5">
                         <div className="flex items-center justify-between">
                           <span className="text-[9px] font-extrabold uppercase text-[#0072CE]">Salta (3087)</span>
-                          <ComplianceBadge status={card.saltaStatus} compact />
+                          {isLoadingData && card.saltaScore == null ? (
+                            <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[8px] font-bold text-amber-700 border border-amber-200 animate-pulse">
+                              Cargando...
+                            </span>
+                          ) : (
+                            <ComplianceBadge status={card.saltaStatus} compact />
+                          )}
                         </div>
                         <p className="mt-1 text-2xl font-black text-[#001E50] tabular-nums">
-                          {formatMetricAr(card.saltaScore)}
+                          {isLoadingData && card.saltaScore == null ? (
+                            <span className="text-xs font-bold text-amber-600 animate-pulse">Sincronizando...</span>
+                          ) : (
+                            formatMetricAr(card.saltaScore)
+                          )}
                         </p>
                       </div>
                     </div>
@@ -1248,10 +1270,20 @@ export const DirectionPageTemplateRenderer: React.FC<DirectionPageTemplateRender
                           Autosol {doc.branchSelection === 'SALTA' ? 'Salta (3087)' : 'Jujuy (3059)'}
                         </span>
                         <span className="text-3xl font-black text-[#001E50] tabular-nums">
-                          {formatMetricAr(singleVal)}
+                          {isLoadingData && singleVal == null ? (
+                            <span className="text-xs font-bold text-amber-600 animate-pulse">Sincronizando...</span>
+                          ) : (
+                            formatMetricAr(singleVal)
+                          )}
                         </span>
                       </div>
-                      <ComplianceBadge status={singleStatus} />
+                      {isLoadingData && singleVal == null ? (
+                        <span className="rounded-full bg-amber-50 px-2 py-0.5 text-[8px] font-bold text-amber-700 border border-amber-200 animate-pulse">
+                          Cargando...
+                        </span>
+                      ) : (
+                        <ComplianceBadge status={singleStatus} />
+                      )}
                     </div>
                   )}
 

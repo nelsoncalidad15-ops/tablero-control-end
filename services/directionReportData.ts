@@ -486,32 +486,54 @@ export function formatMetricAr(val: number | null | undefined, decimals = 2, suf
 
 // --- Fetch All Data Sources Safely ---
 
-export async function loadAllDirectionReportSources(config: AppConfig): Promise<RawDirectionDataSources> {
+export async function loadAllDirectionReportSources(
+  config: AppConfig,
+  onProgress?: (loaded: number, total: number) => void
+): Promise<RawDirectionDataSources> {
+  const sheetUrls = config?.sheetUrls || ({} as any);
+
   const tasks: Array<{ label: string; run: () => Promise<any> }> = [
-    { label: 'CEM OS Jujuy', run: () => fetchCemOsData(config.sheetUrls.cem_os || 'cem_os') },
-    { label: 'CEM OS Salta', run: () => fetchCemOsData(config.sheetUrls.cem_os_salta || 'cem_os_salta') },
-    { label: 'CEM Postventa Jujuy', run: () => fetchDetailedQualityData(config.sheetUrls.detailed_quality || 'detailed_quality') },
-    { label: 'CEM Postventa Salta', run: () => fetchDetailedQualityData(config.sheetUrls.detailed_quality_salta || 'detailed_quality_salta') },
-    { label: 'Reclamos Postventa', run: () => fetchQualityData(config.sheetUrls.calidad || 'quality') },
-    { label: 'Reclamos Ventas', run: () => fetchSalesClaimsData(config.sheetUrls.sales_claims || 'sales_claims') },
-    { label: 'Encuesta Interna Ventas', run: () => fetchSalesQualityData(config.sheetUrls.sales_quality || 'sales_quality') },
-    { label: 'Encuesta Interna Postventa', run: () => fetchInternalPostventaData(config.sheetUrls.internal_postventa || 'internal_postventa') },
-    { label: 'KPIs Postventa', run: () => fetchPostventaKpiData(config.sheetUrls.postventa_kpis || 'postventa_kpi') },
-    { label: 'Plan de Acción Postventa', run: () => fetchActionPlanData(config.sheetUrls.action_plan || 'action_plan') },
-    { label: 'Plan de Acción Ventas', run: () => fetchActionPlanData(config.sheetUrls.action_plan_sales || 'action_plan_sales') },
-    { label: 'PCGC Checklist', run: () => fetchPCGCData(config.sheetUrls.pcgc || 'pcgc') },
-    { label: 'Objetivos Resumen', run: () => fetchQualityObjectivesSummaryData(config.sheetUrls.quality_objectives_summary || 'quality_objectives_summary') },
-    { label: 'Objetivos Escalas', run: () => fetchQualityObjectivesScalesData(config.sheetUrls.quality_objectives_scales || 'quality_objectives_scales') },
-    { label: 'Encuestas SSI', run: () => fetchSatisfactionSurveyData(config.sheetUrls.ssi_surveys || 'ssi_surveys') },
-    { label: 'Encuestas CSI', run: () => fetchSatisfactionSurveyData(config.sheetUrls.csi_surveys || 'csi_surveys') },
-    { label: 'Objetivos Legacy', run: () => fetchQualityObjectivesData(config.sheetUrls.quality_objectives || 'quality_objectives') },
+    { label: 'CEM OS Jujuy', run: () => fetchCemOsData(sheetUrls.cem_os || 'cem_os') },
+    { label: 'CEM OS Salta', run: () => fetchCemOsData(sheetUrls.cem_os_salta || 'cem_os_salta') },
+    { label: 'CEM Postventa Jujuy', run: () => fetchDetailedQualityData(sheetUrls.detailed_quality || 'detailed_quality') },
+    { label: 'CEM Postventa Salta', run: () => fetchDetailedQualityData(sheetUrls.detailed_quality_salta || 'detailed_quality_salta') },
+    { label: 'Reclamos Postventa', run: () => fetchQualityData(sheetUrls.calidad || 'quality') },
+    { label: 'Reclamos Ventas', run: () => fetchSalesClaimsData(sheetUrls.sales_claims || 'sales_claims') },
+    { label: 'Encuesta Interna Ventas', run: () => fetchSalesQualityData(sheetUrls.sales_quality || 'sales_quality') },
+    { label: 'Encuesta Interna Postventa', run: () => fetchInternalPostventaData(sheetUrls.internal_postventa || 'internal_postventa') },
+    { label: 'KPIs Postventa', run: () => fetchPostventaKpiData(sheetUrls.postventa_kpis || 'postventa_kpi') },
+    { label: 'Plan de Acción Postventa', run: () => fetchActionPlanData(sheetUrls.action_plan || 'action_plan') },
+    { label: 'Plan de Acción Ventas', run: () => fetchActionPlanData(sheetUrls.action_plan_sales || 'action_plan_sales') },
+    { label: 'PCGC Checklist', run: () => fetchPCGCData(sheetUrls.pcgc || 'pcgc') },
+    { label: 'Objetivos Resumen', run: () => fetchQualityObjectivesSummaryData(sheetUrls.quality_objectives_summary || 'quality_objectives_summary') },
+    { label: 'Objetivos Escalas', run: () => fetchQualityObjectivesScalesData(sheetUrls.quality_objectives_scales || 'quality_objectives_scales') },
+    { label: 'Encuestas SSI', run: () => fetchSatisfactionSurveyData(sheetUrls.ssi_surveys || 'ssi_surveys') },
+    { label: 'Encuestas CSI', run: () => fetchSatisfactionSurveyData(sheetUrls.csi_surveys || 'csi_surveys') },
+    { label: 'Objetivos Legacy', run: () => fetchQualityObjectivesData(sheetUrls.quality_objectives || 'quality_objectives') },
   ];
 
+  let completedCount = 0;
+  onProgress?.(0, tasks.length);
+
   const results: PromiseSettledResult<any>[] = new Array(tasks.length);
-  // Load in batches of 4 to avoid overwhelming Render Free proxy
-  for (let i = 0; i < tasks.length; i += 4) {
-    const slice = tasks.slice(i, i + 4);
-    const settled = await Promise.allSettled(slice.map(t => t.run()));
+  const CONCURRENCY = 6;
+
+  for (let i = 0; i < tasks.length; i += CONCURRENCY) {
+    const slice = tasks.slice(i, i + CONCURRENCY);
+    const settled = await Promise.allSettled(
+      slice.map(async t => {
+        try {
+          const res = await t.run();
+          completedCount++;
+          onProgress?.(completedCount, tasks.length);
+          return res;
+        } catch (err) {
+          completedCount++;
+          onProgress?.(completedCount, tasks.length);
+          throw err;
+        }
+      })
+    );
     settled.forEach((res, idx) => {
       results[i + idx] = res;
     });

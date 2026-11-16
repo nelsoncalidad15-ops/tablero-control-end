@@ -70,6 +70,9 @@ export const DirectionReport: React.FC<DirectionReportProps> = ({ config, onBack
   // Data Sources State
   const [rawSources, setRawSources] = useState<RawDirectionDataSources | null>(null);
   const [isLoadingData, setIsLoadingData] = useState<boolean>(true);
+  const [dataSyncStatus, setDataSyncStatus] = useState<'idle' | 'loading' | 'success' | 'error'>('loading');
+  const [syncProgress, setSyncProgress] = useState<{ loaded: number; total: number }>({ loaded: 0, total: 17 });
+  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
 
   // Configuration State
   const [periodType, setPeriodType] = useState<ReportPeriodType>('quarterly');
@@ -97,14 +100,43 @@ export const DirectionReport: React.FC<DirectionReportProps> = ({ config, onBack
 
   const autoSaveTimerRef = useRef<number | null>(null);
 
+  const handleReloadData = useCallback(async () => {
+    setIsLoadingData(true);
+    setDataSyncStatus('loading');
+    setSyncProgress({ loaded: 0, total: 17 });
+    try {
+      const loaded = await loadAllDirectionReportSources(config, (loadedCount, totalCount) => {
+        setSyncProgress({ loaded: loadedCount, total: totalCount });
+      });
+      setRawSources(loaded);
+      setDataSyncStatus(loaded.failedSources.length > 0 && loaded.cemOs.length === 0 ? 'error' : 'success');
+      setLastSyncTime(new Date());
+    } catch {
+      setDataSyncStatus('error');
+    } finally {
+      setIsLoadingData(false);
+    }
+  }, [config]);
+
   // Load Raw Data Sources on mount
   useEffect(() => {
     let active = true;
     setIsLoadingData(true);
-    void loadAllDirectionReportSources(config)
+    setDataSyncStatus('loading');
+    setSyncProgress({ loaded: 0, total: 17 });
+    void loadAllDirectionReportSources(config, (loadedCount, totalCount) => {
+      if (active) {
+        setSyncProgress({ loaded: loadedCount, total: totalCount });
+      }
+    })
       .then(loaded => {
         if (!active) return;
         setRawSources(loaded);
+        setDataSyncStatus(loaded.failedSources.length > 0 && loaded.cemOs.length === 0 ? 'error' : 'success');
+        setLastSyncTime(new Date());
+      })
+      .catch(() => {
+        if (active) setDataSyncStatus('error');
       })
       .finally(() => {
         if (active) setIsLoadingData(false);
@@ -597,6 +629,10 @@ export const DirectionReport: React.FC<DirectionReportProps> = ({ config, onBack
             computed={computed}
             rawSources={rawSources}
             isLoadingData={isLoadingData}
+            dataSyncStatus={dataSyncStatus}
+            syncProgress={syncProgress}
+            lastSyncTime={lastSyncTime}
+            onReloadData={handleReloadData}
             onChangeReportName={setReportName}
             onChangePeriodType={setPeriodType}
             onChangeYear={setYear}
@@ -663,6 +699,11 @@ export const DirectionReport: React.FC<DirectionReportProps> = ({ config, onBack
         <DirectionReportEditor
           doc={doc}
           computed={computed}
+          isLoadingData={isLoadingData}
+          dataSyncStatus={dataSyncStatus}
+          syncProgress={syncProgress}
+          lastSyncTime={lastSyncTime}
+          onReloadData={handleReloadData}
           canUndo={undoStack.length > 0}
           canRedo={redoStack.length > 0}
           lastSavedAt={lastSavedAt}

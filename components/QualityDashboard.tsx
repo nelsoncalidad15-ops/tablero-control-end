@@ -28,6 +28,8 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
   const [selectedMotivos, setSelectedMotivos] = useState<string[]>([]);
   const [selectedResponsable, setSelectedResponsable] = useState<string | null>(null);
   const [showAllMotivos, setShowAllMotivos] = useState<boolean>(true);
+  const [searchTerm, setSearchTerm] = useState<string>('');
+  const [visibleCount, setVisibleCount] = useState<number>(50);
 
   const [availableBranches, setAvailableBranches] = useState<string[]>([]);
 
@@ -121,6 +123,16 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
       });
   }, [contextData, selectedMotivos]);
 
+  const searchedRecords = useMemo(() => {
+    if (!searchTerm.trim()) return displayData;
+    const term = searchTerm.trim().toLowerCase();
+    return displayData.filter(d => {
+      const orderStr = (d.orden || '').toString().toLowerCase();
+      const clientStr = (d.cliente || '').toLowerCase();
+      return orderStr.includes(term) || clientStr.includes(term);
+    });
+  }, [displayData, searchTerm]);
+
   const motivoChartData = useMemo(() => {
     const counts: Record<string, number> = {};
     const IGNORED_MOTIVOS = ['motivos varios', 'sin motivo', 'n/a', 'ninguno', '-', '0', ''];
@@ -146,20 +158,6 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
   const displayedMotivoChartData = useMemo(() => {
     return showAllMotivos ? motivoChartData : motivoChartData.slice(0, 10);
   }, [motivoChartData, showAllMotivos]);
-
-  const resolutionChartData = useMemo(() => {
-    const counts = { Si: 0, No: 0 };
-    contextData.forEach(d => {
-        const val = d.resuelto ? d.resuelto.trim().toLowerCase() : '';
-        if (val === 'si' || val === 'sÃ­') counts.Si++;
-        else if (val === 'no') counts.No++;
-    });
-    
-    const res = [];
-    if (counts.Si > 0) res.push({ name: 'Resuelto', value: counts.Si, fill: '#10B981' });
-    if (counts.No > 0) res.push({ name: 'No Resuelto', value: counts.No, fill: '#EF4444' });
-    return res;
-  }, [contextData]);
 
   const dynamicChartHeight = Math.max(400, motivoChartData.length * 35);
 
@@ -433,7 +431,7 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
             </div>
 
             {/* Modern KPIs Section */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <motion.div 
                     whileHover={{ y: -3 }}
                     className="bg-white p-5 md:p-6 rounded-2xl border border-slate-200 shadow-sm"
@@ -479,115 +477,51 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
                         </div>
                     </div>
                 </motion.div>
-
-                <motion.div 
-                    whileHover={{ y: -3 }}
-                    className="bg-white p-5 md:p-6 rounded-2xl border border-slate-200 shadow-sm"
-                >
-                    <div className="flex justify-between items-start mb-3">
-                        <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-700">
-                                <Icons.CheckCircle className="w-5 h-5" />
-                            </div>
-                            <div>
-                                <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">Efectividad</h3>
-                                <p className="text-xs font-bold text-slate-900 uppercase tracking-tight">Resolución</p>
-                            </div>
-                        </div>
-                    </div>
-                    <div className="flex items-baseline gap-3">
-                        <span className="text-4xl font-black text-slate-950 tracking-tight leading-none">
-                            {Math.round((resolutionChartData.find(d => d.name === 'Resuelto')?.value || 0) / (uniqueClaimsCount || 1) * 100)}%
-                        </span>
-                        <div className="flex flex-col">
-                            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">Tasa de Éxito</span>
-                        </div>
-                    </div>
-                </motion.div>
             </div>
 
-            {/* Main Charts Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 xl:gap-5">
-                {/* Annual Evolution - Large */}
-                <div className="lg:col-span-2">
-                    <ChartWrapper 
-                        title="Evolucion anual de reclamos"
-                        subtitle="Casos unicos por mes"
-                    >
-                        <div className="h-[340px] w-full mt-6">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <BarChart data={annualClaimsChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                                    <defs>
-                                        <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="0%" stopColor="#2563EB" stopOpacity={1} />
-                                            <stop offset="100%" stopColor="#1E40AF" stopOpacity={1} />
-                                        </linearGradient>
-                                        <linearGradient id="barGradientInactive" x1="0" y1="0" x2="0" y2="1">
-                                            <stop offset="0%" stopColor="#cbd5e1" stopOpacity={1} />
-                                            <stop offset="100%" stopColor="#94a3b8" stopOpacity={1} />
-                                        </linearGradient>
-                                    </defs>
-                                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                                    <XAxis 
-                                        dataKey="name" 
-                                        axisLine={false} 
-                                        tickLine={false} 
-                                        tick={{fontSize: 11, fill: '#64748b', fontWeight: 700}}
-                                        interval={0}
+            {/* Annual Evolution - Full Width */}
+            <ChartWrapper 
+                title="Evolucion anual de reclamos"
+                subtitle="Casos unicos por mes"
+            >
+                <div className="h-[340px] w-full mt-6">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={annualClaimsChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                            <defs>
+                                <linearGradient id="barGradient" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="#2563EB" stopOpacity={1} />
+                                    <stop offset="100%" stopColor="#1E40AF" stopOpacity={1} />
+                                </linearGradient>
+                                <linearGradient id="barGradientInactive" x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor="#cbd5e1" stopOpacity={1} />
+                                    <stop offset="100%" stopColor="#94a3b8" stopOpacity={1} />
+                                </linearGradient>
+                            </defs>
+                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                            <XAxis 
+                                dataKey="name" 
+                                axisLine={false} 
+                                tickLine={false} 
+                                tick={{fontSize: 11, fill: '#64748b', fontWeight: 700}}
+                                interval={0}
+                            />
+                            <YAxis axisLine={false} tickLine={false} tick={{fontSize: 11, fill: '#64748b', fontWeight: 700}} />
+                            <Tooltip 
+                                cursor={{fill: '#f8fafc'}} 
+                                contentStyle={{borderRadius: '18px', border: '1px solid #e2e8f0', boxShadow: '0 16px 30px -12px rgb(15 23 42 / 0.18)', fontSize: '12px', fontWeight: 600}} 
+                            />
+                            <Bar dataKey="value" radius={[10, 10, 0, 0]} barSize={34}>
+                                {annualClaimsChartData.map((entry, index) => (
+                                    <Cell 
+                                        key={`cell-${index}`} 
+                                        fill={selectedMonths.includes(entry.name) ? "url(#barGradient)" : "url(#barGradientInactive)"}
                                     />
-                                    <YAxis axisLine={false} tickLine={false} tick={{fontSize: 11, fill: '#64748b', fontWeight: 700}} />
-                                    <Tooltip 
-                                        cursor={{fill: '#f8fafc'}} 
-                                        contentStyle={{borderRadius: '18px', border: '1px solid #e2e8f0', boxShadow: '0 16px 30px -12px rgb(15 23 42 / 0.18)', fontSize: '12px', fontWeight: 600}} 
-                                    />
-                                    <Bar dataKey="value" radius={[10, 10, 0, 0]} barSize={34}>
-                                        {annualClaimsChartData.map((entry, index) => (
-                                            <Cell 
-                                                key={`cell-${index}`} 
-                                                fill={selectedMonths.includes(entry.name) ? "url(#barGradient)" : "url(#barGradientInactive)"}
-                                            />
-                                        ))}
-                                    </Bar>
-                                </BarChart>
-                            </ResponsiveContainer>
-                        </div>
-                    </ChartWrapper>
+                                ))}
+                            </Bar>
+                        </BarChart>
+                    </ResponsiveContainer>
                 </div>
-
-                {/* Resolution Pie Chart */}
-                <ChartWrapper title="Estado de resolucion" subtitle="Distribucion de casos">
-                    <div className="h-[340px] relative mt-6">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <PieChart>
-                                <Pie
-                                    data={resolutionChartData}
-                                    cx="50%"
-                                    cy="50%"
-                                    innerRadius={72}
-                                    outerRadius={106}
-                                    paddingAngle={6}
-                                    dataKey="value"
-                                    stroke="none"
-                                >
-                                    {resolutionChartData.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={entry.name === 'Resuelto' ? '#10B981' : '#F43F5E'} stroke="none" />
-                                    ))}
-                                </Pie>
-                                <Tooltip contentStyle={{borderRadius: '18px', border: '1px solid #e2e8f0', boxShadow: '0 16px 30px -12px rgb(15 23 42 / 0.18)'}} />
-                                <Legend verticalAlign="bottom" height={36} iconType="circle" wrapperStyle={{fontSize: '11px', fontWeight: 600, paddingTop: '10px'}} />
-                            </PieChart>
-                        </ResponsiveContainer>
-                        <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                            <div className="text-center">
-                                <span className="text-4xl font-black text-slate-950 leading-none">
-                                    {Math.round((resolutionChartData.find(d => d.name === 'Resuelto')?.value || 0) / (uniqueClaimsCount || 1) * 100)}%
-                                </span>
-                                <span className="block text-[10px] text-slate-400 font-black uppercase tracking-widest mt-3">Exito</span>
-                            </div>
-                        </div>
-                    </div>
-                </ChartWrapper>
-            </div>
+            </ChartWrapper>
 
             {/* Motivos Chart - Full Width */}
             <ChartWrapper 
@@ -789,10 +723,39 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
                         <h3 className="text-xl md:text-2xl font-black text-slate-900 tracking-tight">Registros Detallados</h3>
                         <p className="text-xs text-slate-500 mt-1">Historial completo de gestiones</p>
                     </div>
-                    <div className="flex items-center gap-3">
-                        <span className="text-xs font-bold text-slate-600 bg-white border border-slate-200 px-3.5 py-1.5 rounded-xl shadow-sm">
-                            {displayData.length} Resultados
-                        </span>
+                    <div className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto">
+                        {/* Buscador por OR o Cliente */}
+                        <div className="relative flex-1 sm:w-72 md:w-80">
+                            <Icons.Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2 pointer-events-none" />
+                            <input
+                                type="text"
+                                value={searchTerm}
+                                onChange={(e) => {
+                                    setSearchTerm(e.target.value);
+                                    setVisibleCount(50);
+                                }}
+                                placeholder="Buscar por N° de OR o cliente..."
+                                className="w-full pl-9 pr-9 py-2.5 text-xs font-semibold bg-white border border-slate-200 rounded-xl text-slate-800 placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all shadow-sm"
+                            />
+                            {searchTerm && (
+                                <button
+                                    type="button"
+                                    onClick={() => {
+                                        setSearchTerm('');
+                                        setVisibleCount(50);
+                                    }}
+                                    className="absolute right-2.5 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 p-1 cursor-pointer transition-colors"
+                                    title="Limpiar búsqueda"
+                                >
+                                    <Icons.X className="w-3.5 h-3.5" />
+                                </button>
+                            )}
+                        </div>
+                        <div className="flex items-center gap-2 shrink-0">
+                            <span className="text-xs font-bold text-slate-600 bg-white border border-slate-200 px-3.5 py-2.5 rounded-xl shadow-sm whitespace-nowrap">
+                                {searchedRecords.length} {searchedRecords.length === 1 ? 'Resultado' : 'Resultados'}
+                            </span>
+                        </div>
                     </div>
                 </div>
                 <div className="overflow-x-auto">
@@ -804,7 +767,38 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-100">
-                            {displayData.slice(0, 50).map((record, idx) => {
+                            {searchedRecords.length === 0 ? (
+                                <tr>
+                                    <td colSpan={2} className="p-12 text-center">
+                                        <div className="max-w-xs mx-auto space-y-2">
+                                            <div className="w-12 h-12 rounded-2xl bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
+                                                <Icons.Search className="w-6 h-6" />
+                                            </div>
+                                            <p className="text-sm font-bold text-slate-800">No se encontraron reclamos</p>
+                                            <p className="text-xs text-slate-500">
+                                                {searchTerm ? (
+                                                    <>No hay resultados para <span className="font-semibold text-slate-700">&ldquo;{searchTerm}&rdquo;</span>. Intenta con otro N° de OR o nombre.</>
+                                                ) : (
+                                                    <>No hay registros disponibles para los filtros seleccionados.</>
+                                                )}
+                                            </p>
+                                            {searchTerm && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => {
+                                                        setSearchTerm('');
+                                                        setVisibleCount(50);
+                                                    }}
+                                                    className="mt-2 text-xs font-bold text-blue-600 hover:text-blue-800 underline cursor-pointer"
+                                                >
+                                                    Limpiar búsqueda
+                                                </button>
+                                            )}
+                                        </div>
+                                    </td>
+                                </tr>
+                            ) : (
+                                searchedRecords.slice(0, visibleCount).map((record, idx) => {
                                 const isResolved = record.resuelto?.toLowerCase().includes('si');
                                 const isNotResolved = record.resuelto?.toLowerCase().includes('no');
                                 const advisor = record.asesor ? normalizeString(record.asesor) : (record.responsable ? normalizeString(record.responsable) : 'Sin Asignar');
@@ -970,15 +964,25 @@ const QualityDashboard: React.FC<QualityDashboardProps> = ({ sheetUrl, onBack, a
                                         </div>
                                     </td>
                                 </tr>
-                                );})}
+                                );
+                            }))}
                         </tbody>
                     </table>
                 </div>
-                <div className="p-8 bg-slate-50/50 border-t border-slate-100 flex justify-center">
-                    <button className="px-8 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-semibold text-slate-800 hover:bg-slate-950 hover:text-white transition-all shadow-sm">
-                        Cargar mas resultados
-                    </button>
-                </div>
+                {searchedRecords.length > visibleCount && (
+                    <div className="p-6 bg-slate-50/50 border-t border-slate-100 flex flex-col sm:flex-row items-center justify-between gap-4">
+                        <span className="text-xs font-semibold text-slate-500">
+                            Mostrando {Math.min(visibleCount, searchedRecords.length)} de {searchedRecords.length} registros
+                        </span>
+                        <button 
+                            type="button"
+                            onClick={() => setVisibleCount(prev => prev + 50)}
+                            className="px-8 py-3 bg-white border border-slate-200 rounded-2xl text-xs font-bold text-slate-800 hover:bg-slate-950 hover:text-white transition-all shadow-sm cursor-pointer"
+                        >
+                            Cargar más resultados (+50)
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     </DashboardFrame>

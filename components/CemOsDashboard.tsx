@@ -311,12 +311,12 @@ const CemOsDashboard: React.FC<CemOsDashboardProps> = ({
           avg: stats.count > 0 ? stats.totalScore / stats.count : 0
         };
       })
-      .filter(s => s.count > 0)
-      .sort((a, b) => b.count - a.count || a.name.localeCompare(b.name, 'es'));
+      .filter(s => s.count > 0 || s.declared > 0)
+      .sort((a, b) => b.count - a.count || b.effectiveness - a.effectiveness || b.declared - a.declared || a.name.localeCompare(b.name, 'es'));
   }, [data, selectedMonths, selectedCodigo, selectedZona, selectedCanal]);
 
   const shareRankingStats = useMemo(() => [...detailedRankingStats]
-    .sort((a, b) => b.effectiveness - a.effectiveness || b.count - a.count || a.name.localeCompare(b.name, 'es')),
+    .sort((a, b) => b.effectiveness - a.effectiveness || b.count - a.count || b.declared - a.declared || a.name.localeCompare(b.name, 'es')),
   [detailedRankingStats]);
 
   const rankingScope = [
@@ -384,7 +384,7 @@ const CemOsDashboard: React.FC<CemOsDashboardProps> = ({
       ctx.textAlign = 'center';
       ctx.fillText(String(advisor.declared), 710, y + 29);
       ctx.fillText(String(advisor.count), 850, y + 29);
-      ctx.fillStyle = '#047857';
+      ctx.fillStyle = advisor.effectiveness > 0 ? '#047857' : '#dc2626';
       ctx.font = 'bold 15px Arial, sans-serif';
       ctx.fillText(`${advisor.effectiveness.toFixed(1).replace('.', ',')}%`, 1005, y + 29);
     });
@@ -732,11 +732,11 @@ const CemOsDashboard: React.FC<CemOsDashboardProps> = ({
                           </div>
                           <div className="flex items-center justify-between gap-4">
                             <span className="text-slate-500 font-semibold">Efectividad:</span>
-                            <span className="font-black text-emerald-600">{item.effectiveness}%</span>
+                            <span className={`font-black ${item.effectiveness > 0 ? 'text-emerald-600' : 'text-rose-600'}`}>{item.effectiveness}%</span>
                           </div>
                           <div className="flex items-center justify-between gap-4">
                             <span className="text-slate-500 font-semibold">Promedio OS:</span>
-                            <span className="font-black text-blue-600">{item.avg.toFixed(2)}</span>
+                            <span className="font-black text-blue-600">{item.count > 0 ? item.avg.toFixed(2) : 'Sin datos'}</span>
                           </div>
                         </div>
                       </div>
@@ -750,8 +750,10 @@ const CemOsDashboard: React.FC<CemOsDashboardProps> = ({
                       content={(props: any) => {
                         const { x, y, width, height, value, index } = props;
                         const advisor = detailedRankingStats[index];
+                        if (!advisor) return null;
                         const avg = advisor?.avg || 0;
                         const eff = advisor?.effectiveness || 0;
+                        const hasResponses = (advisor?.count ?? 0) > 0;
                         return (
                           <g>
                             {/* 1. Cantidad ingresada */}
@@ -783,7 +785,7 @@ const CemOsDashboard: React.FC<CemOsDashboardProps> = ({
                               width={78} 
                               height={24} 
                               rx={7} 
-                              fill="#00B0F0" 
+                              fill={hasResponses ? "#00B0F0" : "#94a3b8"} 
                             />
                             <text 
                               x={x + width + 91} 
@@ -793,7 +795,7 @@ const CemOsDashboard: React.FC<CemOsDashboardProps> = ({
                               fontSize={10.5} 
                               fontWeight={900}
                             >
-                              OS: {avg.toFixed(2)}
+                              {hasResponses ? `OS: ${avg.toFixed(2)}` : 'OS: S/D'}
                             </text>
 
                             {/* 3. Porcentaje de Efectividad */}
@@ -803,7 +805,7 @@ const CemOsDashboard: React.FC<CemOsDashboardProps> = ({
                               width={78} 
                               height={24} 
                               rx={7} 
-                              fill="#10b981" 
+                              fill={eff > 0 ? "#10b981" : "#ef4444"} 
                             />
                             <text 
                               x={x + width + 175} 
